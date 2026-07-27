@@ -39,6 +39,13 @@ def percentile(values: list[float], q: float) -> float:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--per-size", type=int, default=120)
+    parser.add_argument(
+        "--large-per-size",
+        type=int,
+        default=20,
+        help="sample size above the counting-objective crossover, where each "
+        "board costs seconds rather than milliseconds",
+    )
     parser.add_argument("--seed", type=int, default=2024)
     args = parser.parse_args()
 
@@ -47,10 +54,11 @@ def main() -> int:
     print(f"{'n':>2}  {'kept':>5}  {'p10':>6} {'p33':>6} {'p50':>6} {'p66':>6} {'p90':>6}"
           f"  {'mean':>6}  {'maxtier':>18}")
     for n in range(MIN_SIZE, MAX_SIZE + 1):
+        wanted = args.per_size if n <= 10 else args.large_per_size
         indices: list[int] = []
         tiers: Counter[int] = Counter()
         steps: list[int] = []
-        while len(indices) < args.per_size:
+        while len(indices) < wanted:
             found = _local_search(n, rng)
             if found is None:
                 continue

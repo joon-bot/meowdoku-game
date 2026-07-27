@@ -7,7 +7,7 @@ difficulty rating and puzzle generator. Pure Python 3.11, no dependencies.
 
 An `n x n` grid is split into exactly `n` contiguous colour regions. Place one
 queen in every **row**, every **column** and every **colour region**, and no two
-queens may be **diagonally adjacent**.
+queens may be **diagonally adjacent**. Sizes 5×5 through 15×15 are supported.
 
 Two queens can never be orthogonally adjacent either — that would put them in
 the same row or column — so the diagonal rule is the only adjacency constraint
@@ -37,9 +37,11 @@ C D D D E          C D D D Q
 
 ```bash
 python -m queens generate 7 --difficulty hard      # make one and show its answer
+python -m queens generate 15                       # 15x15 works too, just slower
 python -m queens show q7-004                       # print a puzzle from puzzles.json
 python -m queens solve q7-004 --explain            # solve it and print the reasoning
-python scripts/generate_puzzles.py --count 100     # rebuild puzzles.json
+python scripts/generate_puzzles.py --per-cell 3    # rebuild puzzles.json (matrix)
+python scripts/generate_puzzles.py --max-size 9    # ...or just the fast sizes
 python -m unittest discover -s tests -t .          # run the tests
 ```
 
@@ -111,17 +113,30 @@ score = Σ weight(tier of step)      weights: T1=1, T2=3, T3=7, T4=15
 | medium | 22–39 |
 | hard | 40+ |
 
-The score is used **raw, not divided by board area**. That is counter-intuitive,
-so it is worth saying why: a bigger board needs more steps, but each individual
-step is easier, and across a 200-board sample per size the two effects very
-nearly cancel. Mean scores came out at 34 / 30 / 32 / 38 / 42 for 5×5 through
-9×9 — near enough flat. The same figures divided by area fell steadily from
-1.35 to 0.52, so normalising by area would have labelled almost every 9×9
-"easy" and most 5×5s "hard". The band cut points are the tertiles of that
-pooled sample (p33 = 21, p67 = 41), which splits it 350 / 307 / 343.
+The score is used **raw, not divided by board area**, and the bands are the same
+at every size — a "hard" puzzle should mean the same amount of reasoning whether
+it is 5×5 or 15×15.
 
-Rerun `python scripts/calibrate.py` after changing a rule or a tier weight; both
-feed straight into the score and will move the bands.
+Normalising by area would be much worse. Sampled mean scores by size:
+
+| n | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| mean score | 32 | 29 | 32 | 36 | 37 | 43 | 22 | 21 | 33 | 25 | 22 |
+| ÷ area | 1.28 | 0.79 | 0.65 | 0.56 | 0.46 | 0.43 | 0.18 | 0.15 | 0.19 | 0.13 | 0.10 |
+
+Divided by area the figure falls 13×, so an area-based rule would call
+essentially every large board easy. Raw, the bands hold their meaning.
+
+The dip at 11×11 is real and worth knowing about: above the counting crossover
+the generator grows deliberately lopsided regions, and a small region pins its
+queen immediately, so those boards need less reasoning on average. It costs
+nothing in output balance — the matrix asks for each band explicitly and walks a
+board into it — but the hard cells at large sizes do take longer to fill.
+
+The cut points are the tertiles of the pooled sample (p33 = 18, p67 = 38),
+rounded, splitting it 411 / 265 / 324. Rerun `python scripts/calibrate.py` after
+changing a rule or a tier weight; both feed straight into the score and will
+move the bands.
 
 ## Generation
 
@@ -134,31 +149,101 @@ The generator works backwards from an answer:
 3. Require exactly one solution.
 4. Require the deduction solver to finish it.
 
-Steps 3 and 4 reject nearly everything: raw region growth lands on a uniquely
-solvable board only about **1%** of the time, and the rate falls off a cliff
-above 6×6. So the generator does not throw failures away. It hill-climbs
-instead, moving one cell at a time across a region border:
+Steps 3 and 4 reject nearly everything, so the generator does not throw failures
+away — it hill-climbs, moving one cell at a time across a region border. Every
+move keeps the seeded solution valid, so the search only has to make the board
+more constrained. Sideways moves and a random kick get it out of local minima.
+
+Three things make this work across the whole 5×5–15×15 range.
+
+### Region size variance is the main lever
+
+Regions hold `n` cells on average, so as the board grows each region pins its
+queen *less*, and the solution count explodes. Measured medians for the raw
+solution count of a freshly grown 15×15 board:
+
+| growth | median solutions |
+| --- | --- |
+| even regions (`balance ≥ 0`) | 200 000+ (measurement cap) |
+| lopsided regions (`balance = -2`) | ~300 |
+
+Three orders of magnitude. Nothing else came close — compact regions and
+row/column-banded regions both made it *worse*. So the `balance` window slides
+negative as the board grows, and a per-region size cap of 3–4×`n` stops a
+strongly negative balance from producing one region that swallows the grid
+(uniquely solvable, but a degenerate puzzle).
+
+### Two objectives, because the cheap one flips over
 
 ```
-objective (lower is better, compared lexicographically):
-  (1, k)  ->  k solutions, still ambiguous
-  (0, m)  ->  unique, but deduction stalls with m queens unplaced
-  (0, 0)  ->  done
+counting   (1, k, 0)   k solutions, still ambiguous
+           (0, m, 0)   unique, but deduction stalls with m queens unplaced
+deduction  (0, m, c)   deduction stalls with m queens unplaced, c candidates
 ```
 
-Every move keeps the seeded solution valid, so the search only ever has to push
-the solution count down to one and then open up the deduction chain. Sideways
-moves and a random kick get it out of local minima. That takes 9×9 from
-*effectively never* to a ~60% hit rate per attempt at under a second each.
+Counting solutions is a sharp gradient and it is cheap *while a board is
+ambiguous* — but expensive once it is nearly unique, because the solver then has
+to exhaust the whole tree to prove no second solution exists, for every
+candidate move. Profiling a 13×13 search driven by counting put **89%** of its
+runtime in the exhaustive solver.
+
+So above 10×10 the search switches to pure deduction and never counts at all.
+It can do that because the rules are sound: every queen the deduction solver
+commits to holds in every solution, so **if it places all `n` queens, all
+solutions agree on all `n` cells and the board is necessarily unique**.
+Uniqueness is still verified once per finished puzzle — it is just no longer in
+the inner loop. Every board produced this way has checked out as unique.
+
+Below the crossover, counting wins clearly (0.12s per 7×7 puzzle against 1.2s
+for deduction), so both modes stay.
+
+### Cost, and what it buys
+
+Seconds per finished puzzle, from the run that produced the shipped
+`puzzles.json` (9 puzzles per size, difficulty targeted):
+
+| n | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| s/puzzle | 0.02 | 0.05 | 0.14 | 0.33 | 2.3 | 3.9 | 3.3 | 4.7 | 23.3 | 18.6 | 25.5 |
+
+Three orders of magnitude across the range, and the whole 99-puzzle matrix in
+about 12 minutes. The climb is intrinsic, not an artefact: bigger boards have
+weaker region constraints, so uniquely solvable layouts are genuinely rarer.
+It is not perfectly monotonic either — 14×14 came in faster than 13×13 — because
+success is a hit rate on random restarts, so an unlucky size costs extra
+attempts.
+
+Every run records these per-size timings, on stdout and in the output file.
 
 Asking for a specific difficulty runs the same climb again with the score as the
 objective, so the band comes out of local search rather than rejection sampling.
 
 ## puzzles.json
 
-100 puzzles: 20 per size from 5×5 to 9×9, split 35 easy / 35 medium / 30 hard.
-Each entry is re-verified from scratch before being written — the file is
-rebuilt with `python scripts/generate_puzzles.py` and takes about 40 seconds.
+A full **size × difficulty matrix**: every board size from 5×5 to 15×15, in each
+of easy/medium/hard, with `--per-cell` puzzles in each of the 33 cells (3 by
+default, so 99 puzzles). Each entry is re-verified from scratch before being
+written.
+
+The file also records how long each size took, since that is the thing that
+varies by three orders of magnitude across the range:
+
+```jsonc
+"generator": {
+  "seed": 20240517,
+  "per_cell": 3,
+  "timing": {
+    "total_seconds": 1234.5,
+    "by_size": {
+      "5":  {"produced": 9, "seconds":   0.4, "seconds_each": 0.04, "failed": 0},
+      "15": {"produced": 9, "seconds": 512.7, "seconds_each": 56.9, "failed": 0}
+    },
+    "cells": [ /* one entry per (size, difficulty) pair */ ]
+  }
+}
+```
+
+The same breakdown is printed live during a run, per cell and per size.
 
 ```jsonc
 {
@@ -189,7 +274,8 @@ python -m unittest discover -s tests -t .
 column permutation and filters it with the rules read straight off the puzzle
 statement. It shares no code with `queens/solver.py`, so the uniqueness claims
 are checked against something independent rather than against the same algorithm
-twice.
+twice. It is a factorial enumeration, so it is applied up to 7×7 — beyond that
+uniqueness is checked with the fast solver only.
 
 The suite covers:
 
@@ -198,5 +284,10 @@ The suite covers:
   uses, and no placement is committed that not every solution shares
 * the deduction solver never claiming to solve an ambiguous board
 * generated puzzles being unique, contiguous and guess-free
+* the growth and search schedules behaving across the size range — the balance
+  window sliding negative, the size cap holding, the objective mode and attempt
+  budget tracking the crossover
+* `generate_matrix` filling every cell and reporting per-size timings that add
+  up to the run total
 * every puzzle in `puzzles.json` re-verified from the file, with the small
   boards double-checked by brute force

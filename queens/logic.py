@@ -105,6 +105,36 @@ class _Unit:
         return f"<{self.label}>"
 
 
+_ATTACK_BASE: dict[int, dict[Cell, frozenset[Cell]]] = {}
+
+
+def _attack_base(n: int) -> dict[Cell, frozenset[Cell]]:
+    """The region-independent part of each cell's attack set, cached by size.
+
+    A cell attacks its row, its column, its four diagonal neighbours and its
+    colour region. Only the last of those depends on the region map, so the
+    rest can be built once per board size and shared. The generator solves
+    thousands of one-cell variations of the same board, and rebuilding this
+    every time was about a third of the solver's runtime.
+    """
+    cached = _ATTACK_BASE.get(n)
+    if cached is not None:
+        return cached
+
+    base: dict[Cell, frozenset[Cell]] = {}
+    for r in range(n):
+        for c in range(n):
+            cells = {(r, i) for i in range(n)} | {(i, c) for i in range(n)}
+            for dr, dc in ((-1, -1), (-1, 1), (1, -1), (1, 1)):
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < n and 0 <= nc < n:
+                    cells.add((nr, nc))
+            cells.discard((r, c))
+            base[(r, c)] = frozenset(cells)
+    _ATTACK_BASE[n] = base
+    return base
+
+
 class LogicSolver:
     """Applies deduction rules to a board until it stalls, solves or breaks."""
 
@@ -112,8 +142,12 @@ class LogicSolver:
         self.board = board
         self.n = board.n
         self.max_set_size = max_set_size
+        base = _attack_base(self.n)
+        region_sets = [frozenset(cells) for cells in board.region_cells]
         self.attacked: dict[Cell, frozenset[Cell]] = {
-            cell: frozenset(board.attacked_by(cell)) for cell in board.cells()
+            cell: (base[cell] | region_sets[board.regions[cell[0]][cell[1]]])
+            - {cell}
+            for cell in board.cells()
         }
         self.units: list[_Unit] = []
         for r in range(self.n):

@@ -17,8 +17,8 @@ from queens.solver import find_solutions
 from tests.reference import brute_force_solutions, is_legal
 
 PUZZLES_PATH = Path(__file__).resolve().parent.parent / "puzzles.json"
-EXPECTED_COUNT = 100
 DIFFICULTIES = [name for name, _ in DIFFICULTY_BANDS]
+EXPECTED_SIZES = list(range(MIN_SIZE, MAX_SIZE + 1))
 
 
 def load():
@@ -37,8 +37,25 @@ class PuzzleFileShapeTest(unittest.TestCase):
 
     def test_header(self):
         self.assertEqual(self.data["schema_version"], 1)
-        self.assertEqual(self.data["count"], EXPECTED_COUNT)
-        self.assertEqual(len(self.data["puzzles"]), EXPECTED_COUNT)
+        self.assertEqual(self.data["count"], len(self.data["puzzles"]))
+        per_cell = self.data["generator"]["per_cell"]
+        expected = per_cell * len(EXPECTED_SIZES) * len(DIFFICULTIES)
+        self.assertEqual(self.data["count"], expected)
+
+    def test_matrix_is_complete(self):
+        """Every (size, difficulty) cell must hold exactly per_cell puzzles."""
+        per_cell = self.data["generator"]["per_cell"]
+        counts = {}
+        for entry in self.data["puzzles"]:
+            key = (entry["size"], entry["difficulty"])
+            counts[key] = counts.get(key, 0) + 1
+        for size in EXPECTED_SIZES:
+            for difficulty in DIFFICULTIES:
+                self.assertEqual(
+                    counts.get((size, difficulty), 0),
+                    per_cell,
+                    f"cell {size}x{size} {difficulty} is not full",
+                )
 
     def test_ids_are_unique(self):
         ids = [p["id"] for p in self.data["puzzles"]]
@@ -53,7 +70,33 @@ class PuzzleFileShapeTest(unittest.TestCase):
 
     def test_every_size_in_range_is_represented(self):
         sizes = {p["size"] for p in self.data["puzzles"]}
-        self.assertEqual(sizes, set(range(MIN_SIZE, MAX_SIZE + 1)))
+        self.assertEqual(sizes, set(EXPECTED_SIZES))
+
+    def test_timing_is_reported_for_every_size(self):
+        timing = self.data["generator"]["timing"]
+        by_size = timing["by_size"]
+        self.assertEqual(
+            sorted(int(k) for k in by_size), EXPECTED_SIZES
+        )
+        for size, row in by_size.items():
+            self.assertGreaterEqual(row["seconds"], 0.0)
+            self.assertEqual(row["produced"], row["requested"])
+            self.assertEqual(row["failed"], 0)
+        self.assertEqual(
+            len(timing["cells"]), len(EXPECTED_SIZES) * len(DIFFICULTIES)
+        )
+        # The per-size figures have to add up to the reported total.
+        self.assertAlmostEqual(
+            sum(row["seconds"] for row in by_size.values()),
+            timing["total_seconds"],
+            places=1,
+        )
+
+    def test_large_boards_are_reported_as_slower_than_small_ones(self):
+        by_size = self.data["generator"]["timing"]["by_size"]
+        smallest = by_size[str(EXPECTED_SIZES[0])]["seconds_each"]
+        largest = by_size[str(EXPECTED_SIZES[-1])]["seconds_each"]
+        self.assertGreater(largest, smallest)
 
     def test_every_difficulty_is_represented(self):
         found = {p["difficulty"] for p in self.data["puzzles"]}
@@ -88,7 +131,8 @@ class PuzzleFileContentTest(unittest.TestCase):
                 self.assertEqual(list(solutions[0]), entry["solution"])
 
     def test_uniqueness_confirmed_independently_on_the_small_boards(self):
-        # Brute force is a factorial enumeration, so cap it at 7x7 (5040 perms).
+        # Brute force is a factorial enumeration, so cap it at 7x7 (5040 perms);
+        # a 15x15 sweep would be 15! permutations.
         checked = 0
         for entry in self.puzzles:
             if entry["size"] > 7:

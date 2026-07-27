@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 """Build the shipped puzzle set.
 
-    python scripts/generate_puzzles.py --count 100 --out puzzles.json
+    python scripts/generate_puzzles.py --per-cell 3 --out puzzles.json
+
+Generates a full size x difficulty matrix: `per_cell` puzzles for every board
+size from 5x5 to 15x15 in each of easy/medium/hard.
 
 Every puzzle written out has been checked twice over: the exhaustive solver
 found exactly one solution, and the deduction solver reached that solution
 without guessing.
+
+Generation cost climbs very steeply with board size, so the run reports how
+long each size took, both on stdout and in the "timing" block of the output
+file.
 """
 
 from __future__ import annotations
@@ -24,8 +31,9 @@ from queens.generator import (  # noqa: E402
     DIFFICULTY_BANDS,
     MAX_SIZE,
     MIN_SIZE,
+    MatrixReport,
     Puzzle,
-    generate_many,
+    generate_matrix,
 )
 from queens.logic import solve_logically  # noqa: E402
 from queens.solver import find_solutions  # noqa: E402
@@ -61,7 +69,10 @@ def _describe_bands() -> dict[str, str]:
     return out
 
 
-def build_payload(puzzles: list[Puzzle], seed: int, elapsed: float) -> dict:
+def build_payload(
+    report: MatrixReport, seed: int, elapsed: float, per_cell: int
+) -> dict:
+    puzzles = report.puzzles
     by_size: Counter[int] = Counter(p.size for p in puzzles)
     by_difficulty: Counter[str] = Counter(p.difficulty for p in puzzles)
 
@@ -93,11 +104,13 @@ def build_payload(puzzles: list[Puzzle], seed: int, elapsed: float) -> dict:
         },
         "generator": {
             "seed": seed,
+            "per_cell": per_cell,
             "elapsed_seconds": round(elapsed, 1),
             "guaranteed": [
                 "exactly one solution",
                 "solvable by deduction alone, no guessing",
             ],
+            "timing": report.to_dict(),
         },
         "count": len(entries),
         "counts_by_size": {str(k): by_size[k] for k in sorted(by_size)},
@@ -110,30 +123,56 @@ def build_payload(puzzles: list[Puzzle], seed: int, elapsed: float) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--count", type=int, default=100)
+    parser.add_argument(
+        "--per-cell",
+        type=int,
+        default=3,
+        help="puzzles per (size, difficulty) cell of the matrix",
+    )
     parser.add_argument("--out", type=Path, default=Path("puzzles.json"))
     parser.add_argument("--seed", type=int, default=20240517)
+    parser.add_argument("--min-size", type=int, default=MIN_SIZE)
+    parser.add_argument("--max-size", type=int, default=MAX_SIZE)
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args()
 
+    sizes = tuple(range(args.min_size, args.max_size + 1))
     started = time.time()
-    puzzles = generate_many(
-        args.count,
-        sizes=tuple(range(MIN_SIZE, MAX_SIZE + 1)),
+    report = generate_matrix(
+        per_cell=args.per_cell,
+        sizes=sizes,
         seed=args.seed,
         progress=not args.quiet,
     )
     elapsed = time.time() - started
 
+    puzzles = report.puzzles
     for puzzle in puzzles:
         verify(puzzle)
 
-    payload = build_payload(puzzles, args.seed, elapsed)
+    payload = build_payload(report, args.seed, elapsed, args.per_cell)
     args.out.write_text(json.dumps(payload, indent=2) + "\n")
 
     print(f"\nwrote {len(puzzles)} puzzles to {args.out} in {elapsed:.1f}s")
-    print("  by size:      ", payload["counts_by_size"])
-    print("  by difficulty:", payload["counts_by_difficulty"])
+    print(f"  by difficulty: {payload['counts_by_difficulty']}")
+    print()
+    print("  generation time by size")
+    print(f"    {'size':>5} {'puzzles':>8} {'total':>9} {'each':>8}  {'failed':>6}")
+    for size, row in sorted(report.by_size().items()):
+        print(
+            f"    {size:>3}x{size:<2} {row['produced']:>6} "
+            f"{row['seconds']:>8.1f}s {row['seconds_each']:>7.2f}s "
+            f"{row['failed']:>7}"
+        )
+    missing = sum(c.failures for c in report.cells)
+    if missing:
+        print(f"\n  {missing} requested puzzle(s) could not be generated:")
+        for cell in report.cells:
+            if cell.failures:
+                print(
+                    f"    {cell.size}x{cell.size} {cell.difficulty}: "
+                    f"{cell.produced}/{cell.requested}"
+                )
     return 0
 
 

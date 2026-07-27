@@ -2,7 +2,7 @@
 
 An ``n x n`` grid is split into ``n`` contiguous colour regions. Place one
 queen in every row, every column and every region, with no two queens
-diagonally adjacent.
+diagonally adjacent. Board sizes 5x5 through 15x15 are supported.
 
 Public surface:
 
@@ -15,10 +15,15 @@ Public surface:
 from .board import Board, InvalidBoardError
 from .generator import (
     DIFFICULTY_BANDS,
+    MAX_SIZE,
+    MIN_SIZE,
+    CellReport,
     GenerationError,
+    MatrixReport,
     Puzzle,
     classify,
     generate_many,
+    generate_matrix,
     generate_puzzle,
 )
 from .logic import LogicResult, explain, is_logically_solvable, solve_logically
@@ -28,10 +33,15 @@ __all__ = [
     "Board",
     "InvalidBoardError",
     "DIFFICULTY_BANDS",
+    "MIN_SIZE",
+    "MAX_SIZE",
+    "CellReport",
     "GenerationError",
+    "MatrixReport",
     "Puzzle",
     "classify",
     "generate_many",
+    "generate_matrix",
     "generate_puzzle",
     "LogicResult",
     "explain",
