@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#FDF4EA">
+<meta name="description" content="토끼네 자리 — 각 자리·가로줄·세로줄에 토끼를 한 마리씩 놓는 아늑한 논리 퍼즐">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>토끼네 자리</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23FDF4EA'/%3E%3Cg stroke='%238A6E5C' stroke-width='4' stroke-linejoin='round'%3E%3Cellipse cx='35' cy='30' rx='9' ry='21' fill='%23FFFDFA'/%3E%3Cellipse cx='65' cy='30' rx='9' ry='21' fill='%23FFFDFA'/%3E%3Ccircle cx='50' cy='64' r='24' fill='%23FFFDFA'/%3E%3C/g%3E%3Cellipse cx='35' cy='30' rx='4' ry='13' fill='%23F6B9C4'/%3E%3Cellipse cx='65' cy='30' rx='4' ry='13' fill='%23F6B9C4'/%3E%3Ccircle cx='41' cy='63' r='4' fill='%234A3B33'/%3E%3Ccircle cx='59' cy='63' r='4' fill='%234A3B33'/%3E%3Cpath d='M50 70l-4 3.5h8z' fill='%23E98D9E'/%3E%3C/svg%3E">
+<style>
+/* ============================================================ 기본 토큰 */
+:root{
+  --cream:#FDF4EA;
+  --cream-2:#F7EADB;
+  --ink:#5A4638;
+  --ink-soft:#8B7565;
+  --ink-faint:#B6A092;
+  --line:#D9C6B4;
+  --line-strong:#7A6153;
+  --white:#FFFDFA;
+  --accent:#F0A6A6;
+  --accent-deep:#DC7F84;
+  --mint:#8FCBB3;
+  --sky:#9BC6E4;
+  --butter:#F6D89A;
+  --danger:#E8756F;
+  --radius:20px;
+  --shadow-sm:0 2px 6px rgba(120,95,75,.10);
+  --shadow-md:0 6px 18px rgba(120,95,75,.14);
+  --shadow-lg:0 14px 40px rgba(120,95,75,.22);
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;margin:0;}
+body{
+  font-family:"Pretendard","Apple SD Gothic Neo","Noto Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(1200px 620px at 12% -8%, #FFF7EC 0%, rgba(255,247,236,0) 60%),
+    radial-gradient(900px 520px at 100% 0%, #F6EDF6 0%, rgba(246,237,246,0) 55%),
+    linear-gradient(180deg,#FDF4EA 0%,#F6E9DA 100%);
+  background-attachment:fixed;
+  overscroll-behavior:none;
+  user-select:none;-webkit-user-select:none;
+}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;}
+
+/* 폭신한 구름 장식 */
+.sky-deco{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0;}
+.sky-deco span{
+  position:absolute;border-radius:999px;background:rgba(255,255,255,.55);
+  filter:blur(1px);animation:drift linear infinite;
+}
+@keyframes drift{from{transform:translateX(-30vw)}to{transform:translateX(130vw)}}
+
+/* ============================================================ 화면 전환 */
+#app{position:relative;z-index:1;height:100%;}
+.screen{
+  position:absolute;inset:0;display:none;flex-direction:column;
+  padding:calc(var(--safe-top) + 8px) 16px calc(var(--safe-bottom) + 10px);
+}
+.screen.on{display:flex;animation:screenIn .28s ease both;}
+@keyframes screenIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ============================================================ 타이틀 */
+#screen-title{align-items:center;justify-content:center;text-align:center;gap:4px;}
+.title-badge{
+  width:132px;height:132px;border-radius:44px;background:var(--white);
+  box-shadow:var(--shadow-md);display:grid;place-items:center;margin-bottom:18px;
+  border:2px solid rgba(255,255,255,.9);
+  animation:bob 3.4s ease-in-out infinite;
+}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.title-badge svg{width:88px;height:88px;}
+h1.game-title{
+  margin:0;font-size:34px;letter-spacing:-.02em;font-weight:800;
+  text-shadow:0 2px 0 rgba(255,255,255,.85);
+}
+.tagline{margin:8px 0 26px;color:var(--ink-soft);font-size:14.5px;line-height:1.6;}
+.menu{display:flex;flex-direction:column;gap:11px;width:min(320px,86vw);}
+.btn{
+  border-radius:18px;padding:15px 18px;font-weight:700;font-size:16.5px;
+  background:var(--white);box-shadow:var(--shadow-sm);
+  border:1.5px solid rgba(217,198,180,.55);
+  transition:transform .12s ease, box-shadow .12s ease;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+}
+.btn:active{transform:translateY(2px) scale(.99);box-shadow:0 1px 3px rgba(120,95,75,.12);}
+.btn.primary{
+  background:linear-gradient(180deg,#F6B7B4 0%,#EE9A9C 100%);
+  color:#5A2E30;border-color:rgba(220,127,132,.5);
+  box-shadow:0 6px 0 rgba(200,120,124,.45), var(--shadow-sm);
+}
+.btn.primary:active{box-shadow:0 2px 0 rgba(200,120,124,.45);}
+.btn.ghost{background:rgba(255,255,255,.62);}
+.btn .sub{font-weight:600;font-size:12.5px;color:var(--ink-soft);}
+.credit{margin-top:22px;font-size:11.5px;color:var(--ink-faint);}
+
+/* ============================================================ 공통 상단바 */
+.topbar{
+  display:flex;align-items:center;gap:10px;min-height:44px;flex:0 0 auto;
+}
+.icon-btn{
+  width:40px;height:40px;border-radius:14px;display:grid;place-items:center;
+  background:rgba(255,255,255,.7);box-shadow:var(--shadow-sm);
+  border:1.5px solid rgba(217,198,180,.5);
+}
+.icon-btn:active{transform:scale(.94);}
+.icon-btn svg{width:20px;height:20px;}
+.topbar h2{margin:0;font-size:17px;font-weight:800;flex:1;text-align:center;letter-spacing:-.01em;}
+
+/* ============================================================ 레벨 선택 */
+#levelGrid{
+  flex:1;overflow-y:auto;overscroll-behavior:contain;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));
+  gap:11px;padding:14px 2px 24px;align-content:start;
+}
+.lv{
+  position:relative;aspect-ratio:1/1.05;border-radius:19px;background:var(--white);
+  box-shadow:var(--shadow-sm);border:1.5px solid rgba(217,198,180,.5);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  transition:transform .12s ease;
+}
+.lv:active{transform:scale(.96);}
+.lv .num{font-size:21px;font-weight:800;}
+.lv .size{font-size:11.5px;color:var(--ink-soft);font-weight:700;}
+.lv .diff{
+  margin-top:3px;font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px;letter-spacing:.02em;
+}
+.diff.easy{background:#DDF0D6;color:#4E7A46;}
+.diff.normal{background:#DCEAF7;color:#3F6B90;}
+.diff.hard{background:#F7DDE4;color:#944C63;}
+.lv .star{position:absolute;top:7px;right:9px;font-size:13px;}
+.lv.locked{background:rgba(255,255,255,.5);color:var(--ink-faint);box-shadow:none;border-style:dashed;}
+.lv.locked .size,.lv.locked .diff{opacity:.7;}
+.lv.cleared{border-color:rgba(143,203,179,.75);box-shadow:0 0 0 2px rgba(143,203,179,.22),var(--shadow-sm);}
+.lv-hint{text-align:center;font-size:12px;color:var(--ink-faint);padding-bottom:6px;}
+
+/* ============================================================ 게임 화면 */
+#screen-game{padding-left:10px;padding-right:10px;}
+.hud{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:8px 4px 2px;flex:0 0 auto;
+}
+.hud .meta{display:flex;flex-direction:column;line-height:1.25;}
+.hud .meta .lvname{font-size:15.5px;font-weight:800;}
+.hud .meta .lvsub{font-size:11.5px;color:var(--ink-soft);font-weight:600;}
+.hearts{display:flex;gap:4px;align-items:center;}
+.hearts svg{width:23px;height:23px;transition:transform .2s ease,opacity .2s ease;}
+.hearts .gone{opacity:.28;filter:grayscale(1);transform:scale(.86);}
+.hearts .pop{animation:heartPop .5s ease;}
+@keyframes heartPop{0%{transform:scale(1)}30%{transform:scale(1.45) rotate(-10deg)}100%{transform:scale(.86)}}
+.timer{font-size:12.5px;color:var(--ink-soft);font-weight:700;font-variant-numeric:tabular-nums;}
+
+/* 보드 뷰포트 (핀치줌 / 팬) */
+#viewport{
+  position:relative;flex:1 1 auto;margin:8px 0;border-radius:24px;
+  overflow:hidden;touch-action:none;
+  background:rgba(255,255,255,.36);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7);
+}
+#stage{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;}
+#boardWrap{
+  padding:10px;border-radius:26px;background:var(--white);
+  box-shadow:var(--shadow-md);
+}
+#board{display:grid;border-radius:12px;overflow:hidden;background:var(--line-strong);}
+.cell{
+  position:relative;display:grid;place-items:center;
+  border:1px solid rgba(122,97,83,.16);
+  transition:background-color .18s ease;
+}
+.cell .glyph{width:78%;height:78%;display:grid;place-items:center;pointer-events:none;}
+.cell .glyph svg{width:100%;height:100%;display:block;}
+.cell .glyph{animation:pop .22s cubic-bezier(.2,1.5,.5,1) both;}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+.cell.x .glyph{opacity:.62;}
+.cell.conflict{background-image:repeating-linear-gradient(45deg,rgba(232,117,111,.32) 0 7px,rgba(232,117,111,.12) 7px 14px);}
+.cell.conflict::after{
+  content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 3px var(--danger);
+}
+.cell.shake{animation:shake .38s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+.cell.hint::after{
+  content:"";position:absolute;inset:2px;border-radius:8px;
+  box-shadow:0 0 0 3px #6FB39A;animation:hintPulse 1.1s ease-in-out infinite;
+}
+@keyframes hintPulse{0%,100%{opacity:.35;transform:scale(.94)}50%{opacity:1;transform:scale(1)}}
+.cell.hint-group{filter:brightness(1.06) saturate(1.25);}
+.cell.hint-group::before{
+  content:"";position:absolute;inset:0;background:rgba(111,179,154,.18);
+}
+.cell.win .glyph{animation:hop .6s ease both;}
+@keyframes hop{0%{transform:translateY(0)}35%{transform:translateY(-30%) scale(1.08)}70%{transform:translateY(0)}85%{transform:translateY(-12%)}100%{transform:translateY(0)}}
+
+/* 하단 조작 */
+.toolbar{
+  display:flex;gap:8px;align-items:stretch;flex:0 0 auto;padding:2px 2px 4px;
+}
+.tool{
+  flex:1;border-radius:17px;padding:11px 6px 9px;background:var(--white);
+  box-shadow:var(--shadow-sm);border:1.5px solid rgba(217,198,180,.5);
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  font-size:11.5px;font-weight:700;color:var(--ink-soft);
+  transition:transform .1s ease;
+}
+.tool:active{transform:translateY(2px);}
+.tool svg{width:21px;height:21px;}
+.tool span{white-space:nowrap;}
+.tool:disabled{opacity:.42;}
+.tool.accent{background:linear-gradient(180deg,#FFF3D9,#FBE3B4);border-color:rgba(230,190,120,.6);color:#8A6420;}
+.zoomgroup{display:flex;flex-direction:column;gap:4px;flex:0 0 46px;}
+.zoomgroup button{
+  flex:1;border-radius:13px;background:var(--white);box-shadow:var(--shadow-sm);
+  border:1.5px solid rgba(217,198,180,.5);font-weight:800;font-size:16px;color:var(--ink-soft);
+}
+.zoomgroup button:active{transform:scale(.94);}
+
+/* 힌트 말풍선 */
+#hintBar{
+  flex:0 0 auto;margin:0 2px 6px;padding:0;max-height:0;overflow:hidden;
+  transition:max-height .28s ease,padding .28s ease,margin .28s ease;
+}
+#hintBar.show{max-height:180px;padding:11px 14px;margin-bottom:8px;}
+#hintBar.show{
+  background:linear-gradient(180deg,#EAF6F0,#DDEFE6);border:1.5px solid rgba(111,179,154,.5);
+  border-radius:16px;font-size:13.5px;line-height:1.55;color:#3E6A59;box-shadow:var(--shadow-sm);
+}
+#hintBar b{color:#2F5A49;}
+
+/* ============================================================ 모달 */
+.modal{
+  position:fixed;inset:0;z-index:50;display:none;place-items:center;padding:22px;
+  background:rgba(90,70,56,.42);backdrop-filter:blur(3px);
+}
+.modal.on{display:grid;animation:fadeIn .22s ease both;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.sheet{
+  width:min(360px,92vw);background:var(--white);border-radius:26px;padding:26px 22px 20px;
+  box-shadow:var(--shadow-lg);text-align:center;animation:sheetIn .32s cubic-bezier(.2,1.3,.4,1) both;
+}
+@keyframes sheetIn{from{transform:translateY(24px) scale(.94);opacity:0}to{transform:none;opacity:1}}
+.sheet h3{margin:0 0 8px;font-size:22px;font-weight:800;}
+.sheet p{margin:0 0 18px;font-size:14px;line-height:1.65;color:var(--ink-soft);}
+.sheet .row{display:flex;gap:9px;}
+.sheet .row .btn{flex:1;}
+.sheet .bigart{width:96px;height:96px;margin:0 auto 10px;display:grid;place-items:center;}
+.stat{
+  display:flex;justify-content:center;gap:18px;margin:0 0 18px;
+  font-size:13px;color:var(--ink-soft);font-weight:700;
+}
+.stat b{display:block;font-size:17px;color:var(--ink);font-weight:800;}
+
+/* 규칙 안내 */
+.rules{text-align:left;font-size:13.5px;line-height:1.75;color:var(--ink-soft);margin:0 0 18px;}
+.rules li{margin-bottom:7px;}
+.rules b{color:var(--ink);}
+.taps{display:flex;gap:7px;margin:2px 0 16px;}
+.tapcard{
+  flex:1;border-radius:14px;background:var(--cream);padding:9px 4px;text-align:center;
+  border:1.5px solid rgba(217,198,180,.55);
+}
+.tapcard .n{font-size:10.5px;font-weight:800;color:var(--ink-faint);}
+.tapcard .art{width:30px;height:30px;margin:3px auto;display:grid;place-items:center;}
+.tapcard .art svg{width:100%;height:100%;}
+.tapcard .lbl{font-size:11px;font-weight:700;color:var(--ink);}
+.tapcard .empty-box{display:block;width:22px;height:22px;border-radius:6px;border:2px dashed var(--line);margin:7px auto;}
+
+/* 축하 색종이 */
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden;display:none;}
+#confetti.on{display:block;}
+#confetti i{
+  position:absolute;top:-14px;width:9px;height:14px;border-radius:2px;opacity:.95;
+  animation:fall linear forwards;
+}
+@keyframes fall{
+  from{transform:translateY(-10vh) rotate(0deg)}
+  to{transform:translateY(115vh) rotate(720deg)}
+}
+
+/* 로딩 / 오류 */
+#loading{position:fixed;inset:0;display:grid;place-items:center;z-index:80;background:var(--cream);}
+#loading .box{text-align:center;color:var(--ink-soft);font-size:14px;}
+#loading svg{width:70px;height:70px;animation:bob 1.6s ease-in-out infinite;}
+.toast{
+  position:fixed;left:50%;bottom:calc(var(--safe-bottom) + 92px);transform:translateX(-50%);
+  background:rgba(90,70,56,.92);color:#FFF6EA;padding:10px 16px;border-radius:999px;
+  font-size:13px;font-weight:700;z-index:70;opacity:0;transition:opacity .25s ease;pointer-events:none;
+  max-width:88vw;text-align:center;
+}
+.toast.on{opacity:1;}
+
+/* 아주 좁은 화면에서 하단 버튼 글자가 줄바꿈되지 않도록 */
+@media (max-width:360px){
+  .toolbar{gap:6px;}
+  .tool{font-size:10px;padding:10px 3px 8px;border-radius:15px;}
+  .tool svg{width:19px;height:19px;}
+  .zoomgroup{flex:0 0 38px;}
+  #screen-game{padding-left:8px;padding-right:8px;}
+}
+@media (max-height:640px){
+  .title-badge{width:104px;height:104px;border-radius:36px;margin-bottom:12px;}
+  .title-badge svg{width:70px;height:70px;}
+  h1.game-title{font-size:29px;}
+  .tagline{margin-bottom:18px;}
+}
+</style>
+</head>
+<body>
+<div class="sky-deco" id="skyDeco"></div>
+
+<div id="app">
+  <!-- ========================================== 타이틀 -->
+  <section class="screen" id="screen-title">
+    <div class="title-badge" id="titleArt"></div>
+    <h1 class="game-title">토끼네 자리</h1>
+    <p class="tagline">
+      각 <b>자리</b>·<b>가로줄</b>·<b>세로줄</b>에 토끼를 한 마리씩.<br>
+      토끼들은 옆도 대각선도 붙어 앉기 싫어해요.
+    </p>
+    <div class="menu">
+      <button class="btn primary" id="btnContinue">이어서 하기</button>
+      <button class="btn" id="btnLevels">레벨 선택</button>
+      <button class="btn ghost" id="btnHowTo">게임 방법</button>
+      <button class="btn ghost" id="btnReset">진행 초기화</button>
+    </div>
+    <p class="credit">모두 클리어하면 토끼 마을이 완성돼요 🌿</p>
+  </section>
+
+  <!-- ========================================== 레벨 선택 -->
+  <section class="screen" id="screen-levels">
+    <div class="topbar">
+      <button class="icon-btn" id="lvBack" aria-label="뒤로">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2>레벨 선택</h2>
+      <div style="width:40px"></div>
+    </div>
+    <div id="levelGrid"></div>
+    <p class="lv-hint" id="lvProgress"></p>
+  </section>
+
+  <!-- ========================================== 게임 -->
+  <section class="screen" id="screen-game">
+    <div class="hud">
+      <button class="icon-btn" id="gmBack" aria-label="뒤로">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <div class="meta">
+        <span class="lvname" id="gmName">레벨 1</span>
+        <span class="lvsub" id="gmSub">5 × 5 · 쉬움</span>
+      </div>
+      <div style="flex:1"></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+        <div class="hearts" id="gmHearts"></div>
+        <span class="timer" id="gmTimer">00:00</span>
+      </div>
+    </div>
+
+    <div id="viewport">
+      <div id="stage">
+        <div id="boardWrap"><div id="board"></div></div>
+      </div>
+    </div>
+
+    <div id="hintBar"></div>
+
+    <div class="toolbar">
+      <button class="tool accent" id="btnHint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5.9 1.1 1 1.7l.1.5h5l.1-.5c.1-.6.4-1.2 1-1.7A6 6 0 0 0 12 3z"/></svg>
+        <span>힌트</span>
+      </button>
+      <button class="tool" id="btnUndo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h11a5 5 0 0 1 0 10h-6"/><path d="M8 5L4 9l4 4"/></svg>
+        <span>되돌리기</span>
+      </button>
+      <button class="tool" id="btnClear">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg>
+        <span>다시 놓기</span>
+      </button>
+      <button class="tool" id="btnRules">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.2 2.4c-.7.2-1.2.9-1.2 1.6v.3"/><circle cx="11.6" cy="17" r=".9" fill="currentColor" stroke="none"/></svg>
+        <span>규칙</span>
+      </button>
+      <div class="zoomgroup">
+        <button id="btnZoomIn" aria-label="확대">＋</button>
+        <button id="btnZoomOut" aria-label="축소">－</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ========================================== 모달들 -->
+<div class="modal" id="modalClear">
+  <div class="sheet">
+    <div class="bigart" id="clearArt"></div>
+    <h3 id="clearTitle">축하해요!</h3>
+    <p id="clearMsg">토끼들이 모두 제자리를 찾았어요.</p>
+    <div class="stat">
+      <div>시간<b id="clearTime">00:00</b></div>
+      <div>남은 하트<b id="clearHearts">♥♥♥</b></div>
+    </div>
+    <div class="row">
+      <button class="btn ghost" id="clearToLevels">레벨 목록</button>
+      <button class="btn primary" id="clearNext">다음 레벨</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modalOver">
+  <div class="sheet">
+    <div class="bigart" id="overArt"></div>
+    <h3>토끼들이 지쳤어요</h3>
+    <p>하트를 모두 썼어요.<br>천천히 다시 도전해 볼까요?</p>
+    <div class="row">
+      <button class="btn ghost" id="overToLevels">레벨 목록</button>
+      <button class="btn primary" id="overRetry">다시 하기</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modalRules">
+  <div class="sheet">
+    <h3>게임 방법</h3>
+    <ul class="rules">
+      <li>같은 <b>색 자리</b>마다 토끼는 <b>딱 한 마리</b>.</li>
+      <li>각 <b>가로줄</b>·<b>세로줄</b>에도 토끼는 <b>딱 한 마리</b>.</li>
+      <li>토끼끼리는 <b>옆·위아래·대각선</b> 어디로도 붙어 앉지 못해요.</li>
+    </ul>
+    <div class="taps" id="tapGuide"></div>
+    <p style="font-size:12.5px;margin-bottom:16px">
+      규칙을 어기면 하트가 하나 줄고 어긋난 칸이 빨갛게 표시돼요.<br>
+      막히면 <b>힌트</b>를 누르세요 — 지금 <b>확실하게</b> 정할 수 있는 한 수를 알려줘요.
+    </p>
+    <button class="btn primary" id="rulesClose">알겠어요</button>
+  </div>
+</div>
+
+<div class="modal" id="modalConfirm">
+  <div class="sheet">
+    <h3 id="cfTitle">확인</h3>
+    <p id="cfMsg"></p>
+    <div class="row">
+      <button class="btn ghost" id="cfNo">아니요</button>
+      <button class="btn primary" id="cfYes">네</button>
+    </div>
+  </div>
+</div>
+
+<div id="confetti"></div>
+<div class="toast" id="toast"></div>
+
+<div id="loading"><div class="box"><div id="loadArt"></div><p id="loadMsg">토끼들을 부르는 중…</p></div></div>
+
+<!-- 퍼즐 데이터 내장 사본 (puzzles.json 을 불러오지 못하는 환경용 대비책) -->
+<script id="puzzles-embedded" type="application/json">{"version":1,"title":"토끼네 자리","rules":{"perRow":1,"perCol":1,"perRegion":1,"diagonalAdjacencyForbidden":true},"levels":[{"id":"L01","index":1,"size":5,"difficulty":"easy","tier":1,"regions":[[1,0,0,0,0],[1,1,0,0,0],[0,0,0,2,0],[3,3,3,2,2],[4,4,4,2,2]],"solution":[4,1,3,0,2]},{"id":"L02","index":2,"size":5,"difficulty":"easy","tier":1,"regions":[[2,2,2,0,0],[1,1,2,2,0],[1,1,2,2,0],[3,3,3,0,0],[4,4,4,0,0]],"solution":[4,1,3,0,2]},{"id":"L03","index":3,"size":5,"difficulty":"easy","tier":1,"regions":[[0,0,0,0,0],[0,1,1,1,0],[0,2,1,1,0],[2,2,3,3,3],[4,4,4,4,3]],"solution":[0,3,1,4,2]},{"id":"L04","index":4,"size":6,"difficulty":"easy","tier":1,"regions":[[2,1,1,0,0,0],[2,1,1,1,1,0],[2,1,0,0,0,0],[1,1,1,3,0,0],[5,1,3,3,4,4],[5,5,3,3,4,4]],"solution":[4,2,0,3,5,1]},{"id":"L05","index":5,"size":6,"difficulty":"easy","tier":1,"regions":[[0,1,1,2,2,2],[0,0,1,1,2,2],[5,3,3,1,2,2],[5,5,3,2,2,2],[5,4,4,4,4,2],[5,5,5,5,2,2]],"solution":[0,3,5,2,4,1]},{"id":"L06","index":6,"size":6,"difficulty":"easy","tier":1,"regions":[[0,0,0,0,0,0],[0,2,1,1,1,0],[0,2,1,3,1,1],[0,2,3,3,1,1],[2,2,2,2,4,4],[2,2,5,5,5,4]],"solution":[0,4,1,3,5,2]},{"id":"L07","index":7,"size":7,"difficulty":"easy","tier":1,"regions":[[0,0,3,3,3,1,4],[0,2,3,3,1,1,4],[0,2,3,3,3,4,4],[5,2,3,3,4,4,4],[5,5,5,6,6,4,6],[5,5,5,6,6,6,6],[6,6,6,6,6,6,6]],"solution":[0,4,1,3,5,2,6]},{"id":"L08","index":8,"size":7,"difficulty":"easy","tier":1,"regions":[[0,0,0,0,0,0,2],[0,1,0,1,0,0,2],[0,1,1,1,2,2,2],[0,1,1,2,2,2,3],[1,1,4,2,2,3,3],[5,5,4,4,4,3,3],[5,4,4,4,6,6,6]],"solution":[3,1,4,6,2,0,5]},{"id":"L09","index":9,"size":7,"difficulty":"easy","tier":1,"regions":[[0,0,0,0,0,0,0],[0,2,0,0,1,1,1],[0,2,2,0,1,3,3],[0,2,2,0,1,1,3],[0,4,2,2,1,1,1],[4,4,2,6,5,5,5],[4,2,2,6,6,6,6]],"solution":[0,4,2,6,1,5,3]},{"id":"L10","index":10,"size":8,"difficulty":"normal","tier":1,"regions":[[1,1,1,1,0,0,0,0],[1,1,1,1,1,1,2,0],[1,1,1,1,5,5,2,2],[1,4,4,4,5,3,3,2],[1,4,4,4,5,5,3,3],[4,4,5,5,5,5,6,3],[4,4,4,7,7,5,6,3],[4,4,7,7,7,5,6,3]],"solution":[4,0,7,5,1,3,6,2]},{"id":"L11","index":11,"size":8,"difficulty":"normal","tier":1,"regions":[[0,0,0,1,1,1,1,1],[5,5,5,1,4,2,2,7],[5,5,5,5,4,2,2,7],[5,3,3,5,4,2,2,7],[3,3,5,5,4,4,2,7],[6,6,5,4,4,2,2,7],[6,6,6,6,6,7,7,7],[6,7,7,7,7,7,7,7]],"solution":[0,3,6,1,5,2,4,7]},{"id":"L12","index":12,"size":8,"difficulty":"normal","tier":1,"regions":[[3,3,3,3,0,0,0,2],[3,1,1,3,3,3,3,2],[3,5,1,3,3,6,4,2],[7,5,5,3,3,6,4,4],[7,7,5,5,5,6,4,4],[7,7,5,7,5,6,6,6],[7,7,7,7,5,6,6,6],[7,7,7,7,5,5,6,6]],"solution":[4,1,7,3,6,2,5,0]},{"id":"L13","index":13,"size":9,"difficulty":"normal","tier":1,"regions":[[5,2,0,0,0,1,1,1,1],[5,2,2,4,4,4,4,1,3],[5,2,2,2,4,4,3,3,3],[5,2,6,2,4,3,3,8,8],[5,6,6,6,4,6,6,8,8],[5,7,7,6,6,6,8,8,8],[5,5,7,6,6,7,8,8,8],[5,7,7,7,7,7,7,7,8],[7,7,7,7,8,8,8,8,8]],"solution":[2,7,1,6,4,0,3,5,8]},{"id":"L14","index":14,"size":9,"difficulty":"normal","tier":1,"regions":[[1,1,1,1,0,0,0,0,5],[1,4,4,1,3,2,0,0,5],[1,4,1,1,3,2,2,3,5],[1,4,4,3,3,3,2,3,5],[4,4,4,4,4,3,3,3,5],[7,7,7,7,4,4,4,3,5],[7,7,7,4,4,7,6,6,8],[7,7,7,7,7,7,6,6,8],[6,6,6,6,6,6,6,8,8]],"solution":[4,0,5,3,1,8,6,2,7]},{"id":"L15","index":15,"size":9,"difficulty":"normal","tier":1,"regions":[[2,0,0,0,0,0,0,3,3],[2,0,0,0,1,1,1,3,3],[2,2,0,2,2,1,1,1,3],[2,2,0,0,2,2,1,1,3],[4,2,2,2,2,1,1,1,3],[4,2,4,4,4,5,5,5,5],[4,4,4,4,4,5,5,6,5],[4,7,4,7,7,7,6,6,6],[7,7,7,7,7,7,8,8,8]],"solution":[2,4,1,8,0,5,7,3,6]},{"id":"L16","index":16,"size":10,"difficulty":"normal","tier":1,"regions":[[1,1,0,0,0,2,2,2,2,2],[1,1,1,2,2,2,2,5,5,2],[4,4,3,3,2,3,5,5,2,2],[4,3,3,3,3,3,5,5,5,5],[4,6,7,5,5,5,5,5,5,5],[6,6,7,7,7,5,5,9,9,5],[6,6,7,7,7,7,9,9,9,5],[6,8,8,7,7,7,7,9,5,5],[8,8,8,8,7,9,9,9,9,9],[8,8,8,8,7,7,9,9,9,9]],"solution":[4,2,8,5,0,9,1,6,3,7]},{"id":"L17","index":17,"size":10,"difficulty":"normal","tier":1,"regions":[[1,1,1,1,1,3,0,0,0,6],[1,4,4,4,1,3,2,2,3,6],[4,4,3,3,3,3,3,2,3,6],[8,4,4,4,3,9,3,3,3,6],[8,4,5,5,5,9,6,6,6,6],[8,8,5,5,9,9,6,7,7,7],[8,5,5,9,9,6,6,6,7,7],[8,8,5,5,9,6,7,7,7,7],[8,8,8,5,9,6,6,7,7,7],[9,9,9,9,9,9,6,6,6,7]],"solution":[8,0,7,4,1,3,6,9,2,5]},{"id":"L18","index":18,"size":10,"difficulty":"normal","tier":1,"regions":[[0,0,0,3,2,2,2,1,1,1],[0,0,3,3,2,1,1,1,1,1],[0,3,3,3,2,2,2,1,1,1],[0,0,0,3,3,2,2,2,1,1],[6,6,0,5,2,2,2,4,1,1],[7,6,6,5,5,5,4,4,4,8],[7,7,6,6,5,4,4,4,8,8],[9,7,6,5,5,8,8,4,4,8],[9,6,6,5,5,8,8,8,4,8],[9,6,6,5,5,5,8,8,8,8]],"solution":[2,8,6,4,7,5,3,1,9,0]},{"id":"L19","index":19,"size":11,"difficulty":"hard","tier":1,"regions":[[1,1,1,3,3,0,0,0,2,2,2],[1,1,1,3,3,3,2,2,2,2,2],[3,1,3,3,3,3,3,3,3,3,2],[3,3,3,5,3,4,4,4,7,7,7],[5,5,3,5,5,5,5,4,7,10,7],[6,5,5,5,5,5,5,7,7,10,7],[6,6,5,7,7,7,5,7,7,10,7],[8,5,5,5,7,7,5,7,7,10,10],[8,9,9,5,7,7,7,7,10,10,10],[8,9,9,9,10,10,10,7,10,10,10],[8,10,10,10,10,10,10,10,10,10,10]],"solution":[6,2,10,4,7,5,1,8,0,3,9]},{"id":"L20","index":20,"size":11,"difficulty":"hard","tier":1,"regions":[[1,1,1,0,0,0,2,2,2,4,4],[5,1,1,0,3,4,2,2,2,4,4],[5,5,7,0,3,4,4,2,2,4,4],[5,5,7,6,3,3,4,4,4,4,4],[5,7,7,6,4,4,4,8,8,8,8],[5,5,7,6,6,6,6,6,6,6,8],[9,9,7,6,6,8,8,6,8,8,8],[9,9,7,7,6,6,8,6,6,8,8],[9,6,6,6,6,10,8,8,8,8,10],[9,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10]],"solution":[5,2,8,4,6,1,7,3,9,0,10]},{"id":"L21","index":21,"size":12,"difficulty":"hard","tier":1,"regions":[[2,2,2,2,2,2,2,3,3,0,0,4],[1,1,1,2,3,3,2,2,3,3,0,4],[5,5,2,2,3,3,3,3,3,3,3,4],[5,7,7,7,7,3,4,4,4,4,4,4],[5,5,5,7,4,4,4,4,6,6,6,11],[5,5,7,7,4,7,8,6,6,8,6,11],[5,7,7,4,4,7,8,6,6,8,11,11],[5,7,7,7,7,7,8,6,6,8,8,11],[5,7,7,9,10,7,8,8,8,8,11,11],[7,7,7,9,10,8,8,8,8,11,11,11],[7,7,7,9,10,10,10,8,8,11,11,11],[7,7,7,10,10,8,8,8,8,11,11,11]],"solution":[10,0,2,5,7,1,8,4,9,3,6,11]},{"id":"L22","index":22,"size":12,"difficulty":"hard","tier":1,"regions":[[6,6,2,2,2,2,2,2,2,1,0,0],[6,2,2,2,3,3,3,2,1,1,5,0],[6,3,2,3,3,6,2,2,2,5,5,4],[6,3,3,3,3,6,6,7,7,5,5,4],[6,6,6,6,6,6,7,7,5,5,5,4],[6,6,8,8,10,6,9,7,7,5,5,5],[8,6,8,8,10,9,9,7,7,11,11,5],[8,8,8,8,10,10,9,7,7,11,11,5],[8,8,10,8,10,10,9,9,7,11,5,5],[8,10,10,10,10,10,9,9,7,11,5,11],[8,8,8,10,8,11,9,9,7,11,5,11],[8,8,8,8,8,11,11,11,11,11,11,11]],"solution":[10,8,2,4,11,9,1,7,0,6,3,5]},{"id":"L23","index":23,"size":13,"difficulty":"hard","tier":1,"regions":[[4,4,4,2,2,2,2,2,2,0,2,3,3],[4,7,7,2,1,1,1,7,2,2,2,5,3],[4,7,7,2,2,2,7,7,5,5,5,5,3],[4,7,7,7,7,7,7,7,5,5,5,5,3],[4,8,7,7,7,7,7,7,6,5,5,5,5],[10,8,7,7,8,7,6,6,6,6,5,11,11],[10,8,8,8,8,7,7,6,7,6,11,11,11],[10,10,10,10,8,7,7,7,7,6,6,6,11],[10,8,8,8,8,8,8,7,7,6,11,6,11],[10,8,9,9,9,8,8,8,9,9,11,6,11],[10,10,9,9,9,9,9,9,9,12,11,6,11],[10,10,9,10,9,9,12,12,9,12,11,11,11],[10,10,10,10,10,9,9,12,12,12,12,12,12]],"solution":[9,6,3,12,0,10,7,5,2,4,1,11,8]},{"id":"L24","index":24,"size":13,"difficulty":"hard","tier":1,"regions":[[0,0,0,0,0,0,0,0,0,0,0,1,1],[0,0,0,0,0,3,3,0,1,0,1,1,7],[2,2,0,3,3,3,3,0,1,1,1,1,7],[5,8,8,3,3,3,3,3,1,4,4,1,7],[5,8,8,8,3,3,4,4,4,4,1,1,7],[5,5,5,8,4,4,4,4,4,7,1,7,7],[5,5,5,8,6,6,6,7,7,7,7,7,12],[5,5,8,8,6,7,7,7,12,12,7,12,12],[9,5,8,8,6,7,10,7,7,12,12,12,12],[9,5,8,6,6,7,10,7,12,12,12,12,12],[5,5,8,11,10,10,10,7,12,7,12,12,12],[5,5,11,11,11,10,10,7,7,7,12,12,12],[11,11,11,11,10,10,12,12,12,12,12,12,12]],"solution":[8,11,1,7,9,2,5,10,3,0,6,4,12]},{"id":"L25","index":25,"size":14,"difficulty":"hard","tier":1,"regions":[[1,1,1,1,1,1,1,1,1,4,4,4,0,0],[1,1,1,1,1,3,3,3,3,3,4,4,0,2],[1,3,3,3,3,3,4,4,3,4,4,2,2,2],[1,1,1,1,3,3,3,4,3,4,6,6,6,6],[1,1,1,1,3,3,4,4,4,4,4,4,6,6],[5,1,1,3,3,3,3,10,4,4,4,4,4,6],[5,5,5,5,5,3,10,10,6,4,6,6,6,6],[5,5,7,5,5,3,10,10,6,6,6,8,6,8],[7,5,7,7,5,5,10,10,10,6,8,8,8,8],[7,7,7,7,5,5,10,9,9,9,9,11,11,8],[7,5,5,5,5,10,10,9,9,9,11,11,8,8],[7,7,7,7,7,10,9,9,9,11,11,11,8,8],[7,12,10,7,10,10,9,11,11,11,11,11,11,8],[7,12,10,10,10,9,9,9,9,9,9,11,11,13]],"solution":[12,3,11,4,6,0,8,2,10,7,5,9,1,13]},{"id":"L26","index":26,"size":14,"difficulty":"hard","tier":1,"regions":[[4,4,4,4,4,4,4,0,0,0,0,2,1,1],[4,5,5,5,5,5,4,4,4,4,4,2,1,3],[4,4,4,4,4,5,5,5,5,5,2,2,3,3],[4,7,4,4,4,4,5,11,5,5,5,3,3,3],[4,7,7,7,4,7,11,11,11,11,5,5,6,6],[7,7,7,4,4,7,11,11,11,5,5,5,5,6],[7,7,4,4,7,7,7,7,11,11,11,6,6,6],[7,7,7,7,7,11,11,11,11,8,11,11,11,12],[7,9,7,7,7,11,8,8,8,8,12,12,12,12],[7,9,9,9,11,11,11,8,8,8,8,12,12,12],[10,10,9,9,11,13,13,8,8,12,8,8,12,12],[10,9,9,13,11,13,13,8,8,12,8,8,8,12],[9,9,13,13,13,13,8,8,12,12,8,12,12,12],[13,13,13,13,13,13,13,8,8,12,12,12,12,12]],"solution":[7,12,10,13,0,9,11,2,6,3,1,4,8,5]}]}</script>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+ * 1. 토끼 아트 (교체 가능 모듈)
+ * --------------------------------------------------------------------------
+ * 나중에 이미지 에셋으로 바꾸려면 RabbitArt.mode 를 'image' 로 바꾸고
+ * RabbitArt.images 에 경로만 넣으면 됩니다. 게임 로직은 손댈 필요 없음.
+ *   RabbitArt.mode = 'image';
+ *   RabbitArt.images = { rabbit:'assets/rabbit.png', mark:'assets/x.png' };
+ * ========================================================================== */
+const RabbitArt = {
+  mode: 'svg',                      // 'svg' | 'image'
+  images: { rabbit: null, mark: null, happy: null, tired: null },
+
+  /** 기본 토끼 — 흰 토끼, 귀 강조, 작은 칸에서도 실루엣이 살아있게 외곽선 처리 */
+  rabbit(mood) {
+    const eye = mood === 'tired'
+      ? '<path d="M35.5 60.5q5 4.5 10 0" stroke="#4A3B33" stroke-width="4" stroke-linecap="round" fill="none"/>' +
+        '<path d="M54.5 60.5q5 4.5 10 0" stroke="#4A3B33" stroke-width="4" stroke-linecap="round" fill="none"/>'
+      : mood === 'happy'
+        ? '<path d="M35 62.5q5.5-6 11 0" stroke="#4A3B33" stroke-width="4.4" stroke-linecap="round" fill="none"/>' +
+          '<path d="M54 62.5q5.5-6 11 0" stroke="#4A3B33" stroke-width="4.4" stroke-linecap="round" fill="none"/>'
+        : '<ellipse cx="40.5" cy="61" rx="4" ry="4.6" fill="#4A3B33"/>' +
+          '<ellipse cx="59.5" cy="61" rx="4" ry="4.6" fill="#4A3B33"/>' +
+          '<ellipse cx="42" cy="59.4" rx="1.3" ry="1.5" fill="#fff"/>' +
+          '<ellipse cx="61" cy="59.4" rx="1.3" ry="1.5" fill="#fff"/>';
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <g stroke="#8A6E5C" stroke-width="3.6" stroke-linejoin="round">
+    <ellipse cx="35" cy="27" rx="9.5" ry="23" fill="#FFFDFA" transform="rotate(-9 35 27)"/>
+    <ellipse cx="65" cy="27" rx="9.5" ry="23" fill="#FFFDFA" transform="rotate(9 65 27)"/>
+    <ellipse cx="50" cy="84" rx="25" ry="16" fill="#FFFDFA"/>
+    <circle cx="50" cy="62" r="25.5" fill="#FFFDFA"/>
+  </g>
+  <ellipse cx="35" cy="27.5" rx="4.4" ry="15" fill="#F6B9C4" transform="rotate(-9 35 27.5)"/>
+  <ellipse cx="65" cy="27.5" rx="4.4" ry="15" fill="#F6B9C4" transform="rotate(9 65 27.5)"/>
+  <ellipse cx="33.5" cy="70" rx="6.2" ry="4" fill="#F9C8D0" opacity=".85"/>
+  <ellipse cx="66.5" cy="70" rx="6.2" ry="4" fill="#F9C8D0" opacity=".85"/>
+  ${eye}
+  <path d="M50 68.5l-4.6 3.6h9.2z" fill="#E98D9E"/>
+  <path d="M50 72.5v3.2M50 75.7q-3.2 2.6-6 .6M50 75.7q3.2 2.6 6 .6"
+        stroke="#B9836F" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+</svg>`;
+  },
+
+  /** "여기 아님" 메모 표시 */
+  mark() {
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <g stroke="#9A8071" stroke-width="13" stroke-linecap="round">
+    <path d="M30 30 L70 70"/><path d="M70 30 L30 70"/>
+  </g>
+</svg>`;
+  },
+
+  heart(filled) {
+    return `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.4a4.7 4.7 0 0 1 8.5 2.8C20.5 15 12 20.5 12 20.5z"
+        fill="${filled ? '#F19099' : '#E6D7CB'}" stroke="${filled ? '#D2707B' : '#CFBCAE'}" stroke-width="1.6" stroke-linejoin="round"/>
+</svg>`;
+  },
+
+  /** 화면에 그리기 — mode 에 따라 svg 또는 <img> 로 출력 */
+  html(kind, mood) {
+    if (this.mode === 'image' && this.images[kind]) {
+      return `<img src="${this.images[kind]}" alt="" style="width:100%;height:100%;object-fit:contain">`;
+    }
+    if (kind === 'mark') return this.mark();
+    return this.rabbit(mood);
+  },
+};
+
+/* ==========================================================================
+ * 2. 파스텔 영역 색
+ * ========================================================================== */
+const PALETTE = [
+  '#F8CFCB', '#FBE0AE', '#FBF3B4', '#DCEFB5', '#B9E5D0',
+  '#BADFF0', '#C9CDF2', '#E6C9EE', '#F5CFE0', '#EBDAC1',
+  '#CFE8E3', '#F3D6BC', '#D8DCEC', '#CDE8C4', '#F1DBD2',
+];
+const REGION_NAMES = [
+  '분홍', '살구', '노랑', '연두', '민트', '하늘', '보라', '자주',
+  '장미', '모래', '세이지', '복숭아', '회청', '풀잎', '흙',
+];
+
+/* ==========================================================================
+ * 3. 저장소
+ * ========================================================================== */
+const STORE_KEY = 'tokkine-jari/v1';
+const Store = {
+  data: { cleared: {}, lastLevel: null, inProgress: null },
+  load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (raw) this.data = Object.assign(this.data, JSON.parse(raw));
+    } catch (e) { /* 저장소 접근 불가 — 세션 한정으로 진행 */ }
+    return this.data;
+  },
+  save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(this.data)); } catch (e) {}
+  },
+  clearAll() {
+    this.data = { cleared: {}, lastLevel: null, inProgress: null };
+    this.save();
+  },
+};
+
+/* ==========================================================================
+ * 4. 논리 솔버 (힌트 엔진)
+ * --------------------------------------------------------------------------
+ * "지금 확실하게 정할 수 있는 다음 한 수"를 찾아 이유와 함께 돌려준다.
+ * 규칙 단계
+ *   T0 후보가 하나뿐인 그룹  -> 그 칸에 토끼 확정
+ *   T1 영역이 한 줄에 갇힘 / 줄이 한 영역에 갇힘 -> 나머지 칸 제외
+ *   T2 k개의 줄이 k개의 영역만 쓰는 경우 (k=2,3)  -> 나머지 칸 제외
+ *   T3 그 칸에 놓으면 어떤 그룹이 자리를 잃음      -> 그 칸 제외
+ * ========================================================================== */
+const EMPTY = 0, RABBIT = 1, BLOCKED = -1;
+
+function buildGroups(n, regions) {
+  const groups = [];
+  for (let i = 0; i < n; i++) groups.push({ kind: 'row', index: i, cells: [] });
+  for (let i = 0; i < n; i++) groups.push({ kind: 'col', index: i, cells: [] });
+  for (let i = 0; i < n; i++) groups.push({ kind: 'region', index: i, cells: [] });
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      groups[r].cells.push([r, c]);
+      groups[n + c].cells.push([r, c]);
+      groups[2 * n + regions[r][c]].cells.push([r, c]);
+    }
+  }
+  return groups;
+}
+
+function groupLabel(g) {
+  if (g.kind === 'row') return `${g.index + 1}번째 가로줄`;
+  if (g.kind === 'col') return `${g.index + 1}번째 세로줄`;
+  return `${REGION_NAMES[g.index] || (g.index + 1)} 자리`;
+}
+
+function combinations(arr, k) {
+  const out = [];
+  (function rec(start, cur) {
+    if (cur.length === k) { out.push(cur.slice()); return; }
+    for (let i = start; i < arr.length; i++) { cur.push(arr[i]); rec(i + 1, cur); cur.pop(); }
+  })(0, []);
+  return out;
+}
+
+/**
+ * 논리 추론을 순서대로 실행하며 각 "한 수"를 기록한다.
+ * @param seeds 이미 확정된 토끼 좌표 [[r,c],...]
+ * @param onStep 각 추론마다 호출. true 를 돌려주면 즉시 중단(힌트용).
+ */
+function runLogic(n, regions, seeds, onStep) {
+  const state = Array.from({ length: n }, () => new Array(n).fill(EMPTY));
+  const groups = buildGroups(n, regions);
+  let stopped = false;
+
+  const propagate = (r, c) => {
+    state[r][c] = RABBIT;
+    for (let i = 0; i < n; i++) {
+      if (state[r][i] === EMPTY) state[r][i] = BLOCKED;
+      if (state[i][c] === EMPTY) state[i][c] = BLOCKED;
+    }
+    const gid = regions[r][c];
+    for (let rr = 0; rr < n; rr++)
+      for (let cc = 0; cc < n; cc++)
+        if (regions[rr][cc] === gid && state[rr][cc] === EMPTY) state[rr][cc] = BLOCKED;
+    for (let dr = -1; dr <= 1; dr++)
+      for (let dc = -1; dc <= 1; dc++) {
+        const nr = r + dr, nc = c + dc;
+        if (nr < 0 || nc < 0 || nr >= n || nc >= n) continue;
+        if (state[nr][nc] === EMPTY) state[nr][nc] = BLOCKED;
+      }
+  };
+
+  const emit = (step) => { if (onStep && onStep(step) === true) stopped = true; };
+  const cands = (g) => g.cells.filter(([r, c]) => state[r][c] === EMPTY);
+  const done = (g) => g.cells.some(([r, c]) => state[r][c] === RABBIT);
+
+  for (const [r, c] of (seeds || [])) if (state[r][c] === EMPTY) propagate(r, c);
+  if (stopped) return { state, stopped };
+
+  let progress = true;
+  while (progress && !stopped) {
+    progress = false;
+
+    // ---- T0: 후보가 하나뿐인 그룹
+    for (const g of groups) {
+      if (done(g)) continue;
+      const cs = cands(g);
+      if (cs.length === 0) return { state, stopped, dead: true };
+      if (cs.length === 1) {
+        const [r, c] = cs[0];
+        emit({
+          type: 'place', r, c, group: g, highlight: g.cells,
+          text: g.kind === 'region'
+            ? `<b>${groupLabel(g)}</b>에서 토끼가 앉을 수 있는 칸이 여기 하나뿐이에요.`
+            : `<b>${groupLabel(g)}</b>에 남은 자리가 여기뿐이에요.`,
+        });
+        if (stopped) return { state, stopped };
+        propagate(r, c); progress = true; break;
+      }
+    }
+    if (progress) continue;
+
+    // ---- T1: 갇힘 (영역 ↔ 줄)
+    for (const g of groups) {
+      if (done(g)) continue;
+      const cs = cands(g);
+      const hits = [];
+      if (g.kind === 'region') {
+        const rows = new Set(cs.map((p) => p[0]));
+        const cols = new Set(cs.map((p) => p[1]));
+        if (rows.size === 1) {
+          const r = [...rows][0];
+          for (let c = 0; c < n; c++) if (state[r][c] === EMPTY && regions[r][c] !== g.index) hits.push([r, c]);
+          if (hits.length) {
+            emit({
+              type: 'block', r: hits[0][0], c: hits[0][1], group: g, highlight: cs, extra: hits,
+              text: `<b>${groupLabel(g)}</b>의 토끼는 ${r + 1}번째 가로줄 안에 있어야 해요. 그래서 그 줄의 다른 칸은 비워요.`,
+            });
+          }
+        } else if (cols.size === 1) {
+          const c = [...cols][0];
+          for (let r = 0; r < n; r++) if (state[r][c] === EMPTY && regions[r][c] !== g.index) hits.push([r, c]);
+          if (hits.length) {
+            emit({
+              type: 'block', r: hits[0][0], c: hits[0][1], group: g, highlight: cs, extra: hits,
+              text: `<b>${groupLabel(g)}</b>의 토끼는 ${c + 1}번째 세로줄 안에 있어야 해요. 그래서 그 줄의 다른 칸은 비워요.`,
+            });
+          }
+        }
+      } else {
+        const regs = new Set(cs.map((p) => regions[p[0]][p[1]]));
+        if (regs.size === 1) {
+          const gi = [...regs][0];
+          for (let r = 0; r < n; r++)
+            for (let c = 0; c < n; c++) {
+              if (state[r][c] !== EMPTY || regions[r][c] !== gi) continue;
+              if (g.kind === 'row' ? r !== g.index : c !== g.index) hits.push([r, c]);
+            }
+          if (hits.length) {
+            emit({
+              type: 'block', r: hits[0][0], c: hits[0][1], group: g, highlight: cs, extra: hits,
+              text: `<b>${groupLabel(g)}</b>의 토끼는 <b>${REGION_NAMES[gi] || gi + 1} 자리</b> 안에 있어야 해요. 그래서 그 자리의 다른 칸은 비워요.`,
+            });
+          }
+        }
+      }
+      if (stopped) return { state, stopped };
+      if (hits.length) { for (const [r, c] of hits) state[r][c] = BLOCKED; progress = true; break; }
+    }
+    if (progress) continue;
+
+    // ---- T2: k개 줄 ↔ k개 영역
+    const t2 = kSetRule(n, regions, state, groups, cands, done, emit);
+    if (stopped) return { state, stopped };
+    if (t2) { progress = true; continue; }
+
+    // ---- T3: 놓아보기(모순) 제거
+    const t3 = trialRule(n, regions, state, groups, cands, done, emit);
+    if (stopped) return { state, stopped };
+    if (t3) { progress = true; continue; }
+  }
+
+  return { state, stopped };
+}
+
+function kSetRule(n, regions, state, groups, cands, done, emit) {
+  for (const kind of ['row', 'col']) {
+    const lines = groups.filter((g) => g.kind === kind && !done(g));
+    const regs = groups.filter((g) => g.kind === 'region' && !done(g));
+    const kindLabel = kind === 'row' ? '가로줄' : '세로줄';
+    for (let k = 2; k <= 3; k++) {
+      if (lines.length > k) {
+        for (const combo of combinations(lines, k)) {
+          const set = new Set();
+          for (const g of combo) for (const [r, c] of cands(g)) set.add(regions[r][c]);
+          if (set.size !== k) continue;
+          const hits = [];
+          for (const rg of regs) {
+            if (!set.has(rg.index)) continue;
+            for (const [r, c] of cands(rg)) {
+              const idx = kind === 'row' ? r : c;
+              if (!combo.some((g) => g.index === idx)) hits.push([r, c]);
+            }
+          }
+          if (!hits.length) continue;
+          const names = [...set].map((i) => REGION_NAMES[i] || i + 1).join('·');
+          const lineNums = combo.map((g) => g.index + 1).join('·');
+          emit({
+            type: 'block', r: hits[0][0], c: hits[0][1], highlight: combo.flatMap((g) => cands(g)), extra: hits,
+            text: `${lineNums}번째 ${kindLabel} ${k}개가 <b>${names}</b> 자리 ${k}곳을 나눠 가져야 해요. 그래서 그 자리들의 남은 칸은 비워요.`,
+          });
+          for (const [r, c] of hits) state[r][c] = BLOCKED;
+          return true;
+        }
+      }
+      if (regs.length > k) {
+        for (const combo of combinations(regs, k)) {
+          const set = new Set();
+          for (const g of combo) for (const [r, c] of cands(g)) set.add(kind === 'row' ? r : c);
+          if (set.size !== k) continue;
+          const hits = [];
+          for (const ln of lines) {
+            if (!set.has(ln.index)) continue;
+            for (const [r, c] of cands(ln)) if (!combo.some((g) => g.index === regions[r][c])) hits.push([r, c]);
+          }
+          if (!hits.length) continue;
+          const names = combo.map((g) => REGION_NAMES[g.index] || g.index + 1).join('·');
+          const lineNums = [...set].map((i) => i + 1).join('·');
+          emit({
+            type: 'block', r: hits[0][0], c: hits[0][1], highlight: combo.flatMap((g) => cands(g)), extra: hits,
+            text: `<b>${names}</b> 자리 ${k}곳이 ${lineNums}번째 ${kindLabel} ${k}개만 쓸 수 있어요. 그래서 그 줄들의 남은 칸은 비워요.`,
+          });
+          for (const [r, c] of hits) state[r][c] = BLOCKED;
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function trialRule(n, regions, state, groups, cands, done, emit) {
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (state[r][c] !== EMPTY) continue;
+      const killed = new Set();
+      const kill = (rr, cc) => killed.add(rr * n + cc);
+      for (let i = 0; i < n; i++) { kill(r, i); kill(i, c); }
+      const gid = regions[r][c];
+      for (let rr = 0; rr < n; rr++) for (let cc = 0; cc < n; cc++) if (regions[rr][cc] === gid) kill(rr, cc);
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        const nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nc >= 0 && nr < n && nc < n) kill(nr, nc);
+      }
+      killed.delete(r * n + c);
+      for (const g of groups) {
+        if (done(g)) continue;
+        if (g.cells.some((p) => p[0] === r && p[1] === c)) continue;
+        const left = cands(g).filter((p) => !killed.has(p[0] * n + p[1]));
+        if (left.length === 0) {
+          emit({
+            type: 'block', r, c, group: g, highlight: cands(g), extra: [[r, c]],
+            text: `여기에 토끼를 두면 <b>${groupLabel(g)}</b>가 앉을 자리를 모두 잃어요. 그러니 이 칸은 비워요.`,
+          });
+          state[r][c] = BLOCKED;
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+/* ==========================================================================
+ * 5. 게임 상태
+ * ========================================================================== */
+const CELL_BASE = 56;          // 논리 픽셀 기준 한 칸 크기 (화면에는 scale 로 맞춤)
+const MAX_HEARTS = 3;
+const HINT_CONFIG = {
+  free: true,   // TODO: 추후 광고 연동 — free=false 로 두고 showRewardedAd() 를 붙이면 됨
+  onConsume() { /* 광고 연동 지점 */ },
+};
+
+let PUZZLES = null;
+const G = {
+  level: null, n: 0, regions: null, solution: null,
+  grid: null,          // 0 = 빈칸, 1 = X, 2 = 토끼
+  hearts: MAX_HEARTS,
+  history: [],
+  elapsed: 0, tickAt: 0, timer: null,
+  finished: false,
+  hintCells: [],
+};
+
+const $ = (id) => document.getElementById(id);
+const board = $('board'), stage = $('stage'), viewport = $('viewport');
+
+/* ==========================================================================
+ * 6. 화면 전환
+ * ========================================================================== */
+function show(id) {
+  document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id));
+}
+function openModal(id) { $(id).classList.add('on'); }
+function closeModal(id) { $(id).classList.remove('on'); }
+
+let toastTimer = null;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), 1800);
+}
+
+function confirmBox(title, msg, onYes) {
+  $('cfTitle').textContent = title;
+  $('cfMsg').innerHTML = msg;
+  openModal('modalConfirm');
+  $('cfYes').onclick = () => { closeModal('modalConfirm'); onYes(); };
+  $('cfNo').onclick = () => closeModal('modalConfirm');
+}
+
+/* ==========================================================================
+ * 7. 레벨 목록
+ * ========================================================================== */
+const DIFF_LABEL = { easy: '쉬움', normal: '보통', hard: '어려움' };
+
+function unlockedCount() {
+  const cleared = Store.data.cleared;
+  let n = 1;
+  for (const lv of PUZZLES.levels) { if (cleared[lv.id]) n++; else break; }
+  return Math.min(n, PUZZLES.levels.length);
+}
+
+function renderLevels() {
+  const grid = $('levelGrid');
+  grid.innerHTML = '';
+  const open = unlockedCount();
+  PUZZLES.levels.forEach((lv, i) => {
+    const locked = i + 1 > open;
+    const cleared = !!Store.data.cleared[lv.id];
+    const el = document.createElement('button');
+    el.className = 'lv' + (locked ? ' locked' : '') + (cleared ? ' cleared' : '');
+    el.innerHTML = `
+      ${cleared ? '<span class="star">⭐</span>' : locked ? '<span class="star">🔒</span>' : ''}
+      <span class="num">${i + 1}</span>
+      <span class="size">${lv.size} × ${lv.size}</span>
+      <span class="diff ${lv.difficulty}">${DIFF_LABEL[lv.difficulty]}</span>`;
+    el.onclick = () => {
+      if (locked) { toast('앞 레벨을 먼저 완성해 주세요 🐾'); return; }
+      startLevel(i);
+    };
+    grid.appendChild(el);
+  });
+  const clearedN = PUZZLES.levels.filter((l) => Store.data.cleared[l.id]).length;
+  $('lvProgress').textContent = `${clearedN} / ${PUZZLES.levels.length} 레벨 완성`;
+}
+
+/* ==========================================================================
+ * 8. 레벨 시작 / 보드 그리기
+ * ========================================================================== */
+function levelIndexById(id) { return PUZZLES.levels.findIndex((l) => l.id === id); }
+
+function startLevel(index, restore) {
+  const lv = PUZZLES.levels[index];
+  if (!lv) return;
+  G.level = lv; G.index = index;
+  G.n = lv.size; G.regions = lv.regions; G.solution = lv.solution;
+  G.grid = restore ? restore.grid.map((r) => r.slice())
+                   : Array.from({ length: G.n }, () => new Array(G.n).fill(0));
+  G.hearts = restore ? restore.hearts : MAX_HEARTS;
+  G.elapsed = restore ? (restore.elapsed || 0) : 0;
+  G.history = []; G.finished = false; G.hintCells = [];
+
+  $('gmName').textContent = `레벨 ${index + 1}`;
+  $('gmSub').textContent = `${lv.size} × ${lv.size} · ${DIFF_LABEL[lv.difficulty]}`;
+  hideHint();
+  buildBoard();
+  renderAll();
+  startTimer();
+  Store.data.lastLevel = lv.id;
+  saveProgress();
+  show('screen-game');
+  requestAnimationFrame(fitBoard);
+}
+
+function buildBoard() {
+  const n = G.n;
+  board.style.gridTemplateColumns = `repeat(${n}, ${CELL_BASE}px)`;
+  board.style.gridTemplateRows = `repeat(${n}, ${CELL_BASE}px)`;
+  board.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.r = r; cell.dataset.c = c;
+      const gid = G.regions[r][c];
+      cell.style.background = PALETTE[gid % PALETTE.length];
+      // 영역 경계는 굵게, 안쪽 격자는 옅게
+      const edge = (rr, cc) => (rr < 0 || cc < 0 || rr >= n || cc >= n) || G.regions[rr][cc] !== gid;
+      const strong = 'rgba(122,97,83,.85)';
+      if (edge(r - 1, c)) { cell.style.borderTopWidth = '2.5px'; cell.style.borderTopColor = strong; }
+      if (edge(r + 1, c)) { cell.style.borderBottomWidth = '2.5px'; cell.style.borderBottomColor = strong; }
+      if (edge(r, c - 1)) { cell.style.borderLeftWidth = '2.5px'; cell.style.borderLeftColor = strong; }
+      if (edge(r, c + 1)) { cell.style.borderRightWidth = '2.5px'; cell.style.borderRightColor = strong; }
+      frag.appendChild(cell);
+    }
+  }
+  board.appendChild(frag);
+}
+
+function cellAt(r, c) { return board.children[r * G.n + c]; }
+
+function renderAll() {
+  const conflicts = findConflicts();
+  for (let r = 0; r < G.n; r++) {
+    for (let c = 0; c < G.n; c++) {
+      const el = cellAt(r, c), v = G.grid[r][c];
+      const want = v === 2 ? 'rabbit' : v === 1 ? 'mark' : '';
+      if (el.dataset.glyph !== want) {
+        el.dataset.glyph = want;
+        el.innerHTML = want ? `<div class="glyph">${RabbitArt.html(want === 'rabbit' ? 'rabbit' : 'mark')}</div>` : '';
+      }
+      el.classList.toggle('x', v === 1);
+      el.classList.toggle('conflict', conflicts.has(r * G.n + c));
+    }
+  }
+  renderHearts();
+}
+
+function renderHearts(popIndex) {
+  const box = $('gmHearts');
+  box.innerHTML = '';
+  for (let i = 0; i < MAX_HEARTS; i++) {
+    const d = document.createElement('div');
+    d.innerHTML = RabbitArt.heart(i < G.hearts);
+    const svg = d.firstElementChild;
+    if (i >= G.hearts) svg.classList.add('gone');
+    if (popIndex === i) svg.classList.add('pop');
+    box.appendChild(svg);
+  }
+}
+
+/* ==========================================================================
+ * 9. 규칙 검사
+ * ========================================================================== */
+function rabbitList() {
+  const out = [];
+  for (let r = 0; r < G.n; r++) for (let c = 0; c < G.n; c++) if (G.grid[r][c] === 2) out.push([r, c]);
+  return out;
+}
+
+/** 규칙을 어기고 있는 칸들의 집합 (r*n+c) */
+function findConflicts() {
+  const n = G.n, bad = new Set();
+  const rows = new Map(), cols = new Map(), regs = new Map();
+  const list = rabbitList();
+  const push = (map, key, cell) => { if (!map.has(key)) map.set(key, []); map.get(key).push(cell); };
+  for (const [r, c] of list) {
+    push(rows, r, [r, c]); push(cols, c, [r, c]); push(regs, G.regions[r][c], [r, c]);
+  }
+  for (const map of [rows, cols, regs]) {
+    for (const cells of map.values()) {
+      if (cells.length > 1) for (const [r, c] of cells) bad.add(r * n + c);
+    }
+  }
+  for (const [r, c] of list) {
+    for (const [r2, c2] of list) {
+      if (r === r2 && c === c2) continue;
+      if (Math.abs(r - r2) <= 1 && Math.abs(c - c2) <= 1) { bad.add(r * n + c); bad.add(r2 * n + c2); }
+    }
+  }
+  return bad;
+}
+
+/* ==========================================================================
+ * 10. 조작 — 탭 1회 X, 2회 토끼, 3회 빈칸
+ * ========================================================================== */
+function tapCell(r, c) {
+  if (G.finished) return;
+  const before = G.grid[r][c];
+  const next = (before + 1) % 3;              // 0 → 1(X) → 2(토끼) → 0
+  G.history.push({ r, c, from: before });
+  if (G.history.length > 200) G.history.shift();
+  G.grid[r][c] = next;
+  hideHint();
+
+  let lostHeart = false;
+  if (next === 2) {
+    const conflicts = findConflicts();
+    if (conflicts.has(r * G.n + c)) {
+      lostHeart = true;
+      G.hearts = Math.max(0, G.hearts - 1);
+      renderHearts(G.hearts);
+      const el = cellAt(r, c);
+      el.classList.add('shake');
+      setTimeout(() => el.classList.remove('shake'), 400);
+      if (navigator.vibrate) navigator.vibrate(35);
+    }
+  }
+  renderAll();
+  saveProgress();
+
+  if (lostHeart && G.hearts === 0) {
+    G.finished = true; stopTimer();
+    setTimeout(() => openModal('modalOver'), 620);
+    return;
+  }
+  if (!lostHeart) checkWin();
+}
+
+function checkWin() {
+  if (rabbitList().length !== G.n) return;
+  if (findConflicts().size > 0) return;
+  G.finished = true;
+  stopTimer();
+  hideHint();
+  for (const [r, c] of rabbitList()) {
+    const el = cellAt(r, c);
+    el.classList.add('win');
+    el.querySelector('.glyph').innerHTML = RabbitArt.html('rabbit', 'happy');
+  }
+  const id = G.level.id;
+  const prev = Store.data.cleared[id];
+  if (!prev || G.elapsed < prev.time) {
+    Store.data.cleared[id] = { time: G.elapsed, hearts: G.hearts };
+  }
+  Store.data.inProgress = null;
+  Store.save();
+  setTimeout(() => {
+    $('clearTime').textContent = fmtTime(G.elapsed);
+    $('clearHearts').textContent = '♥'.repeat(G.hearts) + '♡'.repeat(MAX_HEARTS - G.hearts);
+    const last = G.index >= PUZZLES.levels.length - 1;
+    $('clearTitle').textContent = last ? '토끼 마을 완성!' : '축하해요!';
+    $('clearMsg').innerHTML = last
+      ? '모든 레벨을 끝냈어요.<br>토끼들이 다 같이 인사해요 🐰'
+      : '토끼들이 모두 제자리를 찾았어요.';
+    $('clearNext').textContent = last ? '레벨 목록' : '다음 레벨';
+    $('clearArt').innerHTML = RabbitArt.html('rabbit', 'happy');
+    openModal('modalClear');
+    fireConfetti();
+  }, 700);
+}
+
+function undo() {
+  if (G.finished || !G.history.length) return;
+  const m = G.history.pop();
+  G.grid[m.r][m.c] = m.from;
+  hideHint();
+  renderAll();
+  saveProgress();
+}
+
+function resetBoard() {
+  if (!G.level || G.hearts === 0) return;
+  confirmBox('다시 놓기', '지금까지 놓은 토끼를 모두 치울까요?<br><span style="font-size:12px">(하트와 시간은 그대로예요)</span>', () => {
+    G.grid = Array.from({ length: G.n }, () => new Array(G.n).fill(0));
+    G.history = []; G.finished = false;
+    hideHint(); renderAll(); saveProgress();
+  });
+}
+
+/* ==========================================================================
+ * 11. 힌트
+ * ========================================================================== */
+function clearHintMarks() {
+  for (const el of board.querySelectorAll('.hint,.hint-group')) el.classList.remove('hint', 'hint-group');
+  G.hintCells = [];
+}
+function hideHint() {
+  clearHintMarks();
+  const bar = $('hintBar');
+  if (!bar.classList.contains('show')) return;
+  bar.classList.remove('show');
+  bar.innerHTML = '';
+  setTimeout(fitBoardKeepScale, 300);   // 말풍선이 접히면서 넓어진 영역에 맞춰 다시 정렬
+}
+
+function giveHint() {
+  if (G.finished) return;
+  clearHintMarks();
+
+  // 1) 잘못 놓인 토끼가 있으면 먼저 알려준다
+  const wrong = rabbitList().filter(([r, c]) => G.solution[r] !== c);
+  if (wrong.length) {
+    for (const [r, c] of wrong) cellAt(r, c).classList.add('hint');
+    G.hintCells = wrong;
+    showHint(`여기 놓인 토끼는 정답 자리가 아니에요. 먼저 치우고 다시 살펴볼까요? <b>(${wrong.length}칸)</b>`);
+    return;
+  }
+
+  // 2) 지금 확실히 정할 수 있는 다음 한 수 찾기
+  let found = null;
+  runLogic(G.n, G.regions, rabbitList(), (step) => {
+    const cells = step.type === 'place' ? [[step.r, step.c]] : (step.extra || [[step.r, step.c]]);
+    // 플레이어 보드에 아직 반영되지 않은 추론만 힌트로
+    const fresh = cells.filter(([r, c]) => (step.type === 'place' ? G.grid[r][c] !== 2 : G.grid[r][c] === 0));
+    if (!fresh.length) return false;
+    found = { step, cells: fresh };
+    return true;
+  });
+
+  if (!found) {
+    showHint('지금 보드는 정답으로 가는 길 위에 있어요. 남은 칸을 마저 채워 보세요! 🐾');
+    return;
+  }
+
+  if (HINT_CONFIG.free) HINT_CONFIG.onConsume();
+
+  const { step, cells } = found;
+  for (const [r, c] of cells) cellAt(r, c).classList.add('hint');
+  for (const [r, c] of (step.highlight || [])) {
+    const el = cellAt(r, c);
+    if (!el.classList.contains('hint')) el.classList.add('hint-group');
+  }
+  G.hintCells = cells;
+  const lead = step.type === 'place' ? '🐰 <b>여기에 토끼!</b><br>' : '✋ <b>여기는 비어요.</b><br>';
+  showHint(lead + step.text);
+  scrollCellIntoView(cells[0][0], cells[0][1]);
+}
+
+function showHint(html) {
+  const bar = $('hintBar');
+  bar.innerHTML = html;
+  bar.classList.add('show');
+  requestAnimationFrame(fitBoardKeepScale);
+  setTimeout(fitBoardKeepScale, 300);   // 펼쳐지는 애니메이션이 끝난 뒤 한 번 더
+}
+
+/* ==========================================================================
+ * 12. 줌 / 팬
+ * ========================================================================== */
+const View = { scale: 1, x: 0, y: 0, fit: 1 };
+
+function boardPixelSize() { return G.n * CELL_BASE + 20; }   // boardWrap 패딩 10px * 2
+
+function applyView() {
+  stage.style.transform = `translate(${View.x}px, ${View.y}px) scale(${View.scale})`;
+}
+
+function clampView() {
+  const vw = viewport.clientWidth, vh = viewport.clientHeight;
+  const w = boardPixelSize() * View.scale, h = boardPixelSize() * View.scale;
+  const pad = 12;
+  if (w <= vw) View.x = (vw - w) / 2;
+  else View.x = Math.min(pad, Math.max(vw - w - pad, View.x));
+  if (h <= vh) View.y = (vh - h) / 2;
+  else View.y = Math.min(pad, Math.max(vh - h - pad, View.y));
+}
+
+function fitBoard() {
+  const vw = viewport.clientWidth, vh = viewport.clientHeight;
+  if (!vw || !vh) return;
+  const size = boardPixelSize();
+  View.fit = Math.min(vw / size, vh / size);
+  View.scale = Math.min(View.fit, 1.25);
+  clampView(); applyView();
+}
+function fitBoardKeepScale() { clampView(); applyView(); }
+
+function zoomBy(factor, cx, cy) {
+  const vw = viewport.clientWidth, vh = viewport.clientHeight;
+  if (cx == null) { cx = vw / 2; cy = vh / 2; }
+  const min = Math.min(View.fit, 1.25) * 0.9, max = Math.max(View.fit * 3.2, 1.9);
+  const next = Math.max(min, Math.min(max, View.scale * factor));
+  const k = next / View.scale;
+  View.x = cx - (cx - View.x) * k;
+  View.y = cy - (cy - View.y) * k;
+  View.scale = next;
+  clampView(); applyView();
+}
+
+function scrollCellIntoView(r, c) {
+  const vw = viewport.clientWidth, vh = viewport.clientHeight;
+  const px = (10 + c * CELL_BASE + CELL_BASE / 2) * View.scale;
+  const py = (10 + r * CELL_BASE + CELL_BASE / 2) * View.scale;
+  const sx = View.x + px, sy = View.y + py;
+  const m = 40;
+  if (sx < m || sx > vw - m || sy < m || sy > vh - m) {
+    View.x = vw / 2 - px; View.y = vh / 2 - py;
+    clampView(); applyView();
+  }
+}
+
+// --- 포인터 처리 (탭 / 팬 / 핀치)
+const pointers = new Map();
+let gesture = null;
+
+viewport.addEventListener('pointerdown', (e) => {
+  viewport.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: 0, t: Date.now() });
+  if (pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
+    gesture = {
+      dist: Math.hypot(a.x - b.x, a.y - b.y),
+      scale: View.scale,
+      cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2,
+      vx: View.x, vy: View.y,
+    };
+  }
+});
+
+viewport.addEventListener('pointermove', (e) => {
+  const p = pointers.get(e.pointerId);
+  if (!p) return;
+  const dx = e.clientX - p.x, dy = e.clientY - p.y;
+  p.moved += Math.hypot(dx, dy);
+  p.x = e.clientX; p.y = e.clientY;
+
+  if (pointers.size === 2 && gesture) {
+    const [a, b] = [...pointers.values()];
+    const dist = Math.hypot(a.x - b.x, a.y - b.y);
+    const rect = viewport.getBoundingClientRect();
+    const cx = (a.x + b.x) / 2 - rect.left, cy = (a.y + b.y) / 2 - rect.top;
+    const min = Math.min(View.fit, 1.25) * 0.9, max = Math.max(View.fit * 3.2, 1.9);
+    const target = Math.max(min, Math.min(max, gesture.scale * (dist / gesture.dist)));
+    const k = target / View.scale;
+    View.x = cx - (cx - View.x) * k;
+    View.y = cy - (cy - View.y) * k;
+    View.scale = target;
+    clampView(); applyView();
+  } else if (pointers.size === 1) {
+    View.x += dx; View.y += dy;
+    clampView(); applyView();
+  }
+});
+
+function endPointer(e) {
+  const p = pointers.get(e.pointerId);
+  pointers.delete(e.pointerId);
+  if (pointers.size < 2) gesture = null;
+  if (!p) return;
+  // 탭 판정: 거의 안 움직였고 짧게 눌렀을 때
+  if (p.moved < 9 && Date.now() - p.t < 600 && pointers.size === 0) {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const cell = el && el.closest ? el.closest('.cell') : null;
+    if (cell && board.contains(cell)) tapCell(+cell.dataset.r, +cell.dataset.c);
+  }
+}
+viewport.addEventListener('pointerup', endPointer);
+viewport.addEventListener('pointercancel', endPointer);
+viewport.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const rect = viewport.getBoundingClientRect();
+  zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX - rect.left, e.clientY - rect.top);
+}, { passive: false });
+
+window.addEventListener('resize', () => {
+  if ($('screen-game').classList.contains('on')) fitBoard();
+});
+
+/* ==========================================================================
+ * 13. 타이머 / 저장
+ * ========================================================================== */
+function fmtTime(s) {
+  const m = Math.floor(s / 60), ss = s % 60;
+  return `${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+}
+function startTimer() {
+  stopTimer();
+  $('gmTimer').textContent = fmtTime(G.elapsed);
+  G.timer = setInterval(() => {
+    if (G.finished) return;
+    G.elapsed++;
+    $('gmTimer').textContent = fmtTime(G.elapsed);
+    if (G.elapsed % 10 === 0) saveProgress();
+  }, 1000);
+}
+function stopTimer() { if (G.timer) { clearInterval(G.timer); G.timer = null; } }
+
+function saveProgress() {
+  if (!G.level || G.finished) return;
+  Store.data.inProgress = {
+    levelId: G.level.id,
+    grid: G.grid.map((r) => r.slice()),
+    hearts: G.hearts,
+    elapsed: G.elapsed,
+  };
+  Store.save();
+}
+
+/* ==========================================================================
+ * 14. 축하 연출
+ * ========================================================================== */
+function fireConfetti() {
+  const box = $('confetti');
+  box.innerHTML = ''; box.classList.add('on');
+  const colors = ['#F8CFCB', '#FBE0AE', '#B9E5D0', '#BADFF0', '#E6C9EE', '#FBF3B4'];
+  for (let i = 0; i < 46; i++) {
+    const s = document.createElement('i');
+    s.style.left = Math.random() * 100 + 'vw';
+    s.style.background = colors[i % colors.length];
+    s.style.animationDuration = (1.9 + Math.random() * 1.5) + 's';
+    s.style.animationDelay = (Math.random() * .7) + 's';
+    if (i % 4 === 0) s.style.borderRadius = '50%';
+    box.appendChild(s);
+  }
+  setTimeout(() => { box.classList.remove('on'); box.innerHTML = ''; }, 3800);
+}
+
+/* ==========================================================================
+ * 15. 버튼 연결
+ * ========================================================================== */
+$('btnLevels').onclick = () => { renderLevels(); show('screen-levels'); };
+$('lvBack').onclick = () => show('screen-title');
+$('btnHowTo').onclick = () => openModal('modalRules');
+$('btnRules').onclick = () => openModal('modalRules');
+$('rulesClose').onclick = () => closeModal('modalRules');
+
+$('btnContinue').onclick = () => {
+  const ip = Store.data.inProgress;
+  if (ip) {
+    const idx = levelIndexById(ip.levelId);
+    if (idx >= 0 && ip.grid && ip.grid.length === PUZZLES.levels[idx].size) {
+      startLevel(idx, ip); return;
+    }
+  }
+  const last = Store.data.lastLevel ? levelIndexById(Store.data.lastLevel) : -1;
+  const cleared = Store.data.cleared;
+  let next = 0;
+  for (let i = 0; i < PUZZLES.levels.length; i++) { if (!cleared[PUZZLES.levels[i].id]) { next = i; break; } }
+  startLevel(last >= 0 && !cleared[PUZZLES.levels[last].id] ? last : next);
+};
+
+$('btnReset').onclick = () => confirmBox('진행 초기화', '클리어 기록과 진행 중인 판이 모두 사라져요.<br>정말 초기화할까요?', () => {
+  Store.clearAll(); refreshTitle(); toast('처음부터 다시 시작해요 🌱');
+});
+
+$('gmBack').onclick = () => { saveProgress(); stopTimer(); renderLevels(); show('screen-levels'); };
+$('btnHint').onclick = giveHint;
+$('btnUndo').onclick = undo;
+$('btnClear').onclick = resetBoard;
+$('btnZoomIn').onclick = () => zoomBy(1.25);
+$('btnZoomOut').onclick = () => zoomBy(1 / 1.25);
+
+$('clearNext').onclick = () => {
+  closeModal('modalClear');
+  const next = G.index + 1;
+  if (next < PUZZLES.levels.length) startLevel(next);
+  else { renderLevels(); show('screen-levels'); }
+};
+$('clearToLevels').onclick = () => { closeModal('modalClear'); renderLevels(); show('screen-levels'); };
+$('overRetry').onclick = () => { closeModal('modalOver'); startLevel(G.index); };
+$('overToLevels').onclick = () => { closeModal('modalOver'); renderLevels(); show('screen-levels'); };
+
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveProgress(); });
+
+/* ==========================================================================
+ * 16. 시작
+ * ========================================================================== */
+function refreshTitle() {
+  const ip = Store.data.inProgress;
+  const clearedN = PUZZLES ? PUZZLES.levels.filter((l) => Store.data.cleared[l.id]).length : 0;
+  const btn = $('btnContinue');
+  if (ip) {
+    const idx = levelIndexById(ip.levelId);
+    btn.innerHTML = `이어서 하기 <span class="sub">레벨 ${idx + 1}</span>`;
+  } else if (clearedN > 0) {
+    btn.innerHTML = `이어서 하기 <span class="sub">레벨 ${Math.min(clearedN + 1, PUZZLES.levels.length)}</span>`;
+  } else {
+    btn.textContent = '시작하기';
+  }
+}
+
+function decorateSky() {
+  const box = $('skyDeco');
+  for (let i = 0; i < 7; i++) {
+    const s = document.createElement('span');
+    const size = 40 + Math.random() * 110;
+    s.style.width = size + 'px';
+    s.style.height = size * (.45 + Math.random() * .2) + 'px';
+    s.style.top = Math.random() * 92 + 'vh';
+    s.style.opacity = .18 + Math.random() * .25;
+    s.style.animationDuration = (48 + Math.random() * 60) + 's';
+    s.style.animationDelay = (-Math.random() * 60) + 's';
+    box.appendChild(s);
+  }
+}
+
+function buildTapGuide() {
+  $('tapGuide').innerHTML = `
+    <div class="tapcard"><span class="n">탭 1회</span><span class="art">${RabbitArt.html('mark')}</span><span class="lbl">여기 아님</span></div>
+    <div class="tapcard"><span class="n">탭 2회</span><span class="art">${RabbitArt.html('rabbit')}</span><span class="lbl">토끼 앉기</span></div>
+    <div class="tapcard"><span class="n">탭 3회</span><span class="empty-box"></span><span class="lbl">비우기</span></div>`;
+}
+
+async function loadPuzzles() {
+  // 1순위: puzzles.json (레벨만 따로 갱신 가능)
+  try {
+    const res = await fetch('puzzles.json', { cache: 'no-cache' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.levels) && data.levels.length) return data;
+    }
+  } catch (e) { /* file:// 등에서 실패 -> 내장 사본 사용 */ }
+  // 2순위: 내장 사본
+  try {
+    const raw = document.getElementById('puzzles-embedded').textContent;
+    const data = JSON.parse(raw);
+    if (data && Array.isArray(data.levels) && data.levels.length) return data;
+  } catch (e) {}
+  return null;
+}
+
+(async function init() {
+  $('loadArt').innerHTML = RabbitArt.rabbit();
+  $('titleArt').innerHTML = RabbitArt.rabbit('happy');
+  $('overArt').innerHTML = RabbitArt.rabbit('tired');
+  buildTapGuide();
+  decorateSky();
+  Store.load();
+
+  PUZZLES = await loadPuzzles();
+  if (!PUZZLES) {
+    $('loadMsg').innerHTML = '퍼즐을 불러오지 못했어요.<br><span style="font-size:12px">puzzles.json 을 확인해 주세요.</span>';
+    return;
+  }
+  refreshTitle();
+  show('screen-title');
+  $('loading').style.display = 'none';
+})();
+</script>
+</body>
+</html>
