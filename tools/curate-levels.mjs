@@ -25,19 +25,24 @@ if (!Array.isArray(pool.puzzles) || !pool.puzzles.length) {
   process.exit(1);
 }
 
-/** 낮을수록 쉽다. 같은 크기끼리 비교하는 용도라 크기는 넣지 않는다. */
-function hardness(p) {
-  const m = p.metrics;
-  const cells = p.size * p.size;
-  return m.steps                              // 추론이 많을수록 어렵다
-    + m.firstPlace * 2                        // 시작을 못 찾으면 훨씬 어렵게 느껴진다
-    - m.onesCount * 3                         // 공짜 시작점은 크게 쉬워진다
-    + (m.maxRegion / cells) * 10;             // 거대한 영역 하나 = 읽기 피로
-}
+/**
+ * 난이도는 오직 "추론 깊이"로 매긴다.
+ * 영역 크기 분포(1칸 영역이 있는지, 거대 영역이 있는지)와는 완전히 분리돼 있어서,
+ * 어려움 레벨에 1칸 영역이 나올 수도 있고 쉬움 레벨에 없을 수도 있다.
+ */
+const DIFF_BANDS = [
+  { max: 6, name: 'easy' },
+  { max: 13, name: 'normal' },
+  { max: Infinity, name: 'hard' },
+];
+const difficultyOf = (depth) => DIFF_BANDS.find((b) => depth <= b.max).name;
+
+/** 커브 정렬용 — 같은 크기 안에서 쉬운 것부터 놓는다 */
+const hardness = (p) => p.metrics.depth + p.metrics.steps * 0.2;
 
 const OPENING = 5;          // 첫 5레벨: 가장 쉬운 5x5
-const PER_SIZE = {          // 크기별로 실제 사용할 개수
-  5: OPENING, 6: 3, 7: 3, 8: 3, 9: 3, 10: 3, 11: 2, 12: 2, 13: 2, 14: 2,
+const PER_SIZE = {
+  5: OPENING, 6: 3, 7: 3, 8: 3, 9: 3, 10: 3, 11: 2, 12: 2, 13: 2,
 };
 
 const bySize = new Map();
@@ -46,13 +51,22 @@ for (const p of pool.puzzles) {
   bySize.get(p.size).push(p);
 }
 
+/*
+ * 커브: 판이 커질수록 "추론 깊이"도 함께 올라가야 한다.
+ * 크기별로 쉬운 것부터 정렬해 두고, 뒤쪽 크기일수록 더 깊은 구간에서 뽑는다.
+ * 다만 첫 5레벨(5x5)은 무조건 가장 쉬운 것들로 — 시작이 어려우면 안 된다.
+ */
+const sizes = [...bySize.keys()].sort((a, b) => a - b);
 const levels = [];
-const report = [];
-for (const size of [...bySize.keys()].sort((a, b) => a - b)) {
+sizes.forEach((size, si) => {
   const want = PER_SIZE[size] ?? 0;
-  if (!want) continue;
+  if (!want) return;
   const sorted = bySize.get(size).slice().sort((a, b) => hardness(a) - hardness(b));
-  const picked = sorted.slice(0, want);
+  const room = Math.max(0, sorted.length - want);
+  // 첫 크기는 가장 쉬운 쪽에서, 마지막 크기는 가장 어려운 쪽에서 뽑는다
+  const frac = sizes.length > 1 ? si / (sizes.length - 1) : 0;
+  const offset = size === 5 ? 0 : Math.round(room * frac);
+  const picked = sorted.slice(offset, offset + want);
   if (picked.length < want) {
     console.error(`경고: ${size}x${size} 는 ${want}개가 필요한데 ${picked.length}개뿐입니다.`);
   }
@@ -60,16 +74,13 @@ for (const size of [...bySize.keys()].sort((a, b) => a - b)) {
     levels.push({
       id: '', index: 0,
       size: p.size,
-      difficulty: p.difficulty,
+      difficulty: difficultyOf(p.metrics.depth),
       regions: p.regions,
       solution: p.solution,
       metrics: p.metrics,
     });
-    report.push({ size, ...p.metrics, hardness: +hardness(p).toFixed(1), used: true });
   }
-  const dropped = sorted.length - picked.length;
-  if (dropped > 0) console.error(`   ${size}x${size}: ${picked.length}개 채택, ${dropped}개 보류(더 어려운 쪽)`);
-}
+});
 
 levels.forEach((lv, i) => { lv.id = `L${String(i + 1).padStart(2, '0')}`; lv.index = i + 1; });
 
@@ -81,12 +92,14 @@ writeFileSync(OUT, JSON.stringify({
 }) + '\n');
 
 console.log(`\n레벨 커브 (${levels.length}개)`);
-console.log('  #  크기   난이도   추론  첫확정  1칸  영역크기     체감난이도');
+console.log('  #  크기   난이도   깊이  Tier  추론  거대영역  미니(1칸)');
 levels.forEach((lv, i) => {
   const m = lv.metrics;
   console.log(
-    `  ${String(i + 1).padStart(2)}  ${lv.size}x${lv.size}`.padEnd(12)
-    + ` ${lv.difficulty.padEnd(7)} ${String(m.steps).padStart(4)} ${String(m.firstPlace).padStart(6)}`
-    + ` ${String(m.onesCount).padStart(4)}  ${String(m.minRegion + '~' + m.maxRegion).padEnd(10)} ${report[i].hardness}`);
+    `  ${String(i + 1).padStart(2)}  ${(lv.size + 'x' + lv.size).padEnd(6)} ${lv.difficulty.padEnd(7)}`
+    + ` ${String(m.depth).padStart(4)}  T${m.tier}  ${String(m.steps).padStart(4)}`
+    + `  ${String(Math.round(m.giantShare * 100) + '%').padStart(7)}  ${m.miniCount}개(${m.onesCount})`);
 });
-console.log(`\n-> ${OUT}`);
+const tally = levels.reduce((a, l) => { a[l.difficulty] = (a[l.difficulty] || 0) + 1; return a; }, {});
+console.log(`\n난이도 분포: ${JSON.stringify(tally)}`);
+console.log(`-> ${OUT}`);

@@ -82,32 +82,26 @@ for (const lv of data.levels) {
 if (bad) { console.error(`\n검증 실패: ${bad}개 레벨에 문제가 있습니다.`); process.exit(1); }
 console.log(`✓ ${data.levels.length}개 레벨 검증 통과`);
 
-// ---------------------------------------------------------------- 난이도 규격 검사
-// easy = 1칸 영역 1~2개 + 2~3칸 영역 존재, normal = 최소 2칸, hard = 최소 3칸
+// ---------------------------------------------------------------- 난이도 등급 검사
+// 난이도는 오직 추론 깊이(metrics.depth)로만 매겨진다.
+// 영역 크기 분포와는 무관하므로 1칸 영역 유무 같은 건 검사하지 않는다.
 {
+  const BANDS = [{ max: 6, name: 'easy' }, { max: 13, name: 'normal' }, { max: Infinity, name: 'hard' }];
   const problems = [];
   for (const lv of data.levels) {
-    const sizes = new Array(lv.size).fill(0);
-    lv.regions.forEach((row) => row.forEach((g) => sizes[g]++));
-    const ones = sizes.filter((s) => s === 1).length;
-    const smalls = sizes.filter((s) => s >= 2 && s <= 3).length;
-    const min = Math.min(...sizes);
-    if (lv.difficulty === 'easy') {
-      if (ones < 1 || ones > 2) problems.push(`${lv.id}: 1칸 영역 ${ones}개 (1~2개여야 함)`);
-      if (smalls < 1) problems.push(`${lv.id}: 2~3칸 영역 없음`);
-      if (lv.metrics && lv.metrics.firstPlace > 1) problems.push(`${lv.id}: 첫 확정 ${lv.metrics.firstPlace}수 (0~1이어야 함)`);
-    } else if (lv.difficulty === 'normal' && min < 2) {
-      problems.push(`${lv.id}: 최소 영역 ${min}칸 (2칸 이상이어야 함)`);
-    } else if (lv.difficulty === 'hard' && min < 3) {
-      problems.push(`${lv.id}: 최소 영역 ${min}칸 (3칸 이상이어야 함)`);
+    if (!lv.metrics || typeof lv.metrics.depth !== 'number') { problems.push(`${lv.id}: depth 없음`); continue; }
+    const want = BANDS.find((b) => lv.metrics.depth <= b.max).name;
+    if (lv.difficulty !== want) {
+      problems.push(`${lv.id}: 깊이 ${lv.metrics.depth} 인데 등급이 ${lv.difficulty} (${want} 이어야 함)`);
     }
   }
   if (problems.length) {
-    console.error('\n난이도 규격 위반:');
+    console.error('\n난이도 등급 불일치:');
     problems.forEach((p) => console.error(`  ✗ ${p}`));
     process.exit(1);
   }
-  console.log('✓ 난이도별 영역 크기 규격 통과');
+  const tally = data.levels.reduce((a, l) => { a[l.difficulty] = (a[l.difficulty] || 0) + 1; return a; }, {});
+  console.log(`✓ 난이도 등급(추론 깊이 기준) 일치 — ${JSON.stringify(tally)}`);
 }
 
 // ---------------------------------------------------------------- 튜토리얼 검사

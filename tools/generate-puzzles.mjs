@@ -63,39 +63,37 @@ function randomSolution(n, rnd) {
   return rec(0) ? cols : null;
 }
 
-// ---------------------------------------------------------------- 난이도 프로필
-export function difficultyOf(n) {
-  if (n <= 7) return 'easy';
-  if (n <= 10) return 'normal';
-  return 'hard';
-}
-
+// ---------------------------------------------------------------- 영역 크기 프로필
 /**
  * 영역별 [min, max] 목표. 이 프로필이 생성 내내 불변식으로 지켜진다.
- * easy 의 1칸/2~3칸 영역은 여기서 자리를 배정받고, 이후 절대 크기가 바뀌지 않는다.
+ *
+ * 크기 분포는 이제 "극단 불균등"을 허용한다 — 난이도와 무관하게:
+ *   · 보드의 30~40% 를 차지하는 거대 영역 1개
+ *   · 1~2칸짜리 미니 영역 0~3개 (무작위)
+ *   · 나머지는 2칸 이상
+ * 1칸 영역이 있느냐 없느냐는 난이도와 아무 상관이 없다. 난이도는 생성이 끝난 뒤
+ * "추론 깊이"로만 매긴다 (tools/curate-levels.mjs).
  */
-function makeProfile(n, difficulty, maxFactor, rnd) {
+function makeProfile(n, rnd) {
+  const cells = n * n;
   const profile = new Array(n);
-  if (difficulty !== 'easy') {
-    const min = difficulty === 'normal' ? 2 : 3;
-    const cap = Math.max(8, Math.ceil(maxFactor * n));
-    for (let i = 0; i < n; i++) profile[i] = { min, max: cap };
-    return profile;
-  }
-
-  // easy: 1칸 영역 1~2개, 2~3칸 영역 1~2개, 나머지는 넉넉하게
   const order = shuffle([...Array(n).keys()], rnd);
-  const tiny = 1 + Math.floor(rnd() * 2);                       // 1 또는 2
-  const small = n <= 5 ? 1 : 1 + Math.floor(rnd() * 2);         // 5x5 는 자리가 좁아 1개
-  const restCount = n - tiny - small;
-  if (restCount < 2) return null;                               // 나머지 영역이 너무 적음
 
-  const consumed = tiny * 1 + small * 2;
-  const restMax = Math.ceil(((n * n - consumed) / restCount) * 1.8);
+  const giantMin = Math.max(4, Math.round(cells * 0.30));
+  const giantMax = Math.max(giantMin + 1, Math.round(cells * 0.40));
+  profile[order[0]] = { min: giantMin, max: giantMax };
 
-  order.slice(0, tiny).forEach((i) => { profile[i] = { min: 1, max: 1 }; });
-  order.slice(tiny, tiny + small).forEach((i) => { profile[i] = { min: 2, max: 3 }; });
-  order.slice(tiny + small).forEach((i) => { profile[i] = { min: 4, max: restMax }; });
+  const miniCount = Math.min(Math.floor(rnd() * 4), Math.max(0, n - 3));   // 0~3개
+  for (let i = 1; i <= miniCount; i++) profile[order[i]] = { min: 1, max: 2 };
+
+  const rest = order.slice(1 + miniCount);
+  const restMax = Math.max(3, Math.ceil(((cells - giantMin - miniCount) / Math.max(1, rest.length)) * 2));
+  for (const i of rest) profile[i] = { min: 2, max: restMax };
+
+  // 실현 가능성 확인 (최소 합 <= 칸 수 <= 최대 합)
+  let lo = 0, hi = 0;
+  for (const pr of profile) { lo += pr.min; hi += pr.max; }
+  if (lo > cells || hi < cells) return null;
   return profile;
 }
 
@@ -484,49 +482,28 @@ function trialRule(n, regions, state, groups, cands, done) {
   return false;
 }
 
-// ---------------------------------------------------------------- 6) 난이도 규칙 검사
+// ---------------------------------------------------------------- 6) 채택 기준
 /**
- * 채택 기준: 이 단계까지의 규칙만으로 풀려야 한다 (찍기 없음).
- * easy/normal 은 T0(유일 후보) + T1(갇힘)만 요구한다.
- * hard 는 큰 판에서 "모든 영역 3칸 이상"과 T1 완주를 동시에 만족시키기가
- * 사실상 불가능해서 T2(k개 줄 <-> k개 영역)까지 허용한다.
- * T2 도 사람이 따라갈 수 있는 추론이고, 게임의 힌트 엔진은 여전히 상위 집합이다.
+ * 찍기 없이 논리만으로 풀리기만 하면 채택한다.
+ * 난이도는 여기서 거르지 않고, 나온 결과의 "추론 깊이"를 재서 나중에 등급을 매긴다.
+ * T3(놓아보기 모순)까지 허용해도 사람이 따라갈 수 있는 추론이고,
+ * 게임의 힌트 엔진이 T3 까지 전부 말로 설명해 준다.
  */
-const acceptTierFor = (difficulty, n) => {
-  // 판이 커질수록 "모든 영역 3칸 이상"과 얕은 추론만으로 풀리는 조건을
-  // 동시에 만족시키기 어려워진다. 작은 영역이 없으면 T0 가 초반에 안 터지기 때문.
-  // 그래서 큰 판에는 더 깊은 규칙을 허용한다. 어느 쪽도 "찍기"는 아니고,
-  // 게임의 힌트 엔진이 T3 까지 전부 말로 설명해 준다.
-  if (n >= 14) return 3;
-  if (difficulty === 'hard') return 2;
-  return 1;
-};
+const ACCEPT_TIER = 3;
 
-/** 생성 결과가 난이도 규격을 만족하는가? 어긋나면 사유 문자열을 돌려준다. */
-export function checkDifficulty(n, difficulty, sizes, lg) {
-  const ones = sizes.filter((s) => s === 1).length;
-  const smalls = sizes.filter((s) => s >= 2 && s <= 3).length;
-  const min = Math.min(...sizes);
-  if (difficulty === 'easy') {
-    if (ones < 1 || ones > 2) return `1칸 영역 ${ones}개 (1~2개여야 함)`;
-    if (smalls < 1) return '2~3칸 영역이 없음';
-    if (lg.firstPlace > 1) return `첫 확정까지 ${lg.firstPlace}수 (0~1이어야 함)`;
-  } else if (difficulty === 'normal') {
-    if (min < 2) return `최소 영역 ${min}칸 (2칸 이상이어야 함)`;
-  } else {
-    if (min < 3) return `최소 영역 ${min}칸 (3칸 이상이어야 함)`;
-  }
-  return null;
+/** 추론 깊이 — 숫자가 클수록 어렵다. 난이도 등급의 유일한 근거. */
+export function inferenceDepth(n, lg) {
+  const eliminations = Math.max(0, lg.steps - n);   // 배치가 아닌 "지우기" 추론 수
+  return lg.tier * 8 + eliminations + Math.min(lg.firstPlace, 12);
 }
 
 // ---------------------------------------------------------------- 7) 퍼즐 1개 만들기
-function makePuzzle(n, difficulty, maxFactor, rnd, deadline, outerTries = 400, repairSteps = 3000) {
-  const acceptTier = acceptTierFor(difficulty, n);
+function makePuzzle(n, rnd, deadline, outerTries = 400, repairSteps = 3000) {
   for (let t = 0; t < outerTries; t++) {
     if (Date.now() > deadline) return null;
     const cols = randomSolution(n, rnd);
     if (!cols) continue;
-    const profile = makeProfile(n, difficulty, maxFactor, rnd);
+    const profile = makeProfile(n, rnd);
     if (!profile) continue;
     const regions = growRegions(n, cols, profile, rnd);
     if (!regions) continue;
@@ -537,14 +514,8 @@ function makePuzzle(n, difficulty, maxFactor, rnd, deadline, outerTries = 400, r
       // 논리 풀이를 먼저 돌린다. 모든 규칙이 "확정된 수"만 만들기 때문에,
       // 논리만으로 완주했다는 것은 곧 해가 유일하다는 뜻이다.
       // (tools/build.mjs 가 최종 결과의 유일성을 독립적으로 다시 검증한다)
-      const lg = logicSolve(n, regions, acceptTier);
-      if (lg.ok) {
-        const sizes = regionSizes(n, regions);
-        const why = checkDifficulty(n, difficulty, sizes, lg);
-        if (!why) return { regions, cols, sizes, lg, steps: step + 1 };
-        if (!randomNudge(n, regions, cols, profile, rnd)) break;
-        continue;
-      }
+      const lg = logicSolve(n, regions, ACCEPT_TIER);
+      if (lg.ok) return { regions, cols, sizes: regionSizes(n, regions), lg, steps: step + 1 };
 
       const sols = findSolutions(n, regions, 2);
       if (sols.length === 0) break;
@@ -564,26 +535,20 @@ function makePuzzle(n, difficulty, maxFactor, rnd, deadline, outerTries = 400, r
   return null;
 }
 
-// ---------------------------------------------------------------- 8) 풀 생성
-// 5x5 는 레벨 커브 앞부분을 채우려고 넉넉히 뽑는다 (curate 단계에서 쉬운 것부터 고른다).
+// ---------------------------------------------------------------- 7) 풀 생성
+// 난이도는 여기서 정하지 않는다. 크기별로 넉넉히 뽑고, 등급은 curate 단계에서
+// 측정된 추론 깊이로 매긴다.
 const PLAN = [
-  [5, 14], [6, 5], [7, 5],
-  [8, 4], [9, 4], [10, 4],
-  [11, 3], [12, 3], [13, 3], [14, 3],
+  [5, 16], [6, 8], [7, 8],
+  [8, 6], [9, 6], [10, 6],
+  [11, 4], [12, 4], [13, 4],
 ];
 
-// 영역 크기 상한만 단계적으로 완화한다. 하한(난이도 정의)은 절대 완화하지 않는다.
-const RELAX = [
-  { maxFactor: 2.4, budgetMs: 20000 },
-  { maxFactor: 3.0, budgetMs: 30000 },
-  { maxFactor: 4.0, budgetMs: 60000 },
-  { maxFactor: 99, budgetMs: 180000 },
-];
-const budgetFor = (relax, n) => relax.budgetMs * (n >= 13 ? 3 : n >= 11 ? 1.5 : 1);
+const BUDGET_MS = (n) => (n >= 13 ? 180000 : n >= 11 ? 90000 : 30000);
 
 const OUT = process.argv[2] || 'puzzles-pool.json';
 const SIZES_ONLY = process.argv[3] ? process.argv[3].split(',').map(Number) : null;
-const APPEND = process.argv[4] === '--append';   // 기존 풀에 이어붙이기
+const APPEND = process.argv[4] === '--append';
 const rnd = mulberry32(APPEND ? 990113 : 20260727);
 const pool = [];
 if (APPEND && IS_MAIN) {
@@ -592,7 +557,7 @@ if (APPEND && IS_MAIN) {
 
 function flush() {
   writeFileSync(OUT, JSON.stringify({
-    version: 2,
+    version: 3,
     title: '토끼네 자리',
     kind: 'pool',
     rules: { perRow: 1, perCol: 1, perRegion: 1, diagonalAdjacencyForbidden: true },
@@ -602,36 +567,35 @@ function flush() {
 
 for (const [n, count] of (IS_MAIN ? PLAN : [])) {
   if (SIZES_ONLY && !SIZES_ONLY.includes(n)) continue;
-  const difficulty = difficultyOf(n);
   for (let i = 0; i < count; i++) {
     const t0 = Date.now();
-    let p = null;
-    for (const relax of RELAX) {
-      p = makePuzzle(n, difficulty, relax.maxFactor, rnd, Date.now() + budgetFor(relax, n));
-      if (p) break;
-      process.stderr.write(`   .. ${n}x${n} 상한 ${relax.maxFactor}N 시간 초과 -> 완화\n`);
-    }
+    const p = makePuzzle(n, rnd, Date.now() + BUDGET_MS(n));
     if (!p) { process.stderr.write(`!! ${n}x${n} 생성 실패\n`); continue; }
 
+    const cells = n * n;
+    const maxRegion = Math.max(...p.sizes);
     pool.push({
       size: n,
-      difficulty,
       regions: p.regions,
-      solution: p.cols,                                  // solution[r] = r행 토끼의 열
+      solution: p.cols,
       metrics: {
         tier: p.lg.tier,
-        steps: p.lg.steps,                               // 총 추론 수 (많을수록 어렵다)
-        firstPlace: p.lg.firstPlace,                     // 첫 확정까지 걸린 추론 수
+        steps: p.lg.steps,
+        firstPlace: p.lg.firstPlace,
+        depth: inferenceDepth(n, p.lg),
         minRegion: Math.min(...p.sizes),
-        maxRegion: Math.max(...p.sizes),
+        maxRegion,
+        giantShare: +(maxRegion / cells).toFixed(3),
         onesCount: p.sizes.filter((s) => s === 1).length,
+        miniCount: p.sizes.filter((s) => s <= 2).length,
       },
     });
     flush();
     const m = pool[pool.length - 1].metrics;
     process.stderr.write(
-      `ok ${n}x${n} ${difficulty.padEnd(6)} 영역 ${m.minRegion}~${m.maxRegion} `
-      + `1칸 ${m.onesCount}개  추론 ${m.steps}수  첫확정 ${m.firstPlace}수  ${((Date.now() - t0) / 1000).toFixed(1)}초\n`);
+      `ok ${n}x${n}  깊이 ${String(m.depth).padStart(3)}  T${m.tier} 추론${String(m.steps).padStart(3)}수  `
+      + `거대영역 ${(m.giantShare * 100).toFixed(0)}%  미니 ${m.miniCount}개(1칸 ${m.onesCount})  `
+      + `${((Date.now() - t0) / 1000).toFixed(1)}초\n`);
   }
 }
 if (IS_MAIN) process.stderr.write(`\n총 ${pool.length}개 퍼즐 -> ${OUT}\n`);
