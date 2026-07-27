@@ -230,7 +230,7 @@ h1.game-title{
   border-radius:var(--tile-radius,11px);
   transition:background-color .18s ease, opacity .28s ease;
 }
-.cell .glyph{width:78%;height:78%;display:grid;place-items:center;pointer-events:none;}
+.cell .glyph{width:80%;height:80%;display:grid;place-items:center;pointer-events:none;}
 .cell .glyph svg{width:100%;height:100%;display:block;}
 /* ---- 배치 감각 (전부 transform/opacity 만 건드린다) ---- */
 /* 토끼: 위에서 툭 떨어져 눌렸다가 통통 튀며 자리를 잡는다 */
@@ -415,6 +415,22 @@ body.tutorial-mode #hintBar{display:none;}
 #hintBar.coach b{color:#5E3D18;}
 .coach-lesson{
   display:block;font-size:14.5px;font-weight:800;color:#8A5A1E;margin-bottom:4px;
+}
+
+/* 당근이 줄 때 보드 한가운데 잠깐 떠오르는 시무룩 토끼 (0.8초) */
+#sadPop{
+  position:absolute;left:50%;top:50%;width:38%;max-width:150px;aspect-ratio:1;
+  margin:-19% 0 0 -19%;pointer-events:none;z-index:5;opacity:0;
+}
+#sadPop.show{animation:sadPop .8s cubic-bezier(.25,1,.4,1) both;}
+#sadPop img,#sadPop svg{width:100%;height:100%;object-fit:contain;
+  filter:drop-shadow(0 6px 12px rgba(90,66,52,.28));}
+@keyframes sadPop{
+  0%  {opacity:0;transform:translateY(14%) scale(.72)}
+  22% {opacity:1;transform:translateY(-4%) scale(1.06)}
+  38% {opacity:1;transform:translateY(0) scale(1)}
+  72% {opacity:1;transform:translateY(-3%) scale(1)}
+  100%{opacity:0;transform:translateY(-16%) scale(.94)}
 }
 
 /* 힌트 말풍선 */
@@ -612,6 +628,7 @@ body.tutorial-mode #hintBar{display:none;}
     <div id="coachLine"></div>
 
     <div id="viewport">
+      <div id="sadPop" aria-hidden="true"></div>
       <div id="stage">
         <div id="boardWrap">
           <div id="board"></div>
@@ -743,7 +760,6 @@ body.tutorial-mode #hintBar{display:none;}
  * 나중에 이미지 에셋으로 바꾸려면 RabbitArt.mode 를 'image' 로 바꾸고
  * RabbitArt.images 에 경로만 넣으면 됩니다. 게임 로직은 손댈 필요 없음.
  *   RabbitArt.mode = 'image';
- *   RabbitArt.images = { rabbit:'assets/rabbit.png', mark:'assets/x.png' };
  * ========================================================================== */
 /* --------------------------------------------------------------------------
  * 에셋 경로 — 그림을 이미지로 바꾸려면 여기만 고치면 된다.
@@ -755,14 +771,17 @@ body.tutorial-mode #hintBar{display:none;}
  * 칸에 들어가는 그림은 정사각형·투명 배경을 권장한다 (칸의 78% 크기로 그려진다).
  * -------------------------------------------------------------------------- */
 const ASSETS = {
-  rabbit: null,          // 예: 'assets/rabbit.png'  — 기본 토끼
-  happy:  null,          //     'assets/rabbit-happy.png'  — 클리어 때
-  tired:  null,          //     'assets/rabbit-tired.png'  — 게임 오버 때
-  mark:   null,          //     'assets/x.png'      — ✕ 메모
-  locked: null,          //     'assets/x-locked.png' — 잠긴 칸
-  face:   null,          //     'assets/face.png'   — 배치 카운터 아이콘
-  paw:    null,          //     'assets/paw.png'    — 자동배치 부스터 아이콘
-  carrot: null,          //     'assets/carrot.png' — 난이도·목숨 아이콘
+  rabbit: 'assets/rabbit.png',        // 기본 — 보드 타일에 놓이는 포즈
+  happy:  'assets/rabbit_jump.png',   // 클리어 연출 (점프)
+  tired:  'assets/rabbit_sad.png',    // 실수·게임 오버 (시무룩)
+  mark:   null,                       // ✕ 메모        (null = 내장 SVG)
+  locked: null,                       // 잠긴 칸
+  face:   null,                       // 배치 카운터 아이콘
+  paw:    null,                       // 자동배치 부스터 아이콘
+  carrot: null,                       // 난이도·목숨 아이콘
+  // 예비 — 필요해지면 위 항목에 연결하면 된다
+  //   assets/rabbit_think.png  (갸웃 — 힌트/튜토리얼용)
+  //   assets/rabbit_sleep.png  (자는 포즈 — 로딩 화면용)
 };
 
 const RabbitArt = {
@@ -809,7 +828,9 @@ const RabbitArt = {
   mark(variant) {
     // 타일 색을 그대로 두고 그 위에 굵은 라운드 스트로크만 얹는다.
     // 글리프는 칸의 78% 크기라, 칸 대비 14% 두께 = viewBox 기준 18.
-    const stroke = variant === 'locked' ? '#FFE2DE' : '#FFFFFF';
+    // 잠긴 칸도 흰 스트로크로 통일한다 (연분홍은 분홍 타일 위에서 묻힌다).
+    // "잠김"은 칸을 두르는 빨간 링이 알려 준다.
+    const stroke = '#FFFFFF';
     return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <g stroke="${stroke}" stroke-width="18" stroke-linecap="round" fill="none">
     <path d="M30 30 L70 70"/><path d="M70 30 L30 70"/>
@@ -1991,6 +2012,7 @@ function tapCell(r, c) {
     el.classList.add('shake');
     setTimeout(() => el.classList.remove('shake'), 400);
     shakeScreen();
+    showSadRabbit();
     Sfx.miss(); buzz([28, 60, 28]);
   } else {
     G.grid[r][c] = next;
@@ -2012,6 +2034,18 @@ function tapCell(r, c) {
     return;
   }
   if (!lostHeart) checkWin();
+}
+
+/** 당근이 줄 때 보드 한가운데에 시무룩 토끼를 0.8초 띄운다 */
+let sadTimer = null;
+function showSadRabbit() {
+  const el = $('sadPop');
+  el.innerHTML = RabbitArt.html('rabbit', 'tired');
+  el.classList.remove('show');
+  void el.offsetWidth;                       // 애니메이션 재시작
+  el.classList.add('show');
+  clearTimeout(sadTimer);
+  sadTimer = setTimeout(() => { el.classList.remove('show'); el.innerHTML = ''; }, 850);
 }
 
 /** 하트가 줄 때 게임 화면을 살짝 흔든다 (모달은 이 화면 밖이라 영향 없음) */
@@ -2585,9 +2619,9 @@ async function loadPuzzles() {
 }
 
 (async function init() {
-  $('loadArt').innerHTML = RabbitArt.rabbit();
-  $('titleArt').innerHTML = RabbitArt.rabbit('happy');
-  $('overArt').innerHTML = RabbitArt.rabbit('tired');
+  $('loadArt').innerHTML = RabbitArt.html('rabbit');
+  $('titleArt').innerHTML = RabbitArt.html('rabbit');
+  $('overArt').innerHTML = RabbitArt.html('rabbit', 'tired');
   buildTapGuide();
   document.querySelector('.fab-paw').innerHTML = RabbitArt.html('paw');
   decorateSky();

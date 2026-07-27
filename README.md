@@ -98,20 +98,43 @@
 > const HINT_CONFIG = { free: true, onConsume() { /* 광고 연동 지점 */ } };
 > ```
 
+## 토끼 그림
+
+토끼는 `assets/` 의 PNG 를 쓴다. 나머지 그림(✕·당근·발자국)은 인라인 SVG 다.
+
+| 파일 | 쓰이는 곳 |
+| --- | --- |
+| `assets/rabbit.png` | 보드 타일에 놓이는 기본 포즈 (칸의 80%) |
+| `assets/rabbit_jump.png` | 클리어 순차 점프, 클리어 화면 |
+| `assets/rabbit_sad.png` | 당근이 줄 때 보드 중앙 연출(0.8초), 게임 오버 |
+| `assets/rabbit_think.png` | 예비 — 갸웃 (힌트/튜토리얼용) |
+| `assets/rabbit_sleep.png` | 예비 — 자는 포즈 (로딩 화면용) |
+
+배경 제거는 `tools/cutout.py` 가 한다. 단순 색 키로는 안 되는데,
+**배경(249,237,213)과 토끼 몸통 크림색의 거리가 2~16 이라 배경 노이즈(최대 5.5)와
+구간이 겹치기 때문**이다. 몸 한가운데가 배경과 똑같은 색인 지점도 있어서, 어떤
+문턱값을 잡아도 몸통에 구멍이 뚫리거나 배경이 남는다. 그래서 색이 아니라 **실루엣을
+닫아서** 푼다 — 윤곽 후보를 부풀려 끊긴 곳을 잇고, 바깥에서 못 닿는 영역을 내부로
+간주해 채운 뒤, 부풀린 만큼 다시 깎는다(모폴로지 클로징).
+
+```bash
+python3 tools/cutout.py 원본.png assets/rabbit.png
+```
+
 ## 그림 교체
 
-모든 그림(토끼·✕·당근·발자국)은 인라인 SVG 로 그려져 있고, 교체 지점은 **`ASSETS` 상수 한 곳**이다.
+교체 지점은 **`ASSETS` 상수 한 곳**이다.
 
 ```js
 const ASSETS = {
-  rabbit: 'assets/rabbit.png',   // 기본 토끼
-  happy:  null,                  // 클리어 때 (없으면 rabbit 사용)
-  tired:  null,                  // 게임 오버 때
-  mark:   null,                  // ✕ 메모
-  locked: null,                  // 잠긴 칸
-  face:   null,                  // 배치 카운터 아이콘
-  paw:    null,                  // 자동배치 부스터 아이콘
-  carrot: null,                  // 난이도·목숨 아이콘
+  rabbit: 'assets/rabbit.png',        // 기본 — 보드 타일
+  happy:  'assets/rabbit_jump.png',   // 클리어 (점프)
+  tired:  'assets/rabbit_sad.png',    // 실수·게임 오버 (시무룩)
+  mark:   null,                       // ✕ 메모   (null = 내장 SVG)
+  locked: null,                       // 잠긴 칸
+  face:   null,                       // 배치 카운터 아이콘
+  paw:    null,                       // 자동배치 부스터 아이콘
+  carrot: null,                       // 난이도·목숨 아이콘
 };
 ```
 
