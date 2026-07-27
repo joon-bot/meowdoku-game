@@ -176,8 +176,27 @@ h1.game-title{
 }
 .cell .glyph{width:78%;height:78%;display:grid;place-items:center;pointer-events:none;}
 .cell .glyph svg{width:100%;height:100%;display:block;}
-.cell .glyph{animation:pop .22s cubic-bezier(.2,1.5,.5,1) both;}
-@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+/* ---- 배치 감각 (전부 transform/opacity 만 건드린다) ---- */
+/* 토끼: 위에서 툭 떨어져 눌렸다가 통통 튀며 자리를 잡는다 */
+.cell[data-glyph="rabbit"] .glyph{animation:rabbitDrop .46s cubic-bezier(.22,1,.3,1) both;}
+@keyframes rabbitDrop{
+  0%  {transform:translateY(-55%) scale(.72,1.3);opacity:0}
+  35% {transform:translateY(0)    scale(1.28,.72);opacity:1}
+  55% {transform:translateY(-14%) scale(.9,1.14)}
+  72% {transform:translateY(0)    scale(1.1,.92)}
+  86% {transform:translateY(-4%)  scale(.97,1.04)}
+  100%{transform:translateY(0)    scale(1,1)}
+}
+/* ✕ 메모: 살짝 커졌다 제자리 */
+.cell[data-glyph="mark"] .glyph{animation:markPop .19s cubic-bezier(.2,1.6,.4,1) both;}
+@keyframes markPop{
+  0%{transform:scale(.55) rotate(-12deg);opacity:0}
+  60%{transform:scale(1.14) rotate(2deg);opacity:1}
+  100%{transform:scale(1) rotate(0);opacity:1}
+}
+/* ✕ 지우기: 쪼그라들며 사라진다 */
+.cell .glyph.out{animation:markOut .16s ease-in both;pointer-events:none;}
+@keyframes markOut{from{transform:scale(1);opacity:.9}to{transform:scale(.4);opacity:0}}
 .cell.x .glyph{opacity:.92;}
 /* 규칙을 어겨서 잠긴 칸 — 눌러도 반응하지 않는다는 게 한눈에 보이도록 */
 .cell.locked{
@@ -187,7 +206,7 @@ h1.game-title{
 .cell.locked::after{
   content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 2.5px #FF5A4E;
 }
-.cell.locked .glyph{animation:lockIn .3s cubic-bezier(.2,1.4,.4,1) both;}
+.cell[data-glyph="locked"] .glyph{animation:lockIn .34s cubic-bezier(.2,1.4,.4,1) both;}
 @keyframes lockIn{from{transform:scale(1.6) rotate(-14deg);opacity:0}to{transform:none;opacity:1}}
 .cell.conflict{background-image:repeating-linear-gradient(45deg,rgba(232,117,111,.32) 0 7px,rgba(232,117,111,.12) 7px 14px);}
 .cell.conflict::after{
@@ -209,8 +228,33 @@ h1.game-title{
 .cell.hint-group::before{
   content:"";position:absolute;inset:0;background:rgba(111,179,154,.18);
 }
-.cell.win .glyph{animation:hop .6s ease both;}
-@keyframes hop{0%{transform:translateY(0)}35%{transform:translateY(-30%) scale(1.08)}70%{transform:translateY(0)}85%{transform:translateY(-12%)}100%{transform:translateY(0)}}
+/* 클리어: 토끼들이 차례로 귀를 흔들며 폴짝 (delay 는 JS 가 순번대로 넣는다) */
+.cell.win .glyph{animation:hopCheer .78s cubic-bezier(.3,.9,.4,1) both;}
+@keyframes hopCheer{
+  0%  {transform:translateY(0) rotate(0) scale(1,1)}
+  12% {transform:translateY(0) rotate(-9deg) scale(1.06,.94)}
+  30% {transform:translateY(-42%) rotate(7deg) scale(.92,1.12)}
+  50% {transform:translateY(0) rotate(-5deg) scale(1.12,.9)}
+  66% {transform:translateY(-16%) rotate(4deg) scale(.97,1.05)}
+  82% {transform:translateY(0) rotate(-2deg) scale(1.04,.97)}
+  100%{transform:translateY(0) rotate(0) scale(1,1)}
+}
+
+/* 하트가 줄 때 화면이 살짝 흔들린다 (모달은 이 화면 밖이라 영향 없음) */
+#screen-game.shake-screen{animation:screenShake .4s cubic-bezier(.36,.07,.19,.97) both;}
+@keyframes screenShake{
+  10%,90%{transform:translate3d(-2px,0,0)}
+  20%,80%{transform:translate3d(3px,0,0)}
+  30%,50%,70%{transform:translate3d(-5px,0,0)}
+  40%,60%{transform:translate3d(5px,0,0)}
+  100%{transform:translate3d(0,0,0)}
+}
+
+/* 레벨 전환 슬라이드 */
+#boardWrap.slide-out{animation:slideOut .2s ease-in both;}
+#boardWrap.slide-in{animation:slideIn .34s cubic-bezier(.22,1,.3,1) both;}
+@keyframes slideOut{to{transform:translate3d(-28%,0,0) scale(.94);opacity:0}}
+@keyframes slideIn{from{transform:translate3d(28%,0,0) scale(.94);opacity:0}to{transform:none;opacity:1}}
 
 /* 하단 조작 */
 .toolbar{
@@ -236,7 +280,72 @@ h1.game-title{
 .zoomgroup button:active{transform:scale(.94);}
 
 /* 튜토리얼 */
+/* 보드 위 한 줄 안내 */
+/* 튜토리얼에서만 쓰는 줄. 자리는 항상 차지하고(레이아웃 고정)
+   보이고 숨는 건 opacity/transform 으로만 처리한다. */
+#coachLine{
+  display:none;flex:0 0 auto;text-align:center;font-size:15.5px;font-weight:700;
+  color:var(--ink);height:26px;line-height:26px;margin:6px 0 2px;
+  opacity:0;transform:translateY(-4px);transition:opacity .2s ease,transform .2s ease;
+}
+body.tutorial-mode #coachLine{display:block;}
+#coachLine.show{opacity:1;transform:none;}
+#coachLine b{color:var(--accent-deep);}
+#coachLine.pop{animation:coachPop .32s cubic-bezier(.2,1.4,.4,1);}
+@keyframes coachPop{0%{transform:translateY(-6px) scale(.96);opacity:0}100%{transform:none;opacity:1}}
+
+/* 목표 칸만 밝게, 나머지는 어둡게 + 탭 잠금 */
+#boardWrap{position:relative;}
+.cell.tut-dim{opacity:.3;}
+.cell{transition:background-color .18s ease, opacity .28s ease;}
+.cell.tut-target::after{
+  content:"";position:absolute;inset:1px;border-radius:7px;
+  box-shadow:0 0 0 3.5px #FFC64D, 0 0 14px 3px rgba(255,198,77,.75);
+  animation:targetPulse 1.1s ease-in-out infinite;
+}
+@keyframes targetPulse{0%,100%{opacity:.5;transform:scale(.96)}50%{opacity:1;transform:scale(1.02)}}
+.cell.urge::after{animation:targetPulse .28s ease-in-out 4;}
+
+/* 두드리는 손가락 */
+#tapFinger{
+  position:absolute;width:34px;height:40px;margin-left:-6px;pointer-events:none;
+  opacity:0;transition:opacity .2s ease,left .28s ease,top .28s ease;z-index:3;
+}
+#tapFinger.show{opacity:1;animation:tapTap 1.6s ease-in-out infinite;}
+#tapFinger svg{width:100%;height:100%;display:block;
+  filter:drop-shadow(0 2px 3px rgba(80,55,40,.35));}
+@keyframes tapTap{
+  0%,100%{transform:translate(0,0) scale(1)}
+  12%{transform:translate(0,-9px) scale(1.04)}
+  24%{transform:translate(0,0) scale(.94)}
+  36%{transform:translate(0,-9px) scale(1.04)}
+  48%,90%{transform:translate(0,0) scale(1)}
+}
+
+/* 행·열 빛줄기 */
+.beam{
+  position:absolute;pointer-events:none;z-index:2;border-radius:6px;
+  background:linear-gradient(90deg,rgba(255,214,120,0),rgba(255,214,120,.85),rgba(255,214,120,0));
+  animation:beamSweep .8s ease-out both;transform-origin:left center;
+}
+.beam.v{
+  background:linear-gradient(180deg,rgba(255,214,120,0),rgba(255,214,120,.85),rgba(255,214,120,0));
+  transform-origin:center top;animation-name:beamSweepV;
+}
+@keyframes beamSweep{0%{transform:scaleX(0);opacity:1}70%{transform:scaleX(1);opacity:.9}100%{transform:scaleX(1);opacity:0}}
+@keyframes beamSweepV{0%{transform:scaleY(0);opacity:1}70%{transform:scaleY(1);opacity:.9}100%{transform:scaleY(1);opacity:0}}
+
+/* 대각선 금지 표시 */
+.cell.diag-warn::before{
+  content:"";position:absolute;inset:0;background:rgba(232,90,80,.55);
+  animation:diagWarn 1s ease-in-out both;z-index:1;
+}
+@keyframes diagWarn{0%{opacity:0}20%{opacity:1}70%{opacity:1}100%{opacity:0}}
+
 .hud-status{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+#btnSound{width:36px;height:36px;border-radius:12px;margin-right:2px;}
+#btnSound svg{width:19px;height:19px;}
+#btnSound.off{opacity:.5;}
 .btn-skip{
   display:none;padding:8px 14px;border-radius:999px;font-size:13px;font-weight:700;
   background:rgba(255,255,255,.75);color:var(--ink-soft);
@@ -245,7 +354,8 @@ h1.game-title{
 .btn-skip:active{transform:scale(.95);}
 body.tutorial-mode .btn-skip{display:block;}
 body.tutorial-mode .hud-status,
-body.tutorial-mode .toolbar{display:none;}
+body.tutorial-mode .toolbar,
+body.tutorial-mode #hintBar{display:none;}
 #hintBar.coach.show{
   background:linear-gradient(180deg,#FFF4E2,#FBE8CC);
   border-color:rgba(225,180,120,.6);color:#7A5327;
@@ -330,6 +440,15 @@ body.tutorial-mode .toolbar{display:none;}
 .toast.on{opacity:1;}
 
 /* 아주 좁은 화면에서 하단 버튼 글자가 줄바꿈되지 않도록 */
+/* 움직임을 줄이도록 설정한 사용자에게는 연출을 걷어낸다 */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms !important;animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
+  .sky-deco{display:none;}
+}
+
 @media (max-width:360px){
   .toolbar{gap:6px;}
   .tool{font-size:10px;padding:10px 3px 8px;border-radius:15px;}
@@ -391,15 +510,27 @@ body.tutorial-mode .toolbar{display:none;}
       </div>
       <div style="flex:1"></div>
       <button class="btn-skip" id="btnSkipTutorial">건너뛰기</button>
+      <button class="icon-btn" id="btnSound" aria-label="소리 켜기/끄기"></button>
       <div class="hud-status">
         <div class="hearts" id="gmHearts"></div>
         <span class="timer" id="gmTimer">00:00</span>
       </div>
     </div>
 
+    <div id="coachLine"></div>
+
     <div id="viewport">
       <div id="stage">
-        <div id="boardWrap"><div id="board"></div></div>
+        <div id="boardWrap">
+          <div id="board"></div>
+          <div id="tapFinger">
+            <svg viewBox="0 0 48 56" aria-hidden="true">
+              <ellipse cx="24" cy="9" rx="11" ry="8" fill="rgba(255,255,255,.5)"/>
+              <path d="M20 30V11a4 4 0 0 1 8 0v13l3.5.8a7 7 0 0 1 5.4 6.8v6.9a10 10 0 0 1-10 10h-4a10 10 0 0 1-10-10v-6a4 4 0 0 1 7.1-2.5z"
+                    fill="#FFFDFA" stroke="#6B4F3D" stroke-width="2.6" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -588,6 +719,80 @@ const RabbitArt = {
 };
 
 /* ==========================================================================
+ * 1-b. 효과음 — 오디오 파일 없이 Web Audio 로 그때그때 만들어 낸다.
+ * --------------------------------------------------------------------------
+ * 브라우저 자동재생 정책 때문에 AudioContext 는 첫 사용자 입력에서 깨운다.
+ * 소리는 전부 짧고 부드럽게(어택·릴리스를 곡선으로) — 퍼즐 게임이라 방해되면 안 된다.
+ * ========================================================================== */
+const Sfx = {
+  on: true,
+  ctx: null,
+  master: null,
+
+  /** 첫 탭에서 호출. 이미 살아 있으면 아무 일도 하지 않는다. */
+  wake() {
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try {
+      this.ctx = new AC();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = 0.22;
+      this.master.connect(this.ctx.destination);
+    } catch (e) { this.ctx = null; }
+  },
+
+  /**
+   * 음 하나. from -> to 로 주파수를 미끄러뜨릴 수 있다.
+   * @param o.type 파형, o.from/o.to 주파수, o.dur 길이(초), o.gain 세기, o.delay 지연
+   */
+  tone(o) {
+    if (!this.on || !this.ctx) return;
+    const t0 = this.ctx.currentTime + (o.delay || 0);
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(o.from, t0);
+    if (o.to && o.to !== o.from) osc.frequency.exponentialRampToValueAtTime(o.to, t0 + o.dur);
+    const peak = o.gain == null ? 0.6 : o.gain;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(peak, t0 + Math.min(0.02, o.dur * 0.3));
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + o.dur);
+    osc.connect(g); g.connect(this.master);
+    osc.start(t0); osc.stop(t0 + o.dur + 0.02);
+  },
+
+  /** 토끼 배치 — 낮고 포근한 두 음 (근음 + 5도) */
+  place() {
+    this.tone({ type: 'sine', from: 196, to: 262, dur: 0.26, gain: 0.5 });
+    this.tone({ type: 'triangle', from: 392, to: 523, dur: 0.2, gain: 0.16, delay: 0.02 });
+  },
+  /** ✕ 메모 — 아주 짧은 틱 */
+  mark() { this.tone({ type: 'triangle', from: 900, to: 700, dur: 0.05, gain: 0.2 }); },
+  /** ✕ 지우기 — 틱보다 낮고 뭉근하게 */
+  erase() { this.tone({ type: 'sine', from: 520, to: 380, dur: 0.07, gain: 0.16 }); },
+  /** 실수 — 부드러운 낮은 톤 (날카롭지 않게) */
+  miss() {
+    this.tone({ type: 'sine', from: 220, to: 110, dur: 0.34, gain: 0.42 });
+    this.tone({ type: 'sine', from: 146, to: 98, dur: 0.3, gain: 0.24, delay: 0.03 });
+  },
+  /** 클리어 — 올라가는 아르페지오 (C-E-G-C) */
+  clear() {
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+      this.tone({ type: 'sine', from: f, to: f, dur: 0.34, gain: 0.4, delay: i * 0.09 });
+    });
+  },
+  /** 튜토리얼 단계 통과 */
+  ding() { this.tone({ type: 'sine', from: 659.25, to: 987.77, dur: 0.22, gain: 0.32 }); },
+};
+
+/** 짧은 진동. 지원하지 않는 기기에서는 조용히 무시된다. */
+function buzz(ms) {
+  if (!Sfx.on) return;                 // 음소거는 촉각 피드백도 같이 끈다
+  if (navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) {} }
+}
+
+/* ==========================================================================
  * 2. 파스텔 영역 색
  * ========================================================================== */
 /**
@@ -731,7 +936,7 @@ function assignRegionColors(n, regions) {
  * ========================================================================== */
 const STORE_KEY = 'tokkine-jari/v1';
 const Store = {
-  data: { cleared: {}, lastLevel: null, inProgress: null, tutorialDone: false },
+  data: { cleared: {}, lastLevel: null, inProgress: null, tutorialDone: false, sound: true },
   load() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
@@ -743,7 +948,7 @@ const Store = {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(this.data)); } catch (e) {}
   },
   clearAll() {
-    this.data = { cleared: {}, lastLevel: null, inProgress: null, tutorialDone: false };
+    this.data = { cleared: {}, lastLevel: null, inProgress: null, tutorialDone: false, sound: true };
     this.save();
   },
 };
@@ -1029,27 +1234,13 @@ const TUTORIAL = {
     [3, 4, 4, 4, 4],
   ],
   solution: [0, 2, 4, 1, 3],
+  // 설명은 한 줄만. 나머지 규칙은 놓은 "직후"에 시각 연출로 가르친다.
   steps: [
-    {
-      r: 0, c: 0, lesson: '1칸짜리 자리엔 무조건 토끼',
-      body: '반짝이는 자리는 <b>칸이 하나뿐</b>이에요. 그 자리의 토끼는 여기 말고 앉을 데가 없죠.<br>칸을 <b>두 번 탭</b>해서 토끼를 놓아 주세요. (한 번 탭하면 ✕ 메모예요)',
-    },
-    {
-      r: 3, c: 1, lesson: '같은 줄엔 한 마리씩',
-      body: '이 자리는 <b>맨 왼쪽 세로줄</b>에 걸쳐 있는데, 거긴 이미 토끼가 앉았어요.<br>세로줄마다 토끼는 한 마리뿐이니, 남는 칸은 반짝이는 여기 하나예요.',
-    },
-    {
-      r: 1, c: 2, lesson: '이번엔 직접 찾아보기',
-      body: '맨 위 가로줄엔 이미 토끼가 있고, 왼쪽 두 세로줄도 찼어요.<br>그럼 이 자리의 토끼가 앉을 수 있는 칸은 하나뿐이겠죠?',
-    },
-    {
-      r: 2, c: 4, lesson: '대각선으로도 붙을 수 없어요',
-      body: '이 자리엔 빈 칸이 둘 남았지만, 왼쪽 칸은 방금 놓은 토끼와 <b>대각선으로 맞닿아</b> 있어요.<br>토끼들은 모서리끼리도 붙어 앉기 싫어해요. 그러니 답은 반짝이는 칸이에요.',
-    },
-    {
-      r: 4, c: 3, lesson: '마지막 한 마리',
-      body: '남은 자리는 하나! 여기에 토끼를 놓으면 완성이에요 🌿',
-    },
+    { r: 0, c: 0, tip: '반짝이는 칸을 <b>두 번 탭!</b>' },
+    { r: 3, c: 1, tip: '같은 줄엔 토끼 <b>한 마리씩</b>' },
+    { r: 1, c: 2, tip: '이번엔 직접 찾아볼까요?' },
+    { r: 2, c: 4, tip: '<b>대각선</b>으로도 붙을 수 없어요' },
+    { r: 4, c: 3, tip: '마지막 한 마리!' },
   ],
 };
 
@@ -1208,9 +1399,19 @@ function renderAll() {
     for (let c = 0; c < G.n; c++) {
       const el = cellAt(r, c), v = G.grid[r][c];
       const want = v === 2 ? 'rabbit' : v === 1 ? 'mark' : v === LOCKED ? 'locked' : '';
-      if (el.dataset.glyph !== want) {
+      const had = el.dataset.glyph;
+      if (had !== want) {
         el.dataset.glyph = want;
-        el.innerHTML = want ? `<div class="glyph">${RabbitArt.html(want)}</div>` : '';
+        if (want) {
+          el.innerHTML = `<div class="glyph">${RabbitArt.html(want)}</div>`;
+        } else if (had) {
+          // 빈칸으로 돌아갈 때는 쪼그라들며 사라지는 걸 보여준 뒤 지운다
+          const old = el.querySelector('.glyph');
+          if (old) {
+            old.classList.add('out');
+            setTimeout(() => { if (el.dataset.glyph === '') el.innerHTML = ''; }, 170);
+          }
+        }
       }
       el.classList.toggle('x', v === 1);
       el.classList.toggle('locked', v === LOCKED);
@@ -1269,7 +1470,7 @@ function findConflicts() {
  * 9-b. 튜토리얼 진행
  * ========================================================================== */
 function startTutorial() {
-  G.tutorial = { step: 0 };
+  G.tutorial = { step: 0, busy: false };
   G.level = { id: '__tutorial__', size: TUTORIAL.size, difficulty: 'easy' };
   G.index = -1;
   G.n = TUTORIAL.size; G.regions = TUTORIAL.regions; G.solution = TUTORIAL.solution;
@@ -1287,66 +1488,182 @@ function startTutorial() {
   requestAnimationFrame(() => { fitBoard(); showTutorialStep(); });
 }
 
+/** 목표 칸만 밝게 두고 나머지는 어둡게. 손가락 아이콘도 그 위로 옮긴다. */
 function showTutorialStep() {
   const t = G.tutorial;
   const step = TUTORIAL.steps[t.step];
-  $('gmSub').textContent = `${t.step + 1} / ${TUTORIAL.steps.length} · ${step.lesson}`;
-  clearHintMarks();
-  cellAt(step.r, step.c).classList.add('hint');
-  G.hintCells = [[step.r, step.c]];
-  showHint(`<span class="coach-lesson">${step.lesson}</span>${step.body}`);
-  $('hintBar').classList.add('coach');
+  $('gmSub').textContent = `${t.step + 1} / ${TUTORIAL.steps.length}`;
+  setCoach(step.tip);
+
+  for (let r = 0; r < G.n; r++) {
+    for (let c = 0; c < G.n; c++) {
+      const el = cellAt(r, c);
+      const isTarget = r === step.r && c === step.c;
+      el.classList.toggle('tut-target', isTarget);
+      el.classList.toggle('tut-dim', !isTarget);
+    }
+  }
+  placeFinger(step.r, step.c);
 }
+
+/** 보드 위에 뜨는 한 줄 안내 */
+function setCoach(html) {
+  const el = $('coachLine');
+  el.innerHTML = html;
+  el.classList.add('show');
+  el.classList.remove('pop');
+  void el.offsetWidth;
+  el.classList.add('pop');
+}
+
+/** 두드리는 손가락 아이콘을 목표 칸 위로 */
+function placeFinger(r, c) {
+  const f = $('tapFinger');
+  f.style.left = `${10 + c * CELL_BASE + CELL_BASE / 2}px`;
+  f.style.top = `${10 + r * CELL_BASE + CELL_BASE * 0.62}px`;
+  f.classList.add('show');
+}
+function hideFinger() { $('tapFinger').classList.remove('show'); }
 
 /** 튜토리얼에서의 탭. 목표 칸만 조작을 허용하고, 토끼가 놓이면 다음 단계로. */
 function tutorialTap(r, c) {
-  const step = TUTORIAL.steps[G.tutorial.step];
+  const t = G.tutorial;
+  if (t.busy) return;
+  const step = TUTORIAL.steps[t.step];
+
   if (r !== step.r || c !== step.c) {
-    toast('반짝이는 칸을 탭해 주세요 🐾');
+    // 벌점 없이 부드럽게 거부하고, 정답 칸을 더 강하게 반짝인다
     const el = cellAt(r, c);
     el.classList.add('shake');
     setTimeout(() => el.classList.remove('shake'), 400);
+    const tgt = cellAt(step.r, step.c);
+    tgt.classList.remove('urge');
+    void tgt.offsetWidth;
+    tgt.classList.add('urge');
+    setTimeout(() => tgt.classList.remove('urge'), 1200);
+    Sfx.erase(); buzz(10);
     return;
   }
+
   G.grid[r][c] = (G.grid[r][c] + 1) % 3;
+  if (G.grid[r][c] === 1) { Sfx.mark(); buzz(8); }
   renderAll();
   if (G.grid[r][c] !== 2) return;                    // 아직 ✕ 또는 빈칸 — 계속 탭
 
-  cellAt(r, c).classList.remove('hint');
-  const last = G.tutorial.step === TUTORIAL.steps.length - 1;
-  if (!last) {
-    G.tutorial.step++;
-    $('hintBar').innerHTML = '<span class="coach-lesson">좋아요!</span>그렇게 놓으면 돼요.';
-    setTimeout(showTutorialStep, 850);
-    return;
-  }
+  Sfx.place(); buzz(18);
+  t.busy = true;
+  hideFinger();
+  cellAt(r, c).classList.remove('tut-target', 'urge');
+  teachRules(r, c, () => {
+    const last = t.step === TUTORIAL.steps.length - 1;
+    if (!last) { t.step++; showTutorialStep(); t.busy = false; return; }
+    finishTutorial();
+  });
+}
 
-  // 완료
-  G.finished = true;
-  clearHintMarks();
-  for (const [rr, cc] of rabbitList()) {
-    const el = cellAt(rr, cc);
-    el.classList.add('win');
-    el.querySelector('.glyph').innerHTML = RabbitArt.html('rabbit', 'happy');
+/**
+ * 방금 놓은 토끼로 규칙을 "보여준다".
+ *   1) 같은 행/열에 빛줄기가 스윽 지나가고, 그 칸들이 자동으로 ✕ 로 깔린다
+ *   2) 대각선 네 칸이 잠깐 붉게 떴다 사라진다
+ * 끝나면 done() 을 부른다.
+ */
+function teachRules(r, c, done) {
+  const wrap = $('boardWrap');
+
+  // 1) 행·열 빛줄기
+  const mkBeam = (vertical) => {
+    const b = document.createElement('div');
+    b.className = 'beam' + (vertical ? ' v' : '');
+    b.style.left = `${10 + (vertical ? c * CELL_BASE : 0)}px`;
+    b.style.top = `${10 + (vertical ? 0 : r * CELL_BASE)}px`;
+    b.style.width = `${vertical ? CELL_BASE : G.n * CELL_BASE}px`;
+    b.style.height = `${vertical ? G.n * CELL_BASE : CELL_BASE}px`;
+    wrap.appendChild(b);
+    setTimeout(() => b.remove(), 900);
+  };
+  mkBeam(false); mkBeam(true);
+  setCoach('이 줄엔 이제 못 와요');
+
+  // 빛줄기를 따라 ✕ 가 순서대로 깔린다
+  const line = [];
+  for (let i = 0; i < G.n; i++) {
+    if (i !== c && G.grid[r][i] === 0) line.push([r, i, Math.abs(i - c)]);
+    if (i !== r && G.grid[i][c] === 0) line.push([i, c, Math.abs(i - r)]);
   }
+  line.sort((a, b) => a[2] - b[2]);
+  line.forEach(([rr, cc, d], i) => {
+    setTimeout(() => {
+      G.grid[rr][cc] = 1;
+      renderAll();
+      applyTutorialMask();
+      Sfx.mark();
+    }, 160 + i * 55);
+  });
+  const afterLine = 160 + line.length * 55 + 320;
+
+  // 2) 대각선 네 칸을 잠깐 붉게
+  setTimeout(() => {
+    const diag = [];
+    for (const [dr, dc] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nc >= 0 && nr < G.n && nc < G.n) diag.push([nr, nc]);
+    }
+    if (diag.length) {
+      setCoach('대각선도 붙으면 안 돼요');
+      for (const [rr, cc] of diag) cellAt(rr, cc).classList.add('diag-warn');
+      Sfx.erase();
+      setTimeout(() => {
+        for (const [rr, cc] of diag) cellAt(rr, cc).classList.remove('diag-warn');
+        done();
+      }, 1000);
+    } else { done(); }
+  }, afterLine);
+}
+
+/** 자동 ✕ 가 깔린 뒤에도 목표 칸만 밝게 유지되도록 마스크를 다시 씌운다 */
+function applyTutorialMask() {
+  if (!G.tutorial) return;
+  const step = TUTORIAL.steps[G.tutorial.step];
+  for (let r = 0; r < G.n; r++) {
+    for (let c = 0; c < G.n; c++) {
+      const isTarget = G.tutorial.busy ? false : (r === step.r && c === step.c);
+      cellAt(r, c).classList.toggle('tut-dim', !isTarget && !G.tutorial.busy);
+    }
+  }
+}
+
+function finishTutorial() {
+  G.finished = true;
+  hideFinger();
+  for (let r = 0; r < G.n; r++) for (let c = 0; c < G.n; c++) cellAt(r, c).classList.remove('tut-dim', 'tut-target');
+  setCoach('이제 진짜 시작!');
+  rabbitList().forEach(([r, c], i) => {
+    const el = cellAt(r, c);
+    const glyph = el.querySelector('.glyph');
+    glyph.innerHTML = RabbitArt.html('rabbit', 'happy');
+    glyph.style.animationDelay = `${i * 90}ms`;
+    el.classList.add('win');
+  });
+  Sfx.clear(); buzz([12, 60, 12, 60, 24]);
   Store.data.tutorialDone = true;
   Store.save();
   fireConfetti();
   setTimeout(() => {
     $('clearArt').innerHTML = RabbitArt.html('rabbit', 'happy');
-    $('clearTitle').textContent = '다 배웠어요!';
-    $('clearMsg').innerHTML = '이제 진짜 퍼즐을 풀어볼까요?<br>막히면 언제든 <b>힌트</b>를 누르세요.';
+    $('clearTitle').textContent = '이제 진짜 시작!';
+    $('clearMsg').innerHTML = '규칙은 다 배웠어요.<br>막히면 언제든 <b>힌트</b>를 누르세요.';
     $('clearStats').style.display = 'none';
     $('clearToLevels').textContent = '레벨 목록';
     $('clearNext').textContent = '레벨 1 시작';
     openModal('modalClear');
-  }, 900);
+  }, 1500);
 }
 
 function endTutorial() {
   G.tutorial = null;
   document.body.classList.remove('tutorial-mode');
-  $('hintBar').classList.remove('coach');
+  hideFinger();
+  $('coachLine').classList.remove('show');
   $('clearStats').style.display = '';
   hideHint();
 }
@@ -1415,9 +1732,13 @@ function tapCell(r, c) {
     const el = cellAt(r, c);
     el.classList.add('shake');
     setTimeout(() => el.classList.remove('shake'), 400);
-    if (navigator.vibrate) navigator.vibrate(35);
+    shakeScreen();
+    Sfx.miss(); buzz([28, 60, 28]);
   } else {
     G.grid[r][c] = next;
+    if (next === 2) { Sfx.place(); buzz(18); }
+    else if (next === 1) { Sfx.mark(); buzz(8); }
+    else { Sfx.erase(); }
   }
   G.history.push({ r, c, from: before });
   if (G.history.length > 200) G.history.shift();
@@ -1433,6 +1754,15 @@ function tapCell(r, c) {
     return;
   }
   if (!lostHeart) checkWin();
+}
+
+/** 하트가 줄 때 게임 화면을 살짝 흔든다 (모달은 이 화면 밖이라 영향 없음) */
+function shakeScreen() {
+  const el = $('screen-game');
+  el.classList.remove('shake-screen');
+  void el.offsetWidth;                      // 애니메이션 재시작
+  el.classList.add('shake-screen');
+  setTimeout(() => el.classList.remove('shake-screen'), 450);
 }
 
 /**
@@ -1453,11 +1783,18 @@ function checkWin() {
   G.finished = true;
   stopTimer();
   hideHint();
-  for (const [r, c] of rabbitList()) {
+  // 왼쪽 위부터 차례로 귀를 흔들며 폴짝
+  rabbitList().forEach(([r, c], i) => {
     const el = cellAt(r, c);
+    const glyph = el.querySelector('.glyph');
+    glyph.innerHTML = RabbitArt.html('rabbit', 'happy');
+    glyph.style.animation = 'none';
+    void glyph.offsetWidth;
+    glyph.style.animation = '';
+    glyph.style.animationDelay = `${i * 90}ms`;
     el.classList.add('win');
-    el.querySelector('.glyph').innerHTML = RabbitArt.html('rabbit', 'happy');
-  }
+  });
+  Sfx.clear(); buzz([12, 60, 12, 60, 24]);
   const id = G.level.id;
   const prev = Store.data.cleared[id];
   if (!prev || G.elapsed < prev.time) {
@@ -1652,10 +1989,13 @@ function paintCell(cell) {
   G.grid[r][c] = paint.mode === 'erase' ? 0 : 1;
   G.history.push({ r, c, from });
   if (G.history.length > 400) G.history.shift();
+  if (paint.mode === 'erase') Sfx.erase(); else Sfx.mark();
+  buzz(6);
   renderAll();
 }
 
 viewport.addEventListener('pointerdown', (e) => {
+  Sfx.wake();                       // 자동재생 정책상 첫 입력에서 오디오를 깨운다
   viewport.setPointerCapture(e.pointerId);
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, moved: 0, t: Date.now() });
   if (pointers.size === 1) {
@@ -1817,17 +2157,48 @@ $('gmBack').onclick = () => {
   if (G.tutorial) { skipTutorial(); return; }
   saveProgress(); stopTimer(); renderLevels(); show('screen-levels');
 };
+function soundIcon(on) {
+  return on
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M16 9l5 6M21 9l-5 6"/></svg>`;
+}
+function refreshSound() {
+  Sfx.on = Store.data.sound !== false;
+  const b = $('btnSound');
+  b.innerHTML = soundIcon(Sfx.on);
+  b.classList.toggle('off', !Sfx.on);
+}
+$('btnSound').onclick = () => {
+  Store.data.sound = !(Store.data.sound !== false);
+  Store.save();
+  refreshSound();
+  if (Sfx.on) { Sfx.wake(); Sfx.mark(); }
+};
+
 $('btnHint').onclick = giveHint;
 $('btnUndo').onclick = undo;
 $('btnClear').onclick = resetBoard;
 $('btnZoomIn').onclick = () => zoomBy(1.25);
 $('btnZoomOut').onclick = () => zoomBy(1 / 1.25);
 
+/** 보드를 왼쪽으로 밀어내고 다음 판을 오른쪽에서 들여온다 */
+function slideToLevel(index) {
+  const wrap = $('boardWrap');
+  wrap.classList.remove('slide-in');
+  wrap.classList.add('slide-out');
+  setTimeout(() => {
+    wrap.classList.remove('slide-out');
+    startLevel(index);
+    wrap.classList.add('slide-in');
+    setTimeout(() => wrap.classList.remove('slide-in'), 360);
+  }, 200);
+}
+
 $('clearNext').onclick = () => {
   closeModal('modalClear');
-  if (G.tutorial) { endTutorial(); startLevel(0); return; }   // 튜토리얼 -> 레벨 1
+  if (G.tutorial) { endTutorial(); slideToLevel(0); return; }   // 튜토리얼 -> 레벨 1
   const next = G.index + 1;
-  if (next < PUZZLES.levels.length) startLevel(next);
+  if (next < PUZZLES.levels.length) slideToLevel(next);
   else { renderLevels(); show('screen-levels'); }
 };
 $('clearToLevels').onclick = () => {
@@ -1904,6 +2275,7 @@ async function loadPuzzles() {
   buildTapGuide();
   decorateSky();
   Store.load();
+  refreshSound();
 
   PUZZLES = await loadPuzzles();
   if (!PUZZLES) {
