@@ -178,11 +178,26 @@ h1.game-title{
 .cell .glyph svg{width:100%;height:100%;display:block;}
 .cell .glyph{animation:pop .22s cubic-bezier(.2,1.5,.5,1) both;}
 @keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
-.cell.x .glyph{opacity:.62;}
+.cell.x .glyph{opacity:.92;}
+/* 규칙을 어겨서 잠긴 칸 — 눌러도 반응하지 않는다는 게 한눈에 보이도록 */
+.cell.locked{
+  background-image:linear-gradient(rgba(120,20,14,.22),rgba(120,20,14,.22));
+  cursor:not-allowed;
+}
+.cell.locked::after{
+  content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 2.5px #FF5A4E;
+}
+.cell.locked .glyph{animation:lockIn .3s cubic-bezier(.2,1.4,.4,1) both;}
+@keyframes lockIn{from{transform:scale(1.6) rotate(-14deg);opacity:0}to{transform:none;opacity:1}}
 .cell.conflict{background-image:repeating-linear-gradient(45deg,rgba(232,117,111,.32) 0 7px,rgba(232,117,111,.12) 7px 14px);}
 .cell.conflict::after{
   content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 3px var(--danger);
 }
+.cell.flash::after{
+  content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 3px var(--danger);
+  animation:flashPulse .55s ease-in-out 2;
+}
+@keyframes flashPulse{0%,100%{opacity:.35}50%{opacity:1}}
 .cell.shake{animation:shake .38s ease;}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
 .cell.hint::after{
@@ -454,7 +469,10 @@ body.tutorial-mode .toolbar{display:none;}
     </ul>
     <div class="taps" id="tapGuide"></div>
     <p style="font-size:12.5px;margin-bottom:16px">
-      규칙을 어기면 하트가 하나 줄고 어긋난 칸이 빨갛게 표시돼요.<br>
+      칸을 <b>누른 채로 쓸면</b> 지나간 빈칸이 한 번에 ✕ 로 채워져요.<br>
+      보드를 <b>옮기거나 확대</b>할 땐 손가락 두 개를 쓰세요.<br>
+      토끼가 앉을 수 없는 자리를 고르면 하트가 하나 줄고,<br>
+      그 칸은 <b style="color:#D9433A">빨간 ✕</b> 로 잠겨요.<br>
       막히면 <b>힌트</b>를 누르세요 — 지금 <b>확실하게</b> 정할 수 있는 한 수를 알려줘요.
     </p>
     <div class="row">
@@ -528,11 +546,24 @@ const RabbitArt = {
 </svg>`;
   },
 
-  /** "여기 아님" 메모 표시 */
-  mark() {
+  /**
+   * ✕ 표시. 두 종류가 있다.
+   *   memo   — 플레이어가 직접 찍은 "여기 아님" 메모 (흰색)
+   *   locked — 규칙을 어겨서 잠긴 칸 (경고색)
+   * 밝은 영역·어두운 영역 어디에 놓여도 읽히도록 어두운 테두리를 먼저 깔고
+   * 그 위에 본색을 덧그린다.
+   */
+  mark(variant) {
+    const fill = variant === 'locked' ? '#FF5A4E' : '#FFFFFF';
+    const edge = variant === 'locked' ? 'rgba(70,20,16,.55)' : 'rgba(60,42,32,.5)';
     return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <g stroke="#9A8071" stroke-width="13" stroke-linecap="round">
-    <path d="M30 30 L70 70"/><path d="M70 30 L30 70"/>
+  <g stroke-linecap="round" fill="none">
+    <g stroke="${edge}" stroke-width="24">
+      <path d="M31 31 L69 69"/><path d="M69 31 L31 69"/>
+    </g>
+    <g stroke="${fill}" stroke-width="15">
+      <path d="M31 31 L69 69"/><path d="M69 31 L31 69"/>
+    </g>
   </g>
 </svg>`;
   },
@@ -549,7 +580,8 @@ const RabbitArt = {
     if (this.mode === 'image' && this.images[kind]) {
       return `<img src="${this.images[kind]}" alt="" style="width:100%;height:100%;object-fit:contain">`;
     }
-    if (kind === 'mark') return this.mark();
+    if (kind === 'mark') return this.mark('memo');
+    if (kind === 'locked') return this.mark('locked');
     return this.rabbit(mood);
   },
 };
@@ -1024,6 +1056,7 @@ const TUTORIAL = {
  * 5. 게임 상태
  * ========================================================================== */
 const CELL_BASE = 56;          // 논리 픽셀 기준 한 칸 크기 (화면에는 scale 로 맞춤)
+const LOCKED = 3;              // grid 값: 0 빈칸 / 1 ✕메모 / 2 토끼 / 3 규칙 위반으로 잠김
 const MAX_HEARTS = 3;
 const HINT_CONFIG = {
   free: true,   // TODO: 추후 광고 연동 — free=false 로 두고 showRewardedAd() 를 붙이면 됨
@@ -1173,12 +1206,13 @@ function renderAll() {
   for (let r = 0; r < G.n; r++) {
     for (let c = 0; c < G.n; c++) {
       const el = cellAt(r, c), v = G.grid[r][c];
-      const want = v === 2 ? 'rabbit' : v === 1 ? 'mark' : '';
+      const want = v === 2 ? 'rabbit' : v === 1 ? 'mark' : v === LOCKED ? 'locked' : '';
       if (el.dataset.glyph !== want) {
         el.dataset.glyph = want;
-        el.innerHTML = want ? `<div class="glyph">${RabbitArt.html(want === 'rabbit' ? 'rabbit' : 'mark')}</div>` : '';
+        el.innerHTML = want ? `<div class="glyph">${RabbitArt.html(want)}</div>` : '';
       }
       el.classList.toggle('x', v === 1);
+      el.classList.toggle('locked', v === LOCKED);
       el.classList.toggle('conflict', conflicts.has(r * G.n + c));
     }
   }
@@ -1327,30 +1361,69 @@ function skipTutorial() {
 /* ==========================================================================
  * 10. 조작 — 탭 1회 X, 2회 토끼, 3회 빈칸
  * ========================================================================== */
+/** (r,c) 에 토끼를 놓으면 규칙을 어기게 되는가? 어긴다면 부딪히는 기존 토끼들을 돌려준다. */
+function offendersFor(r, c) {
+  const out = [];
+  for (const [rr, cc] of rabbitList()) {
+    if (rr === r && cc === c) continue;
+    const sameLine = rr === r || cc === c;
+    const sameRegion = G.regions[rr][cc] === G.regions[r][c];
+    const touching = Math.abs(rr - r) <= 1 && Math.abs(cc - c) <= 1;
+    if (sameLine || sameRegion || touching) out.push([rr, cc]);
+  }
+  return out;
+}
+
+/**
+ * 잠금 해제 검사.
+ * 잠긴 칸은 "지금 놓인 토끼들과 부딪혀서" 잠긴 것이다. 그 토끼를 치우면
+ * 잠글 이유가 사라지므로 자동으로 풀어준다 — 안 그러면 되돌리기 후에도
+ * 정답 칸이 막힌 채로 남아 판이 풀리지 않게 된다.
+ */
+function releaseStaleLocks() {
+  for (let r = 0; r < G.n; r++) {
+    for (let c = 0; c < G.n; c++) {
+      if (G.grid[r][c] === LOCKED && offendersFor(r, c).length === 0) G.grid[r][c] = 0;
+    }
+  }
+}
+
 function tapCell(r, c) {
   if (G.finished) return;
   if (G.tutorial) { tutorialTap(r, c); return; }
+
+  if (G.grid[r][c] === LOCKED) {                   // 잠긴 칸은 건드릴 수 없다
+    const el = cellAt(r, c);
+    el.classList.add('shake');
+    setTimeout(() => el.classList.remove('shake'), 400);
+    toast('여기엔 토끼가 앉을 수 없어요');
+    return;
+  }
+
   const before = G.grid[r][c];
-  const next = (before + 1) % 3;              // 0 → 1(X) → 2(토끼) → 0
-  G.history.push({ r, c, from: before });
-  if (G.history.length > 200) G.history.shift();
-  G.grid[r][c] = next;
+  const next = (before + 1) % 3;                   // 0 → 1(✕) → 2(토끼) → 0
   hideHint();
 
   let lostHeart = false;
-  if (next === 2) {
-    const conflicts = findConflicts();
-    if (conflicts.has(r * G.n + c)) {
-      lostHeart = true;
-      G.hearts = Math.max(0, G.hearts - 1);
-      renderHearts(G.hearts);
-      const el = cellAt(r, c);
-      el.classList.add('shake');
-      setTimeout(() => el.classList.remove('shake'), 400);
-      if (navigator.vibrate) navigator.vibrate(35);
-    }
+  if (next === 2 && offendersFor(r, c).length) {
+    // 규칙을 어기는 자리 — 토끼를 놓는 대신 칸을 잠근다
+    lostHeart = true;
+    G.grid[r][c] = LOCKED;
+    G.hearts = Math.max(0, G.hearts - 1);
+    renderHearts(G.hearts);
+    const el = cellAt(r, c);
+    el.classList.add('shake');
+    setTimeout(() => el.classList.remove('shake'), 400);
+    if (navigator.vibrate) navigator.vibrate(35);
+  } else {
+    G.grid[r][c] = next;
   }
+  G.history.push({ r, c, from: before });
+  if (G.history.length > 200) G.history.shift();
+
+  releaseStaleLocks();
   renderAll();
+  if (lostHeart) flashOffenders(r, c);      // 렌더 뒤에 표시해야 지워지지 않는다
   saveProgress();
 
   if (lostHeart && G.hearts === 0) {
@@ -1359,6 +1432,18 @@ function tapCell(r, c) {
     return;
   }
   if (!lostHeart) checkWin();
+}
+
+/**
+ * 왜 막혔는지 보이도록 부딪힌 토끼들을 잠깐 붉게.
+ * renderAll 이 관리하는 .conflict 와 섞이면 렌더 때 지워지므로 별도 클래스를 쓴다.
+ */
+function flashOffenders(r, c) {
+  const cells = offendersFor(r, c);
+  for (const [rr, cc] of cells) cellAt(rr, cc).classList.add('flash');
+  setTimeout(() => {
+    for (const [rr, cc] of cells) cellAt(rr, cc).classList.remove('flash');
+  }, 1100);
 }
 
 function checkWin() {
@@ -1398,6 +1483,7 @@ function undo() {
   if (G.finished || !G.history.length) return;
   const m = G.history.pop();
   G.grid[m.r][m.c] = m.from;
+  releaseStaleLocks();
   hideHint();
   renderAll();
   saveProgress();
@@ -1534,21 +1620,44 @@ function scrollCellIntoView(r, c) {
   }
 }
 
-// --- 포인터 처리 (탭 / 팬 / 핀치)
+// --- 포인터 처리
+//   손가락 1개 : 탭(칸 상태 순환) / 끌기(지나간 빈칸을 ✕ 로 채우기)
+//   손가락 2개 : 핀치 확대·축소 + 이동
+// 한 손가락 끌기를 ✕ 칠하기에 내줬기 때문에 보드 이동은 두 손가락으로 한다.
 const pointers = new Map();
 let gesture = null;
+let paint = null;            // { painted:Set } — 한 번의 끌기에서 이미 칠한 칸
+
+function cellFromPoint(x, y) {
+  const el = document.elementFromPoint(x, y);
+  const cell = el && el.closest ? el.closest('.cell') : null;
+  return cell && board.contains(cell) ? cell : null;
+}
+
+/** 끌기로 지나간 빈칸을 ✕ 로 (토끼·메모·잠긴 칸은 건드리지 않는다) */
+function paintCell(cell) {
+  if (!paint || !cell) return;
+  const r = +cell.dataset.r, c = +cell.dataset.c;
+  const key = r * G.n + c;
+  if (paint.painted.has(key)) return;
+  paint.painted.add(key);
+  if (G.grid[r][c] !== 0) return;
+  G.grid[r][c] = 1;
+  G.history.push({ r, c, from: 0 });
+  if (G.history.length > 400) G.history.shift();
+  renderAll();
+}
 
 viewport.addEventListener('pointerdown', (e) => {
   viewport.setPointerCapture(e.pointerId);
-  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: 0, t: Date.now() });
-  if (pointers.size === 2) {
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, moved: 0, t: Date.now() });
+  if (pointers.size === 1) {
+    // 튜토리얼에서는 정해진 칸만 눌러야 하므로 칠하기를 켜지 않는다
+    paint = (G.tutorial || G.finished) ? null : { painted: new Set() };
+  } else if (pointers.size === 2) {
+    paint = null;                                   // 두 손가락 -> 보드 조작
     const [a, b] = [...pointers.values()];
-    gesture = {
-      dist: Math.hypot(a.x - b.x, a.y - b.y),
-      scale: View.scale,
-      cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2,
-      vx: View.x, vy: View.y,
-    };
+    gesture = { dist: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
   }
 });
 
@@ -1562,18 +1671,26 @@ viewport.addEventListener('pointermove', (e) => {
   if (pointers.size === 2 && gesture) {
     const [a, b] = [...pointers.values()];
     const dist = Math.hypot(a.x - b.x, a.y - b.y);
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
     const rect = viewport.getBoundingClientRect();
-    const cx = (a.x + b.x) / 2 - rect.left, cy = (a.y + b.y) / 2 - rect.top;
+    const cx = mx - rect.left, cy = my - rect.top;
     const min = Math.min(View.fit, 1.25) * 0.9, max = Math.max(View.fit * 3.2, 1.9);
-    const target = Math.max(min, Math.min(max, gesture.scale * (dist / gesture.dist)));
+    const target = Math.max(min, Math.min(max, View.scale * (dist / gesture.dist)));
     const k = target / View.scale;
     View.x = cx - (cx - View.x) * k;
     View.y = cy - (cy - View.y) * k;
     View.scale = target;
+    View.x += mx - gesture.cx;                      // 두 손가락 이동 = 보드 이동
+    View.y += my - gesture.cy;
+    gesture.dist = dist; gesture.cx = mx; gesture.cy = my;
     clampView(); applyView();
-  } else if (pointers.size === 1) {
-    View.x += dx; View.y += dy;
-    clampView(); applyView();
+  } else if (pointers.size === 1 && paint) {
+    // 처음 8px 를 넘어서면 "끌어서 ✕ 칠하기"로 확정하고, 시작 칸부터 칠한다
+    if (!paint.on && p.moved > 8) {
+      paint.on = true;
+      paintCell(cellFromPoint(e.clientX - dx, e.clientY - dy));
+    }
+    if (paint.on) paintCell(cellFromPoint(e.clientX, e.clientY));
   }
 });
 
@@ -1581,12 +1698,14 @@ function endPointer(e) {
   const p = pointers.get(e.pointerId);
   pointers.delete(e.pointerId);
   if (pointers.size < 2) gesture = null;
+  const wasPainting = paint && paint.on;
+  if (pointers.size === 0) paint = null;
   if (!p) return;
+  if (wasPainting) { saveProgress(); return; }      // 칠하기였다면 탭으로 치지 않는다
   // 탭 판정: 거의 안 움직였고 짧게 눌렀을 때
   if (p.moved < 9 && Date.now() - p.t < 600 && pointers.size === 0) {
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    const cell = el && el.closest ? el.closest('.cell') : null;
-    if (cell && board.contains(cell)) tapCell(+cell.dataset.r, +cell.dataset.c);
+    const cell = cellFromPoint(e.clientX, e.clientY);
+    if (cell) tapCell(+cell.dataset.r, +cell.dataset.c);
   }
 }
 viewport.addEventListener('pointerup', endPointer);
