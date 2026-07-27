@@ -718,11 +718,11 @@ body.tutorial-mode #hintBar{display:none;}
     </ul>
     <div class="taps" id="tapGuide"></div>
     <p style="font-size:12.5px;margin-bottom:16px">
+      <b>한 번 탭</b>하면 ✕ 메모, <b>빠르게 두 번 탭</b>하면 토끼예요.<br>
       칸을 <b>누른 채로 쓸면</b> 지나간 빈칸이 한 번에 ✕ 로 채워져요.<br>
-      반대로 <b>✕ 에서 시작해 쓸면</b> 지나간 ✕ 가 지워져요.<br>
       보드를 <b>옮기거나 확대</b>할 땐 손가락 두 개를 쓰세요.<br>
-      토끼가 앉을 수 없는 자리를 고르면 하트가 하나 줄고,<br>
-      그 칸은 <b style="color:#D9433A">빨간 ✕</b> 로 잠겨요.<br>
+      토끼 자리가 아닌 칸에 놓으면 당근이 하나 줄고,<br>
+      그 칸은 <b style="color:#D9433A">✕ 로 잠겨</b> 아니었다는 표시가 남아요.<br>
       막히면 <b>힌트</b>를 누르세요 — 지금 <b>확실하게</b> 정할 수 있는 한 수를 알려줘요.
     </p>
     <div class="row">
@@ -1484,7 +1484,7 @@ const TUTORIAL = {
   solution: [0, 2, 4, 1, 3],
   // 설명은 한 줄만. 나머지 규칙은 놓은 "직후"에 시각 연출로 가르친다.
   steps: [
-    { r: 0, c: 0, tip: '반짝이는 칸을 <b>두 번 탭!</b>' },
+    { r: 0, c: 0, tip: '반짝이는 칸을 <b>빠르게 두 번 탭!</b>' },
     { r: 3, c: 1, tip: '같은 줄엔 토끼 <b>한 마리씩</b>' },
     { r: 1, c: 2, tip: '이번엔 직접 찾아볼까요?' },
     { r: 2, c: 4, tip: '<b>대각선</b>으로도 붙을 수 없어요' },
@@ -1823,10 +1823,18 @@ function tutorialTap(r, c) {
     return;
   }
 
-  G.grid[r][c] = (G.grid[r][c] + 1) % 3;
-  if (G.grid[r][c] === 1) { Sfx.mark(); buzz(8); }
+  // 본 게임과 같은 조작: 한 번은 ✕, 빠르게 두 번이면 토끼
+  if (pendingTap && pendingTap.r === r && pendingTap.c === c) {
+    clearTimeout(pendingTap.timer); pendingTap = null;
+  } else {
+    flushPendingTap();
+    if (G.grid[r][c] !== 2) {
+      pendingTap = { r, c, timer: setTimeout(() => { pendingTap = null; toggleMark(r, c); }, DOUBLE_TAP_MS) };
+      return;
+    }
+  }
+  G.grid[r][c] = 2;
   renderAll();
-  if (G.grid[r][c] !== 2) return;                    // 아직 ✕ 또는 빈칸 — 계속 탭
 
   Sfx.place(); buzz(18);
   t.busy = true;
@@ -1958,30 +1966,72 @@ function skipTutorial() {
 /* ==========================================================================
  * 10. 조작 — 탭 1회 X, 2회 토끼, 3회 빈칸
  * ========================================================================== */
-/** (r,c) 에 토끼를 놓으면 규칙을 어기게 되는가? 어긴다면 부딪히는 기존 토끼들을 돌려준다. */
-function offendersFor(r, c) {
-  const out = [];
-  for (const [rr, cc] of rabbitList()) {
-    if (rr === r && cc === c) continue;
-    const sameLine = rr === r || cc === c;
-    const sameRegion = G.regions[rr][cc] === G.regions[r][c];
-    const touching = Math.abs(rr - r) <= 1 && Math.abs(cc - c) <= 1;
-    if (sameLine || sameRegion || touching) out.push([rr, cc]);
-  }
-  return out;
+/* --------------------------------------------------------------------------
+ * 조작
+ *   한 번 탭        : ✕ 메모 켜기 / 끄기
+ *   빠르게 두 번 탭 : 토끼 놓기 (✕ 를 거치지 않는다)
+ *   토끼를 탭       : 치우기
+ *
+ * 토끼는 "정답 칸인가"로 즉시 판정한다. 해가 유일하므로 정답이 아닌 칸은
+ * 언제 어떤 상태에서 눌러도 틀린 칸이다. 틀리면 당근이 하나 줄고 그 칸은
+ * ✕ 로 잠긴다 — 어디가 아니었는지 판에 남아야 다음 추론에 쓸 수 있다.
+ * -------------------------------------------------------------------------- */
+const DOUBLE_TAP_MS = 260;
+let pendingTap = null;          // { r, c, timer } — ✕ 로 굳기 전 대기 중인 첫 탭
+
+/** 대기 중인 첫 탭을 ✕ 로 확정한다 */
+function flushPendingTap() {
+  if (!pendingTap) return;
+  const { r, c, timer } = pendingTap;
+  clearTimeout(timer);
+  pendingTap = null;
+  toggleMark(r, c);
 }
 
-/**
- * 잠금 해제 검사.
- * 잠긴 칸은 "지금 놓인 토끼들과 부딪혀서" 잠긴 것이다. 그 토끼를 치우면
- * 잠글 이유가 사라지므로 자동으로 풀어준다 — 안 그러면 되돌리기 후에도
- * 정답 칸이 막힌 채로 남아 판이 풀리지 않게 된다.
- */
-function releaseStaleLocks() {
-  for (let r = 0; r < G.n; r++) {
-    for (let c = 0; c < G.n; c++) {
-      if (G.grid[r][c] === LOCKED && offendersFor(r, c).length === 0) G.grid[r][c] = 0;
-    }
+/** 빈칸 <-> ✕ */
+function toggleMark(r, c) {
+  const from = G.grid[r][c];
+  if (from === 2 || from === LOCKED) return;
+  G.grid[r][c] = from === 1 ? 0 : 1;
+  G.history.push({ r, c, from });
+  if (G.history.length > 400) G.history.shift();
+  if (G.grid[r][c] === 1) { Sfx.mark(); buzz(8); } else Sfx.erase();
+  renderAll();
+  saveProgress();
+}
+
+/** 토끼 놓기 — 정답 칸이면 배치, 아니면 그 자리에서 잠근다 */
+function placeRabbit(r, c) {
+  const from = G.grid[r][c];
+  hideHint();
+
+  if (G.solution[r] === c) {
+    G.grid[r][c] = 2;
+    G.history.push({ r, c, from });
+    Sfx.place(); buzz(18);
+    renderAll();
+    saveProgress();
+    checkWin();
+    return;
+  }
+
+  // 정답이 아닌 칸 — 토끼는 나오지 않고 ✕ 로 잠긴다
+  G.grid[r][c] = LOCKED;
+  G.history.push({ r, c, from });
+  G.lives = Math.max(0, G.lives - 1);
+  renderLives(G.lives);
+  const el = cellAt(r, c);
+  el.classList.add('shake');
+  setTimeout(() => el.classList.remove('shake'), 400);
+  shakeScreen();
+  showSadRabbit();
+  Sfx.miss(); buzz([28, 60, 28]);
+  renderAll();
+  saveProgress();
+
+  if (G.lives === 0) {
+    G.finished = true; stopTimer();
+    setTimeout(() => openModal('modalOver'), 700);
   }
 }
 
@@ -1989,7 +2039,7 @@ function tapCell(r, c) {
   if (G.finished) return;
   if (G.tutorial) { tutorialTap(r, c); return; }
 
-  if (G.grid[r][c] === LOCKED) {                   // 잠긴 칸은 건드릴 수 없다
+  if (G.grid[r][c] === LOCKED) {                   // 틀린 칸으로 확정 — 되돌릴 수 없다
     const el = cellAt(r, c);
     el.classList.add('shake');
     setTimeout(() => el.classList.remove('shake'), 400);
@@ -1997,43 +2047,25 @@ function tapCell(r, c) {
     return;
   }
 
-  const before = G.grid[r][c];
-  const next = (before + 1) % 3;                   // 0 → 1(✕) → 2(토끼) → 0
-  hideHint();
-
-  let lostHeart = false;
-  if (next === 2 && offendersFor(r, c).length) {
-    // 규칙을 어기는 자리 — 토끼를 놓는 대신 칸을 잠근다
-    lostHeart = true;
-    G.grid[r][c] = LOCKED;
-    G.lives = Math.max(0, G.lives - 1);
-    renderLives(G.lives);
-    const el = cellAt(r, c);
-    el.classList.add('shake');
-    setTimeout(() => el.classList.remove('shake'), 400);
-    shakeScreen();
-    showSadRabbit();
-    Sfx.miss(); buzz([28, 60, 28]);
-  } else {
-    G.grid[r][c] = next;
-    if (next === 2) { Sfx.place(); buzz(18); }
-    else if (next === 1) { Sfx.mark(); buzz(8); }
-    else { Sfx.erase(); }
-  }
-  G.history.push({ r, c, from: before });
-  if (G.history.length > 200) G.history.shift();
-
-  releaseStaleLocks();
-  renderAll();
-  if (lostHeart) flashOffenders(r, c);      // 렌더 뒤에 표시해야 지워지지 않는다
-  saveProgress();
-
-  if (lostHeart && G.lives === 0) {
-    G.finished = true; stopTimer();
-    setTimeout(() => openModal('modalOver'), 620);
+  // 같은 칸을 연달아 두 번 -> 첫 탭의 ✕ 예약을 취소하고 토끼를 놓는다
+  if (pendingTap && pendingTap.r === r && pendingTap.c === c) {
+    clearTimeout(pendingTap.timer);
+    pendingTap = null;
+    placeRabbit(r, c);
     return;
   }
-  if (!lostHeart) checkWin();
+  flushPendingTap();                               // 다른 칸을 눌렀으면 앞 탭은 ✕ 로 확정
+
+  if (G.grid[r][c] === 2) {                        // 놓인 토끼는 바로 치운다
+    G.history.push({ r, c, from: 2 });
+    G.grid[r][c] = 0;
+    Sfx.erase(); buzz(8);
+    hideHint(); renderAll(); saveProgress();
+    return;
+  }
+
+  // 첫 탭 — 두 번째 탭을 기다렸다가 없으면 ✕ 로 굳힌다
+  pendingTap = { r, c, timer: setTimeout(() => { pendingTap = null; toggleMark(r, c); }, DOUBLE_TAP_MS) };
 }
 
 /** 당근이 줄 때 보드 한가운데에 시무룩 토끼를 0.8초 띄운다 */
@@ -2055,18 +2087,6 @@ function shakeScreen() {
   void el.offsetWidth;                      // 애니메이션 재시작
   el.classList.add('shake-screen');
   setTimeout(() => el.classList.remove('shake-screen'), 450);
-}
-
-/**
- * 왜 막혔는지 보이도록 부딪힌 토끼들을 잠깐 붉게.
- * renderAll 이 관리하는 .conflict 와 섞이면 렌더 때 지워지므로 별도 클래스를 쓴다.
- */
-function flashOffenders(r, c) {
-  const cells = offendersFor(r, c);
-  for (const [rr, cc] of cells) cellAt(rr, cc).classList.add('flash');
-  setTimeout(() => {
-    for (const [rr, cc] of cells) cellAt(rr, cc).classList.remove('flash');
-  }, 1100);
 }
 
 function checkWin() {
@@ -2142,8 +2162,9 @@ function renderScore() {
 function undo() {
   if (G.finished || !G.history.length) return;
   const m = G.history.pop();
+  // 틀려서 잠긴 칸은 되돌리지 않는다 — 정답이 아니라는 사실은 변하지 않는다
+  if (G.grid[m.r][m.c] === LOCKED) { G.history.push(m); toast('잠긴 칸은 되돌릴 수 없어요'); return; }
   G.grid[m.r][m.c] = m.from;
-  releaseStaleLocks();
   hideHint();
   renderAll();
   saveProgress();
@@ -2154,6 +2175,7 @@ function resetBoard() {
   confirmBox('다시 놓기', '지금까지 놓은 토끼를 모두 치울까요?<br><span style="font-size:12px">(하트와 시간은 그대로예요)</span>', () => {
     G.grid = Array.from({ length: G.n }, () => new Array(G.n).fill(0));
     G.history = []; G.finished = false;
+    if (pendingTap) { clearTimeout(pendingTap.timer); pendingTap = null; }
     hideHint(); renderAll(); saveProgress();
   });
 }
@@ -2372,6 +2394,7 @@ viewport.addEventListener('pointermove', (e) => {
     // 처음 8px 를 넘어서면 끌기로 확정하고, 시작 칸부터 처리한다
     if (!paint.on && p.moved > 8) {
       paint.on = true;
+      flushPendingTap();                 // 끌기로 넘어가면 대기 중이던 탭은 ✕ 로 확정
       paintCell(cellFromPoint(paint.sx, paint.sy));
     }
     if (paint.on) paintCell(cellFromPoint(e.clientX, e.clientY));
@@ -2523,7 +2546,7 @@ $('btnBoost').onclick = () => {
   G.history.push({ r, c, from: G.grid[r][c] });
   G.grid[r][c] = 2;
   G.boosts--;
-  hideHint(); releaseStaleLocks(); renderAll(); renderBoosters();
+  hideHint(); renderAll(); renderBoosters();
   Sfx.place(); buzz(18);
   scrollCellIntoView(r, c);
   saveProgress();
@@ -2595,9 +2618,9 @@ function decorateSky() {
 
 function buildTapGuide() {
   $('tapGuide').innerHTML = `
-    <div class="tapcard"><span class="n">탭 1회</span><span class="art">${RabbitArt.html('mark')}</span><span class="lbl">여기 아님</span></div>
-    <div class="tapcard"><span class="n">탭 2회</span><span class="art">${RabbitArt.html('rabbit')}</span><span class="lbl">토끼 앉기</span></div>
-    <div class="tapcard"><span class="n">탭 3회</span><span class="empty-box"></span><span class="lbl">비우기</span></div>`;
+    <div class="tapcard"><span class="n">한 번 탭</span><span class="art">${RabbitArt.html('mark')}</span><span class="lbl">여기 아님</span></div>
+    <div class="tapcard"><span class="n">두 번 탭</span><span class="art">${RabbitArt.html('rabbit')}</span><span class="lbl">토끼 앉기</span></div>
+    <div class="tapcard"><span class="n">다시 탭</span><span class="empty-box"></span><span class="lbl">지우기</span></div>`;
 }
 
 async function loadPuzzles() {
