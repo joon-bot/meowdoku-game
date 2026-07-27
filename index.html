@@ -470,6 +470,7 @@ body.tutorial-mode .toolbar{display:none;}
     <div class="taps" id="tapGuide"></div>
     <p style="font-size:12.5px;margin-bottom:16px">
       칸을 <b>누른 채로 쓸면</b> 지나간 빈칸이 한 번에 ✕ 로 채워져요.<br>
+      반대로 <b>✕ 에서 시작해 쓸면</b> 지나간 ✕ 가 지워져요.<br>
       보드를 <b>옮기거나 확대</b>할 땐 손가락 두 개를 쓰세요.<br>
       토끼가 앉을 수 없는 자리를 고르면 하트가 하나 줄고,<br>
       그 칸은 <b style="color:#D9433A">빨간 ✕</b> 로 잠겨요.<br>
@@ -1634,16 +1635,22 @@ function cellFromPoint(x, y) {
   return cell && board.contains(cell) ? cell : null;
 }
 
-/** 끌기로 지나간 빈칸을 ✕ 로 (토끼·메모·잠긴 칸은 건드리지 않는다) */
+/**
+ * 끌기로 칸 칠하기 / 지우기.
+ * 방향은 "끌기를 시작한 칸"이 정한다 — ✕ 에서 시작하면 지우기, 그 외엔 ✕ 그리기.
+ * 토끼와 잠긴 칸은 어느 쪽이든 건드리지 않는다.
+ */
 function paintCell(cell) {
   if (!paint || !cell) return;
   const r = +cell.dataset.r, c = +cell.dataset.c;
   const key = r * G.n + c;
   if (paint.painted.has(key)) return;
   paint.painted.add(key);
-  if (G.grid[r][c] !== 0) return;
-  G.grid[r][c] = 1;
-  G.history.push({ r, c, from: 0 });
+
+  const from = paint.mode === 'erase' ? 1 : 0;      // 지우기는 ✕ 만, 그리기는 빈칸만
+  if (G.grid[r][c] !== from) return;
+  G.grid[r][c] = paint.mode === 'erase' ? 0 : 1;
+  G.history.push({ r, c, from });
   if (G.history.length > 400) G.history.shift();
   renderAll();
 }
@@ -1653,7 +1660,14 @@ viewport.addEventListener('pointerdown', (e) => {
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, moved: 0, t: Date.now() });
   if (pointers.size === 1) {
     // 튜토리얼에서는 정해진 칸만 눌러야 하므로 칠하기를 켜지 않는다
-    paint = (G.tutorial || G.finished) ? null : { painted: new Set() };
+    if (G.tutorial || G.finished) {
+      paint = null;
+    } else {
+      const cell = cellFromPoint(e.clientX, e.clientY);
+      const v = cell ? G.grid[+cell.dataset.r][+cell.dataset.c] : 0;
+      paint = { painted: new Set(), on: false, sx: e.clientX, sy: e.clientY,
+                mode: v === 1 ? 'erase' : 'draw' };   // ✕ 에서 시작하면 지우기
+    }
   } else if (pointers.size === 2) {
     paint = null;                                   // 두 손가락 -> 보드 조작
     const [a, b] = [...pointers.values()];
@@ -1685,10 +1699,10 @@ viewport.addEventListener('pointermove', (e) => {
     gesture.dist = dist; gesture.cx = mx; gesture.cy = my;
     clampView(); applyView();
   } else if (pointers.size === 1 && paint) {
-    // 처음 8px 를 넘어서면 "끌어서 ✕ 칠하기"로 확정하고, 시작 칸부터 칠한다
+    // 처음 8px 를 넘어서면 끌기로 확정하고, 시작 칸부터 처리한다
     if (!paint.on && p.moved > 8) {
       paint.on = true;
-      paintCell(cellFromPoint(e.clientX - dx, e.clientY - dy));
+      paintCell(cellFromPoint(paint.sx, paint.sy));
     }
     if (paint.on) paintCell(cellFromPoint(e.clientX, e.clientY));
   }
