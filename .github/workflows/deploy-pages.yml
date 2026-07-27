@@ -1,0 +1,58 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - claude/rabbit-puzzle-game-ui-pcrfmq
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 배포는 한 번에 하나만. 진행 중인 배포는 취소하지 않는다.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 퍼즐 유일성·연결성·정답 일치를 검증하고 index.html 내장 사본을 최신화한다.
+      # 검증에 실패하면 여기서 배포가 멈춘다.
+      - name: 퍼즐 검증 및 내장 사본 갱신
+        run: node tools/build.mjs
+
+      - name: 배포할 파일 모으기
+        run: |
+          mkdir -p _site
+          cp index.html puzzles.json _site/
+          touch _site/.nojekyll
+
+      # enablement: true -> Pages 가 아직 켜져 있지 않으면 자동으로 활성화한다
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
