@@ -170,7 +170,8 @@ h1.game-title{
 #board{display:grid;border-radius:12px;overflow:hidden;background:var(--line-strong);}
 .cell{
   position:relative;display:grid;place-items:center;
-  border:1px solid rgba(122,97,83,.16);
+  /* 영역 안에서도 칸 하나하나가 보이도록 옅은 격자를 항상 깐다 */
+  border:1px solid rgba(70,50,38,.28);
   transition:background-color .18s ease;
 }
 .cell .glyph{width:78%;height:78%;display:grid;place-items:center;pointer-events:none;}
@@ -218,6 +219,26 @@ h1.game-title{
   border:1.5px solid rgba(217,198,180,.5);font-weight:800;font-size:16px;color:var(--ink-soft);
 }
 .zoomgroup button:active{transform:scale(.94);}
+
+/* 튜토리얼 */
+.hud-status{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+.btn-skip{
+  display:none;padding:8px 14px;border-radius:999px;font-size:13px;font-weight:700;
+  background:rgba(255,255,255,.75);color:var(--ink-soft);
+  border:1.5px solid rgba(217,198,180,.6);box-shadow:var(--shadow-sm);
+}
+.btn-skip:active{transform:scale(.95);}
+body.tutorial-mode .btn-skip{display:block;}
+body.tutorial-mode .hud-status,
+body.tutorial-mode .toolbar{display:none;}
+#hintBar.coach.show{
+  background:linear-gradient(180deg,#FFF4E2,#FBE8CC);
+  border-color:rgba(225,180,120,.6);color:#7A5327;
+}
+#hintBar.coach b{color:#5E3D18;}
+.coach-lesson{
+  display:block;font-size:14.5px;font-weight:800;color:#8A5A1E;margin-bottom:4px;
+}
 
 /* 힌트 말풍선 */
 #hintBar{
@@ -354,7 +375,8 @@ h1.game-title{
         <span class="lvsub" id="gmSub">5 × 5 · 쉬움</span>
       </div>
       <div style="flex:1"></div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+      <button class="btn-skip" id="btnSkipTutorial">건너뛰기</button>
+      <div class="hud-status">
         <div class="hearts" id="gmHearts"></div>
         <span class="timer" id="gmTimer">00:00</span>
       </div>
@@ -399,7 +421,7 @@ h1.game-title{
     <div class="bigart" id="clearArt"></div>
     <h3 id="clearTitle">축하해요!</h3>
     <p id="clearMsg">토끼들이 모두 제자리를 찾았어요.</p>
-    <div class="stat">
+    <div class="stat" id="clearStats">
       <div>시간<b id="clearTime">00:00</b></div>
       <div>남은 하트<b id="clearHearts">♥♥♥</b></div>
     </div>
@@ -435,7 +457,10 @@ h1.game-title{
       규칙을 어기면 하트가 하나 줄고 어긋난 칸이 빨갛게 표시돼요.<br>
       막히면 <b>힌트</b>를 누르세요 — 지금 <b>확실하게</b> 정할 수 있는 한 수를 알려줘요.
     </p>
-    <button class="btn primary" id="rulesClose">알겠어요</button>
+    <div class="row">
+      <button class="btn ghost" id="rulesTutorial">튜토리얼 다시</button>
+      <button class="btn primary" id="rulesClose">알겠어요</button>
+    </div>
   </div>
 </div>
 
@@ -456,7 +481,7 @@ h1.game-title{
 <div id="loading"><div class="box"><div id="loadArt"></div><p id="loadMsg">토끼들을 부르는 중…</p></div></div>
 
 <!-- 퍼즐 데이터 내장 사본 (puzzles.json 을 불러오지 못하는 환경용 대비책) -->
-<script id="puzzles-embedded" type="application/json">{"version":1,"title":"토끼네 자리","rules":{"perRow":1,"perCol":1,"perRegion":1,"diagonalAdjacencyForbidden":true},"levels":[{"id":"L01","index":1,"size":5,"difficulty":"easy","tier":1,"regions":[[1,0,0,0,0],[1,1,0,0,0],[0,0,0,2,0],[3,3,3,2,2],[4,4,4,2,2]],"solution":[4,1,3,0,2]},{"id":"L02","index":2,"size":5,"difficulty":"easy","tier":1,"regions":[[2,2,2,0,0],[1,1,2,2,0],[1,1,2,2,0],[3,3,3,0,0],[4,4,4,0,0]],"solution":[4,1,3,0,2]},{"id":"L03","index":3,"size":5,"difficulty":"easy","tier":1,"regions":[[0,0,0,0,0],[0,1,1,1,0],[0,2,1,1,0],[2,2,3,3,3],[4,4,4,4,3]],"solution":[0,3,1,4,2]},{"id":"L04","index":4,"size":6,"difficulty":"easy","tier":1,"regions":[[2,1,1,0,0,0],[2,1,1,1,1,0],[2,1,0,0,0,0],[1,1,1,3,0,0],[5,1,3,3,4,4],[5,5,3,3,4,4]],"solution":[4,2,0,3,5,1]},{"id":"L05","index":5,"size":6,"difficulty":"easy","tier":1,"regions":[[0,1,1,2,2,2],[0,0,1,1,2,2],[5,3,3,1,2,2],[5,5,3,2,2,2],[5,4,4,4,4,2],[5,5,5,5,2,2]],"solution":[0,3,5,2,4,1]},{"id":"L06","index":6,"size":6,"difficulty":"easy","tier":1,"regions":[[0,0,0,0,0,0],[0,2,1,1,1,0],[0,2,1,3,1,1],[0,2,3,3,1,1],[2,2,2,2,4,4],[2,2,5,5,5,4]],"solution":[0,4,1,3,5,2]},{"id":"L07","index":7,"size":7,"difficulty":"easy","tier":1,"regions":[[0,0,3,3,3,1,4],[0,2,3,3,1,1,4],[0,2,3,3,3,4,4],[5,2,3,3,4,4,4],[5,5,5,6,6,4,6],[5,5,5,6,6,6,6],[6,6,6,6,6,6,6]],"solution":[0,4,1,3,5,2,6]},{"id":"L08","index":8,"size":7,"difficulty":"easy","tier":1,"regions":[[0,0,0,0,0,0,2],[0,1,0,1,0,0,2],[0,1,1,1,2,2,2],[0,1,1,2,2,2,3],[1,1,4,2,2,3,3],[5,5,4,4,4,3,3],[5,4,4,4,6,6,6]],"solution":[3,1,4,6,2,0,5]},{"id":"L09","index":9,"size":7,"difficulty":"easy","tier":1,"regions":[[0,0,0,0,0,0,0],[0,2,0,0,1,1,1],[0,2,2,0,1,3,3],[0,2,2,0,1,1,3],[0,4,2,2,1,1,1],[4,4,2,6,5,5,5],[4,2,2,6,6,6,6]],"solution":[0,4,2,6,1,5,3]},{"id":"L10","index":10,"size":8,"difficulty":"normal","tier":1,"regions":[[1,1,1,1,0,0,0,0],[1,1,1,1,1,1,2,0],[1,1,1,1,5,5,2,2],[1,4,4,4,5,3,3,2],[1,4,4,4,5,5,3,3],[4,4,5,5,5,5,6,3],[4,4,4,7,7,5,6,3],[4,4,7,7,7,5,6,3]],"solution":[4,0,7,5,1,3,6,2]},{"id":"L11","index":11,"size":8,"difficulty":"normal","tier":1,"regions":[[0,0,0,1,1,1,1,1],[5,5,5,1,4,2,2,7],[5,5,5,5,4,2,2,7],[5,3,3,5,4,2,2,7],[3,3,5,5,4,4,2,7],[6,6,5,4,4,2,2,7],[6,6,6,6,6,7,7,7],[6,7,7,7,7,7,7,7]],"solution":[0,3,6,1,5,2,4,7]},{"id":"L12","index":12,"size":8,"difficulty":"normal","tier":1,"regions":[[3,3,3,3,0,0,0,2],[3,1,1,3,3,3,3,2],[3,5,1,3,3,6,4,2],[7,5,5,3,3,6,4,4],[7,7,5,5,5,6,4,4],[7,7,5,7,5,6,6,6],[7,7,7,7,5,6,6,6],[7,7,7,7,5,5,6,6]],"solution":[4,1,7,3,6,2,5,0]},{"id":"L13","index":13,"size":9,"difficulty":"normal","tier":1,"regions":[[5,2,0,0,0,1,1,1,1],[5,2,2,4,4,4,4,1,3],[5,2,2,2,4,4,3,3,3],[5,2,6,2,4,3,3,8,8],[5,6,6,6,4,6,6,8,8],[5,7,7,6,6,6,8,8,8],[5,5,7,6,6,7,8,8,8],[5,7,7,7,7,7,7,7,8],[7,7,7,7,8,8,8,8,8]],"solution":[2,7,1,6,4,0,3,5,8]},{"id":"L14","index":14,"size":9,"difficulty":"normal","tier":1,"regions":[[1,1,1,1,0,0,0,0,5],[1,4,4,1,3,2,0,0,5],[1,4,1,1,3,2,2,3,5],[1,4,4,3,3,3,2,3,5],[4,4,4,4,4,3,3,3,5],[7,7,7,7,4,4,4,3,5],[7,7,7,4,4,7,6,6,8],[7,7,7,7,7,7,6,6,8],[6,6,6,6,6,6,6,8,8]],"solution":[4,0,5,3,1,8,6,2,7]},{"id":"L15","index":15,"size":9,"difficulty":"normal","tier":1,"regions":[[2,0,0,0,0,0,0,3,3],[2,0,0,0,1,1,1,3,3],[2,2,0,2,2,1,1,1,3],[2,2,0,0,2,2,1,1,3],[4,2,2,2,2,1,1,1,3],[4,2,4,4,4,5,5,5,5],[4,4,4,4,4,5,5,6,5],[4,7,4,7,7,7,6,6,6],[7,7,7,7,7,7,8,8,8]],"solution":[2,4,1,8,0,5,7,3,6]},{"id":"L16","index":16,"size":10,"difficulty":"normal","tier":1,"regions":[[1,1,0,0,0,2,2,2,2,2],[1,1,1,2,2,2,2,5,5,2],[4,4,3,3,2,3,5,5,2,2],[4,3,3,3,3,3,5,5,5,5],[4,6,7,5,5,5,5,5,5,5],[6,6,7,7,7,5,5,9,9,5],[6,6,7,7,7,7,9,9,9,5],[6,8,8,7,7,7,7,9,5,5],[8,8,8,8,7,9,9,9,9,9],[8,8,8,8,7,7,9,9,9,9]],"solution":[4,2,8,5,0,9,1,6,3,7]},{"id":"L17","index":17,"size":10,"difficulty":"normal","tier":1,"regions":[[1,1,1,1,1,3,0,0,0,6],[1,4,4,4,1,3,2,2,3,6],[4,4,3,3,3,3,3,2,3,6],[8,4,4,4,3,9,3,3,3,6],[8,4,5,5,5,9,6,6,6,6],[8,8,5,5,9,9,6,7,7,7],[8,5,5,9,9,6,6,6,7,7],[8,8,5,5,9,6,7,7,7,7],[8,8,8,5,9,6,6,7,7,7],[9,9,9,9,9,9,6,6,6,7]],"solution":[8,0,7,4,1,3,6,9,2,5]},{"id":"L18","index":18,"size":10,"difficulty":"normal","tier":1,"regions":[[0,0,0,3,2,2,2,1,1,1],[0,0,3,3,2,1,1,1,1,1],[0,3,3,3,2,2,2,1,1,1],[0,0,0,3,3,2,2,2,1,1],[6,6,0,5,2,2,2,4,1,1],[7,6,6,5,5,5,4,4,4,8],[7,7,6,6,5,4,4,4,8,8],[9,7,6,5,5,8,8,4,4,8],[9,6,6,5,5,8,8,8,4,8],[9,6,6,5,5,5,8,8,8,8]],"solution":[2,8,6,4,7,5,3,1,9,0]},{"id":"L19","index":19,"size":11,"difficulty":"hard","tier":1,"regions":[[1,1,1,3,3,0,0,0,2,2,2],[1,1,1,3,3,3,2,2,2,2,2],[3,1,3,3,3,3,3,3,3,3,2],[3,3,3,5,3,4,4,4,7,7,7],[5,5,3,5,5,5,5,4,7,10,7],[6,5,5,5,5,5,5,7,7,10,7],[6,6,5,7,7,7,5,7,7,10,7],[8,5,5,5,7,7,5,7,7,10,10],[8,9,9,5,7,7,7,7,10,10,10],[8,9,9,9,10,10,10,7,10,10,10],[8,10,10,10,10,10,10,10,10,10,10]],"solution":[6,2,10,4,7,5,1,8,0,3,9]},{"id":"L20","index":20,"size":11,"difficulty":"hard","tier":1,"regions":[[1,1,1,0,0,0,2,2,2,4,4],[5,1,1,0,3,4,2,2,2,4,4],[5,5,7,0,3,4,4,2,2,4,4],[5,5,7,6,3,3,4,4,4,4,4],[5,7,7,6,4,4,4,8,8,8,8],[5,5,7,6,6,6,6,6,6,6,8],[9,9,7,6,6,8,8,6,8,8,8],[9,9,7,7,6,6,8,6,6,8,8],[9,6,6,6,6,10,8,8,8,8,10],[9,10,10,10,10,10,10,10,10,10,10],[10,10,10,10,10,10,10,10,10,10,10]],"solution":[5,2,8,4,6,1,7,3,9,0,10]},{"id":"L21","index":21,"size":12,"difficulty":"hard","tier":1,"regions":[[2,2,2,2,2,2,2,3,3,0,0,4],[1,1,1,2,3,3,2,2,3,3,0,4],[5,5,2,2,3,3,3,3,3,3,3,4],[5,7,7,7,7,3,4,4,4,4,4,4],[5,5,5,7,4,4,4,4,6,6,6,11],[5,5,7,7,4,7,8,6,6,8,6,11],[5,7,7,4,4,7,8,6,6,8,11,11],[5,7,7,7,7,7,8,6,6,8,8,11],[5,7,7,9,10,7,8,8,8,8,11,11],[7,7,7,9,10,8,8,8,8,11,11,11],[7,7,7,9,10,10,10,8,8,11,11,11],[7,7,7,10,10,8,8,8,8,11,11,11]],"solution":[10,0,2,5,7,1,8,4,9,3,6,11]},{"id":"L22","index":22,"size":12,"difficulty":"hard","tier":1,"regions":[[6,6,2,2,2,2,2,2,2,1,0,0],[6,2,2,2,3,3,3,2,1,1,5,0],[6,3,2,3,3,6,2,2,2,5,5,4],[6,3,3,3,3,6,6,7,7,5,5,4],[6,6,6,6,6,6,7,7,5,5,5,4],[6,6,8,8,10,6,9,7,7,5,5,5],[8,6,8,8,10,9,9,7,7,11,11,5],[8,8,8,8,10,10,9,7,7,11,11,5],[8,8,10,8,10,10,9,9,7,11,5,5],[8,10,10,10,10,10,9,9,7,11,5,11],[8,8,8,10,8,11,9,9,7,11,5,11],[8,8,8,8,8,11,11,11,11,11,11,11]],"solution":[10,8,2,4,11,9,1,7,0,6,3,5]},{"id":"L23","index":23,"size":13,"difficulty":"hard","tier":1,"regions":[[4,4,4,2,2,2,2,2,2,0,2,3,3],[4,7,7,2,1,1,1,7,2,2,2,5,3],[4,7,7,2,2,2,7,7,5,5,5,5,3],[4,7,7,7,7,7,7,7,5,5,5,5,3],[4,8,7,7,7,7,7,7,6,5,5,5,5],[10,8,7,7,8,7,6,6,6,6,5,11,11],[10,8,8,8,8,7,7,6,7,6,11,11,11],[10,10,10,10,8,7,7,7,7,6,6,6,11],[10,8,8,8,8,8,8,7,7,6,11,6,11],[10,8,9,9,9,8,8,8,9,9,11,6,11],[10,10,9,9,9,9,9,9,9,12,11,6,11],[10,10,9,10,9,9,12,12,9,12,11,11,11],[10,10,10,10,10,9,9,12,12,12,12,12,12]],"solution":[9,6,3,12,0,10,7,5,2,4,1,11,8]},{"id":"L24","index":24,"size":13,"difficulty":"hard","tier":1,"regions":[[0,0,0,0,0,0,0,0,0,0,0,1,1],[0,0,0,0,0,3,3,0,1,0,1,1,7],[2,2,0,3,3,3,3,0,1,1,1,1,7],[5,8,8,3,3,3,3,3,1,4,4,1,7],[5,8,8,8,3,3,4,4,4,4,1,1,7],[5,5,5,8,4,4,4,4,4,7,1,7,7],[5,5,5,8,6,6,6,7,7,7,7,7,12],[5,5,8,8,6,7,7,7,12,12,7,12,12],[9,5,8,8,6,7,10,7,7,12,12,12,12],[9,5,8,6,6,7,10,7,12,12,12,12,12],[5,5,8,11,10,10,10,7,12,7,12,12,12],[5,5,11,11,11,10,10,7,7,7,12,12,12],[11,11,11,11,10,10,12,12,12,12,12,12,12]],"solution":[8,11,1,7,9,2,5,10,3,0,6,4,12]},{"id":"L25","index":25,"size":14,"difficulty":"hard","tier":1,"regions":[[1,1,1,1,1,1,1,1,1,4,4,4,0,0],[1,1,1,1,1,3,3,3,3,3,4,4,0,2],[1,3,3,3,3,3,4,4,3,4,4,2,2,2],[1,1,1,1,3,3,3,4,3,4,6,6,6,6],[1,1,1,1,3,3,4,4,4,4,4,4,6,6],[5,1,1,3,3,3,3,10,4,4,4,4,4,6],[5,5,5,5,5,3,10,10,6,4,6,6,6,6],[5,5,7,5,5,3,10,10,6,6,6,8,6,8],[7,5,7,7,5,5,10,10,10,6,8,8,8,8],[7,7,7,7,5,5,10,9,9,9,9,11,11,8],[7,5,5,5,5,10,10,9,9,9,11,11,8,8],[7,7,7,7,7,10,9,9,9,11,11,11,8,8],[7,12,10,7,10,10,9,11,11,11,11,11,11,8],[7,12,10,10,10,9,9,9,9,9,9,11,11,13]],"solution":[12,3,11,4,6,0,8,2,10,7,5,9,1,13]},{"id":"L26","index":26,"size":14,"difficulty":"hard","tier":1,"regions":[[4,4,4,4,4,4,4,0,0,0,0,2,1,1],[4,5,5,5,5,5,4,4,4,4,4,2,1,3],[4,4,4,4,4,5,5,5,5,5,2,2,3,3],[4,7,4,4,4,4,5,11,5,5,5,3,3,3],[4,7,7,7,4,7,11,11,11,11,5,5,6,6],[7,7,7,4,4,7,11,11,11,5,5,5,5,6],[7,7,4,4,7,7,7,7,11,11,11,6,6,6],[7,7,7,7,7,11,11,11,11,8,11,11,11,12],[7,9,7,7,7,11,8,8,8,8,12,12,12,12],[7,9,9,9,11,11,11,8,8,8,8,12,12,12],[10,10,9,9,11,13,13,8,8,12,8,8,12,12],[10,9,9,13,11,13,13,8,8,12,8,8,8,12],[9,9,13,13,13,13,8,8,12,12,8,12,12,12],[13,13,13,13,13,13,13,8,8,12,12,12,12,12]],"solution":[7,12,10,13,0,9,11,2,6,3,1,4,8,5]}]}</script>
+<script id="puzzles-embedded" type="application/json">{"version":2,"title":"토끼네 자리","rules":{"perRow":1,"perCol":1,"perRegion":1,"diagonalAdjacencyForbidden":true},"levels":[{"id":"L01","index":1,"size":5,"difficulty":"easy","regions":[[0,0,0,1,1],[0,0,0,0,1],[0,0,2,4,4],[3,0,4,4,4],[4,4,4,4,4]],"solution":[1,4,2,0,3],"metrics":{"tier":0,"steps":5,"firstPlace":0,"minRegion":1,"maxRegion":10,"onesCount":2}},{"id":"L02","index":2,"size":5,"difficulty":"easy","regions":[[1,1,1,0,3],[1,1,1,2,3],[1,1,2,2,3],[1,3,3,3,3],[1,4,3,3,3]],"solution":[3,0,2,4,1],"metrics":{"tier":0,"steps":5,"firstPlace":0,"minRegion":1,"maxRegion":10,"onesCount":2}},{"id":"L03","index":3,"size":5,"difficulty":"easy","regions":[[0,0,0,4,4],[1,0,0,4,4],[0,0,0,4,2],[0,3,3,4,4],[0,3,4,4,4]],"solution":[2,0,4,1,3],"metrics":{"tier":0,"steps":5,"firstPlace":0,"minRegion":1,"maxRegion":10,"onesCount":2}},{"id":"L04","index":4,"size":5,"difficulty":"easy","regions":[[0,1,1,1,1],[1,1,1,1,1],[1,3,4,1,2],[3,3,4,4,4],[4,4,4,4,4]],"solution":[0,2,4,1,3],"metrics":{"tier":0,"steps":5,"firstPlace":0,"minRegion":1,"maxRegion":11,"onesCount":2}},{"id":"L05","index":5,"size":5,"difficulty":"easy","regions":[[1,0,1,1,1],[1,1,1,2,1],[2,2,2,2,2],[3,2,2,4,2],[2,2,2,4,4]],"solution":[1,4,2,0,3],"metrics":{"tier":0,"steps":5,"firstPlace":0,"minRegion":1,"maxRegion":12,"onesCount":2}},{"id":"L06","index":6,"size":6,"difficulty":"easy","regions":[[0,4,4,1,3,3],[4,4,1,1,3,3],[4,2,3,3,3,3],[4,4,3,3,3,5],[4,4,4,3,5,5],[4,4,4,5,5,5]],"solution":[0,3,1,4,2,5],"metrics":{"tier":0,"steps":6,"firstPlace":0,"minRegion":1,"maxRegion":13,"onesCount":2}},{"id":"L07","index":7,"size":6,"difficulty":"easy","regions":[[1,1,1,1,0,1],[1,1,1,1,1,1],[1,1,2,4,4,4],[5,5,4,4,4,3],[5,5,5,4,4,3],[5,5,5,5,4,3]],"solution":[4,0,2,5,3,1],"metrics":{"tier":0,"steps":6,"firstPlace":0,"minRegion":1,"maxRegion":13,"onesCount":2}},{"id":"L08","index":8,"size":6,"difficulty":"easy","regions":[[0,0,0,0,0,0],[0,0,2,0,1,0],[3,3,2,2,0,0],[3,3,3,3,3,0],[3,3,3,4,3,5],[3,3,3,3,5,5]],"solution":[1,4,2,0,3,5],"metrics":{"tier":0,"steps":6,"firstPlace":0,"minRegion":1,"maxRegion":15,"onesCount":2}},{"id":"L09","index":9,"size":7,"difficulty":"easy","regions":[[2,2,2,2,0,4,4],[2,2,1,4,4,4,4],[2,2,2,3,4,6,4],[2,2,2,3,4,6,4],[5,5,5,6,6,6,4],[5,5,5,5,6,6,6],[5,5,5,5,5,6,6]],"solution":[4,2,0,3,6,1,5],"metrics":{"tier":0,"steps":7,"firstPlace":0,"minRegion":1,"maxRegion":12,"onesCount":2}},{"id":"L10","index":10,"size":7,"difficulty":"easy","regions":[[1,1,0,0,0,0,0],[1,1,0,0,0,0,2],[1,1,3,0,2,2,2],[1,3,3,3,2,2,2],[1,4,3,3,2,2,2],[1,1,3,3,2,2,5],[6,6,6,3,2,2,2]],"solution":[4,0,5,3,1,6,2],"metrics":{"tier":1,"steps":8,"firstPlace":0,"minRegion":1,"maxRegion":15,"onesCount":2}},{"id":"L11","index":11,"size":7,"difficulty":"easy","regions":[[3,3,3,3,3,2,0],[3,2,2,1,3,2,2],[3,2,2,2,2,2,4],[3,3,2,2,4,4,4],[4,4,4,4,4,4,4],[5,5,5,4,4,5,4],[6,6,5,5,5,5,5]],"solution":[6,3,5,1,4,2,0],"metrics":{"tier":1,"steps":9,"firstPlace":0,"minRegion":1,"maxRegion":14,"onesCount":2}},{"id":"L12","index":12,"size":8,"difficulty":"normal","regions":[[1,1,3,3,3,0,0,0],[1,4,4,3,3,3,2,5],[1,1,4,4,3,3,2,5],[4,4,4,3,3,3,5,5],[4,4,7,7,7,3,3,5],[4,7,7,7,7,3,6,5],[4,4,7,7,6,6,6,5],[4,7,7,7,7,6,6,6]],"solution":[5,0,6,3,1,7,4,2],"metrics":{"tier":1,"steps":11,"firstPlace":3,"minRegion":2,"maxRegion":14,"onesCount":0}},{"id":"L13","index":13,"size":8,"difficulty":"normal","regions":[[0,0,0,0,0,0,0,0],[0,0,0,0,0,1,1,1],[0,2,3,0,3,1,1,1],[2,2,3,3,3,4,4,4],[2,2,5,3,3,3,3,4],[2,5,5,5,5,4,4,4],[5,5,6,5,5,4,4,4],[6,6,6,5,5,5,7,7]],"solution":[0,5,1,3,7,4,2,6],"metrics":{"tier":1,"steps":11,"firstPlace":3,"minRegion":2,"maxRegion":15,"onesCount":0}},{"id":"L14","index":14,"size":8,"difficulty":"normal","regions":[[1,1,1,1,4,0,0,0],[3,1,3,1,4,2,2,2],[3,3,3,4,4,2,4,4],[3,5,4,4,4,4,4,4],[7,5,5,5,4,4,4,6],[7,5,7,5,5,5,4,6],[7,5,7,5,5,4,4,6],[7,7,7,7,7,7,7,7]],"solution":[6,3,5,0,4,1,7,2],"metrics":{"tier":1,"steps":12,"firstPlace":3,"minRegion":3,"maxRegion":18,"onesCount":0}},{"id":"L15","index":15,"size":9,"difficulty":"normal","regions":[[1,1,1,1,1,0,0,0,0],[1,2,2,2,2,2,0,0,3],[1,1,1,1,2,4,3,3,3],[1,2,2,2,2,4,3,3,3],[1,2,2,4,2,4,4,5,3],[2,2,2,4,4,4,4,5,5],[6,6,4,4,4,4,5,5,5],[6,6,6,6,6,4,4,7,5],[6,8,8,6,7,7,7,7,5]],"solution":[5,0,4,6,3,8,1,7,2],"metrics":{"tier":1,"steps":12,"firstPlace":1,"minRegion":2,"maxRegion":16,"onesCount":0}},{"id":"L16","index":16,"size":9,"difficulty":"normal","regions":[[0,1,1,1,1,1,1,1,3],[0,1,1,1,1,3,3,3,3],[2,2,4,4,4,4,5,3,3],[4,4,4,4,4,5,5,3,3],[4,7,7,5,4,5,8,8,8],[7,7,6,5,5,5,5,5,8],[7,7,6,6,6,6,5,5,8],[7,7,7,6,6,8,8,8,8],[7,7,7,6,6,8,8,8,8]],"solution":[0,3,1,8,4,7,5,2,6],"metrics":{"tier":1,"steps":13,"firstPlace":1,"minRegion":2,"maxRegion":13,"onesCount":0}},{"id":"L17","index":17,"size":9,"difficulty":"normal","regions":[[1,1,1,1,1,1,0,0,0],[1,6,1,1,4,4,2,3,3],[1,6,1,1,4,2,2,2,3],[6,6,1,1,4,4,2,2,3],[6,6,1,4,4,5,5,5,3],[6,6,6,6,7,7,7,5,5],[6,6,6,6,7,8,8,8,5],[6,6,6,7,7,8,8,8,8],[6,6,8,8,8,8,8,8,8]],"solution":[6,0,5,8,3,7,1,4,2],"metrics":{"tier":1,"steps":12,"firstPlace":3,"minRegion":3,"maxRegion":19,"onesCount":0}},{"id":"L18","index":18,"size":10,"difficulty":"normal","regions":[[6,6,6,6,6,1,1,0,2,2],[6,4,6,6,1,1,0,0,2,2],[6,4,4,4,4,3,0,5,2,2],[6,6,6,4,4,3,0,5,2,4],[8,6,4,4,4,0,0,5,2,4],[8,6,7,4,4,4,4,5,5,4],[8,6,7,7,4,7,4,4,4,4],[8,8,7,7,7,7,7,7,7,4],[8,8,7,8,8,7,7,7,7,4],[8,8,8,8,8,9,9,7,7,7]],"solution":[7,4,9,5,2,8,1,3,0,6],"metrics":{"tier":1,"steps":13,"firstPlace":1,"minRegion":2,"maxRegion":24,"onesCount":0}},{"id":"L19","index":19,"size":10,"difficulty":"normal","regions":[[0,0,0,0,0,0,0,1,1,3],[2,2,2,2,0,1,1,1,1,3],[2,2,2,0,0,0,1,3,3,3],[2,2,2,2,2,1,1,1,3,3],[5,4,4,4,2,1,1,1,8,3],[5,4,8,8,8,8,8,8,8,3],[5,8,8,6,6,6,8,3,3,3],[7,7,9,9,6,8,8,8,8,3],[7,9,9,6,6,8,8,8,3,3],[9,9,9,9,9,8,8,8,8,8]],"solution":[6,8,2,9,3,0,5,1,7,4],"metrics":{"tier":1,"steps":15,"firstPlace":1,"minRegion":3,"maxRegion":23,"onesCount":0}},{"id":"L20","index":20,"size":10,"difficulty":"normal","regions":[[1,0,0,0,0,0,0,0,2,2],[1,1,1,1,0,0,0,0,2,2],[3,3,1,0,0,2,2,2,2,2],[4,3,3,5,2,2,6,6,2,2],[4,3,5,5,2,6,6,2,2,2],[4,3,3,5,5,5,6,6,2,6],[4,4,3,5,7,5,6,6,2,6],[4,4,3,5,7,5,7,6,2,6],[8,8,5,5,7,7,7,6,6,6],[9,9,9,9,9,7,7,7,6,6]],"solution":[7,3,8,2,0,5,9,6,1,4],"metrics":{"tier":1,"steps":15,"firstPlace":5,"minRegion":2,"maxRegion":20,"onesCount":0}},{"id":"L21","index":21,"size":11,"difficulty":"hard","regions":[[7,2,0,0,0,4,1,1,1,1,1],[7,2,2,2,4,4,4,4,3,3,1],[7,7,2,4,4,4,4,4,8,3,6],[5,7,9,9,9,8,8,4,8,3,6],[5,7,9,9,9,9,8,4,8,6,6],[5,7,9,9,8,8,8,8,8,6,6],[7,7,9,9,9,8,9,8,6,6,6],[7,7,9,9,9,9,9,8,6,10,10],[7,9,9,10,10,10,8,8,8,10,10],[9,9,9,9,10,10,8,10,8,8,10],[9,10,10,10,10,10,10,10,10,10,10]],"solution":[4,10,2,9,7,0,8,1,6,3,5],"metrics":{"tier":1,"steps":12,"firstPlace":1,"minRegion":3,"maxRegion":25,"onesCount":0}},{"id":"L22","index":22,"size":11,"difficulty":"hard","regions":[[4,4,2,2,2,2,0,0,0,1,1],[4,4,2,4,2,2,2,2,2,1,3],[5,4,4,4,2,6,6,6,3,3,3],[5,5,4,6,6,6,6,6,9,3,3],[5,5,4,6,6,6,6,6,9,9,9],[5,5,5,7,6,8,6,6,6,9,9],[7,7,7,7,8,8,6,9,9,9,9],[7,7,10,10,10,8,8,8,9,9,8],[7,7,7,7,10,8,10,8,9,9,8],[10,10,7,10,10,10,10,8,9,9,8],[10,10,10,10,10,10,8,8,8,8,8]],"solution":[7,9,4,10,2,0,6,1,5,8,3],"metrics":{"tier":1,"steps":13,"firstPlace":1,"minRegion":3,"maxRegion":18,"onesCount":0}},{"id":"L23","index":23,"size":12,"difficulty":"hard","regions":[[4,4,5,5,5,5,1,1,1,1,0,0],[4,5,5,1,1,1,1,3,3,3,3,0],[4,4,5,5,1,1,3,3,2,2,2,0],[4,4,4,5,5,1,3,3,3,3,3,3],[5,5,4,5,5,1,1,3,3,6,3,3],[9,5,5,5,5,7,1,1,1,6,6,8],[9,9,5,9,9,7,7,7,7,6,8,8],[11,9,9,9,9,7,7,8,8,8,8,8],[11,9,9,9,9,9,7,8,9,9,8,10],[11,9,11,11,9,9,9,9,9,11,8,10],[11,11,11,9,9,11,9,9,9,11,8,10],[11,11,11,11,11,11,11,11,11,11,8,10]],"solution":[10,3,8,6,2,4,9,5,7,1,11,0],"metrics":{"tier":1,"steps":17,"firstPlace":2,"minRegion":3,"maxRegion":27,"onesCount":0}},{"id":"L24","index":24,"size":12,"difficulty":"hard","regions":[[0,0,0,0,0,0,0,1,1,2,2,2],[0,1,1,1,1,1,1,1,1,4,2,2],[0,1,3,3,3,1,3,4,4,4,2,2],[0,1,1,3,3,3,3,3,4,4,4,2],[0,0,0,3,3,5,3,3,3,4,4,2],[8,0,0,5,3,5,5,3,3,4,2,2],[8,0,6,5,5,5,2,2,2,2,2,2],[8,6,6,8,5,5,2,7,7,7,2,2],[8,6,6,8,5,5,5,7,2,2,2,2],[8,8,8,8,5,5,9,7,2,2,2,2],[10,8,8,5,5,9,9,7,7,2,2,2],[10,10,11,11,11,7,7,7,7,7,7,2]],"solution":[1,8,11,7,10,5,2,9,3,6,0,4],"metrics":{"tier":1,"steps":17,"firstPlace":2,"minRegion":3,"maxRegion":32,"onesCount":0}},{"id":"L25","index":25,"size":13,"difficulty":"hard","regions":[[6,6,6,6,1,1,1,1,2,2,0,0,0],[6,6,6,6,6,1,2,2,2,2,2,2,3],[6,4,4,4,4,2,2,2,3,3,3,3,3],[6,6,8,8,4,4,4,4,5,5,5,5,3],[6,6,8,8,4,7,7,4,5,5,5,5,5],[6,8,8,8,7,7,5,5,5,10,10,5,5],[6,8,6,8,8,7,5,10,10,10,10,10,10],[6,6,6,8,7,7,7,10,10,10,10,10,10],[9,9,9,8,8,7,12,12,10,10,10,12,12],[9,11,9,9,7,7,12,12,12,12,10,12,12],[11,11,11,9,9,9,9,12,12,12,10,12,12],[11,11,11,11,9,9,12,12,12,12,12,12,12],[11,11,11,11,9,9,9,9,12,12,12,12,12]],"solution":[11,5,7,12,4,8,2,6,3,0,10,1,9],"metrics":{"tier":1,"steps":16,"firstPlace":1,"minRegion":3,"maxRegion":27,"onesCount":0}},{"id":"L26","index":26,"size":13,"difficulty":"hard","regions":[[0,0,2,2,2,2,2,1,1,1,3,3,3],[0,4,2,2,2,1,1,1,1,1,3,3,3],[4,4,2,4,2,2,1,1,1,3,3,3,5],[4,4,4,4,2,7,3,3,3,3,5,3,5],[4,4,4,4,2,7,7,7,3,3,5,5,5],[4,6,6,6,2,2,2,7,7,5,5,11,11],[4,4,4,6,6,2,2,2,7,5,5,5,11],[9,9,4,6,10,2,2,7,7,5,11,11,11],[8,9,4,6,10,2,2,7,11,5,11,11,11],[8,9,9,6,10,10,10,11,11,5,5,5,11],[8,9,6,6,10,12,10,12,11,11,5,5,11],[6,6,6,6,10,12,12,12,11,11,11,11,11],[6,6,6,6,10,12,12,12,11,11,11,11,11]],"solution":[1,9,5,11,3,10,4,8,0,2,6,12,7],"metrics":{"tier":1,"steps":18,"firstPlace":1,"minRegion":3,"maxRegion":26,"onesCount":0}}]}</script>
 
 <script>
 "use strict";
@@ -532,22 +557,148 @@ const RabbitArt = {
 /* ==========================================================================
  * 2. 파스텔 영역 색
  * ========================================================================== */
+/**
+ * 파스텔을 유지하되 "밝은 조"와 "짙은 조"를 섞어 명도 폭을 확보한 팔레트.
+ * 색상만으로 구분하면 색약 사용자가 인접 영역을 못 가르기 때문에,
+ * 명도 차이가 항상 보조 단서로 남도록 L(밝기) 값을 넓게 벌려 두었다.
+ */
 const PALETTE = [
-  '#F8CFCB', '#FBE0AE', '#FBF3B4', '#DCEFB5', '#B9E5D0',
-  '#BADFF0', '#C9CDF2', '#E6C9EE', '#F5CFE0', '#EBDAC1',
-  '#CFE8E3', '#F3D6BC', '#D8DCEC', '#CDE8C4', '#F1DBD2',
+  // 밝기 4단(사다리) x 색상 3가지.
+  // 색약이 있어도 "밝기"는 언제나 남는 단서라, 팔레트를 밝기 계단으로 짜고
+  // 같은 단 안에서는 적록색약이 보존하는 파랑–노랑 축으로 벌렸다.
+  // 이웃 영역은 되도록 다른 단에서 뽑히므로 어떤 시야에서도 층이 갈린다.
+  // 색상환을 골고루 도는 12색. 이웃끼리 헷갈릴 일이 없도록 색상(hue)을 최대한 벌리고,
+  // 밝기도 56~88 사이에 흩뿌려서 색약이 있어도 층이 남게 했다.
+  { hex: '#F7E07A', name: '노랑' },
+  { hex: '#C3E08A', name: '연두' },
+  { hex: '#A8D8F0', name: '하늘' },
+  { hex: '#F7BCC8', name: '분홍' },
+  { hex: '#C9B8E8', name: '라벤더' },
+  { hex: '#F3A95E', name: '주황' },
+  { hex: '#4FC2B4', name: '청록' },
+  { hex: '#6BBF74', name: '초록' },
+  { hex: '#D97BB4', name: '자주' },
+  { hex: '#6C9BDB', name: '파랑' },
+  { hex: '#BE8459', name: '갈색' },
+  { hex: '#8B78C6', name: '보라' },
 ];
-const REGION_NAMES = [
-  '분홍', '살구', '노랑', '연두', '민트', '하늘', '보라', '자주',
-  '장미', '모래', '세이지', '복숭아', '회청', '풀잎', '흙',
-];
+
+/* ---- 색 거리 계산 ----------------------------------------------------------
+ * 두 색이 "나란히 뒀을 때 구분되는가"를 판정한다.
+ * 정상 시야뿐 아니라 적록색약(2형/1형)·청황색약 시뮬레이션 결과까지 계산해서
+ * 그중 가장 가까워지는 경우를 그 쌍의 거리로 삼는다.
+ * 즉 어떤 시야에서든 구분되는 조합만 이웃으로 배정된다.
+ * -------------------------------------------------------------------------- */
+function hexToLinear(hex) {
+  const v = (i) => parseInt(hex.slice(i, i + 2), 16) / 255;
+  const lin = (x) => (x > 0.04045 ? Math.pow((x + 0.055) / 1.055, 2.4) : x / 12.92);
+  return [lin(v(1)), lin(v(3)), lin(v(5))];
+}
+function linearToLab([r, g, b]) {
+  const x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047;
+  const y = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 1.00000;
+  const z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
+  const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+  const fx = f(x), fy = f(y), fz = f(z);
+  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+}
+// Viénot–Brettel–Mollon 근사 (선형 RGB 공간에서 적용)
+const CVD_MATRICES = {
+  normal: null,
+  deuter: [[0.33066, 0.66934, 0], [0.33066, 0.66934, 0], [-0.02786, 0.02786, 1]],
+  protan: [[0.17056, 0.82944, 0], [0.17056, 0.82944, 0], [-0.00452, 0.00452, 1]],
+  tritan: [[1, 0, 0], [0, 0.43378, 0.56622], [0, 0.43378, 0.56622]],
+};
+function simulate(lin, m) {
+  if (!m) return lin;
+  return m.map((row) => row[0] * lin[0] + row[1] * lin[1] + row[2] * lin[2]);
+}
+const CVD_KINDS = Object.keys(CVD_MATRICES);
+/**
+ * 색 배정 기준에 넣는 시야.
+ * 적록색약(2형·1형)은 남성 약 8%로 흔해서 반드시 통과시킨다.
+ * 청황색약(tritan)은 파랑–노랑 축이 무너지는데, 그 축은 적록색약이 유일하게
+ * 보존하는 축이기도 하다. 파스텔 명도 범위 안에서 둘을 동시에 만족시킬 수는 없어
+ * 훨씬 흔한 적록 쪽을 택했다. (청황색약은 0.01% 수준이고, 영역 경계선이
+ * 색과 무관한 구조 단서로 남는다.)
+ */
+const GATED_KINDS = ['normal', 'deuter', 'protan'];
+// PALETTE_LABS[kind][i] = i번 색을 kind 시야로 봤을 때의 Lab
+const PALETTE_LABS = {};
+for (const kind of CVD_KINDS) {
+  PALETTE_LABS[kind] = PALETTE.map((p) => linearToLab(simulate(hexToLinear(p.hex), CVD_MATRICES[kind])));
+}
+const PALETTE_LAB = PALETTE_LABS.normal;   // 밝기 비교용
+
+function labDistIn(kind, a, b) {
+  const L = PALETTE_LABS[kind];
+  return Math.hypot(L[a][0] - L[b][0], L[a][1] - L[b][1], L[a][2] - L[b][2]);
+}
+/** 적록색약 포함, 최악의 경우 색 거리 */
+function labDist(a, b) {
+  let min = Infinity;
+  for (const kind of GATED_KINDS) min = Math.min(min, labDistIn(kind, a, b));
+  return min;
+}
+
+// 인접 영역이 "확실히 다르다"고 볼 수 있는 최소 색 거리 (색약 시야 포함).
+// tools/ 의 검증 스크립트가 실제 레벨 전부에서 이 값을 지키는지 확인한다.
+const SAFE_DE = 20;
+
+/**
+ * 그래프 컬러링: 맞닿은 영역끼리 비슷한 색이 배정되지 않도록 팔레트를 재배치한다.
+ * 차수가 큰(이웃이 많은) 영역부터 색을 정하고, 매번 "이미 색이 정해진 이웃들과의
+ * 최소 색 거리"가 가장 큰 후보를 고른다. 동점이면 명도 차가 큰 쪽을 택한다.
+ */
+function assignRegionColors(n, regions) {
+  const adj = Array.from({ length: n }, () => new Set());
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      const g = regions[r][c];
+      if (r + 1 < n && regions[r + 1][c] !== g) { adj[g].add(regions[r + 1][c]); adj[regions[r + 1][c]].add(g); }
+      if (c + 1 < n && regions[r][c + 1] !== g) { adj[g].add(regions[r][c + 1]); adj[regions[r][c + 1]].add(g); }
+    }
+  }
+  const order = [...Array(n).keys()].sort((a, b) => adj[b].size - adj[a].size);
+  const color = new Array(n).fill(-1);
+  const used = new Array(PALETTE.length).fill(0);
+  const preferUnused = n <= PALETTE.length - 2;   // 색이 넉넉할 때만 전부 다른 색으로
+
+  for (const g of order) {
+    const neighbors = [...adj[g]].filter((h) => color[h] >= 0).map((h) => color[h]);
+    const distOf = (p) => {
+      let d = Infinity;
+      for (const nc of neighbors) d = Math.min(d, labDist(p, nc));
+      return neighbors.length ? d : Infinity;
+    };
+    const dists = PALETTE.map((_, p) => distOf(p));
+
+    // 1) 먼저 "확실히 구분되는" 색만 남긴다. 이 문턱은 절대 양보하지 않는다.
+    //    (영역이 팔레트보다 많은 큰 보드에서는 통과하는 색이 없을 수 있는데,
+    //     그때는 가장 멀리 떨어진 색으로 차선책을 쓴다)
+    let pool = PALETTE.map((_, p) => p).filter((p) => dists[p] >= SAFE_DE);
+    if (!pool.length) {
+      const maxD = Math.max(...dists);
+      pool = PALETTE.map((_, p) => p).filter((p) => dists[p] === maxD);
+    }
+    // 2) 팔레트에 여유가 있으면(작은 보드) 안 쓴 색을 먼저 골라 전부 다른 색으로 칠한다.
+    //    영역 수가 팔레트에 육박하는 큰 보드에서는 색을 아끼는 것보다 "멀리 떨어뜨리는"
+    //    쪽이 훨씬 중요하므로, 거리를 우선하고 재사용을 허용한다.
+    pool.sort(preferUnused
+      ? (a, b) => (used[a] - used[b]) || (dists[b] - dists[a])
+      : (a, b) => (dists[b] - dists[a]) || (used[a] - used[b]));
+    color[g] = pool[0];
+    used[pool[0]]++;
+  }
+  return color;
+}
 
 /* ==========================================================================
  * 3. 저장소
  * ========================================================================== */
 const STORE_KEY = 'tokkine-jari/v1';
 const Store = {
-  data: { cleared: {}, lastLevel: null, inProgress: null },
+  data: { cleared: {}, lastLevel: null, inProgress: null, tutorialDone: false },
   load() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
@@ -559,7 +710,7 @@ const Store = {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(this.data)); } catch (e) {}
   },
   clearAll() {
-    this.data = { cleared: {}, lastLevel: null, inProgress: null };
+    this.data = { cleared: {}, lastLevel: null, inProgress: null, tutorialDone: false };
     this.save();
   },
 };
@@ -591,10 +742,16 @@ function buildGroups(n, regions) {
   return groups;
 }
 
+/** 현재 레벨에서 그 영역에 실제로 칠해진 색의 이름 (힌트 문구에 쓰인다) */
+function regionName(i) {
+  const p = G.colors && PALETTE[G.colors[i]];
+  return p ? p.name : `${i + 1}번`;
+}
+
 function groupLabel(g) {
   if (g.kind === 'row') return `${g.index + 1}번째 가로줄`;
   if (g.kind === 'col') return `${g.index + 1}번째 세로줄`;
-  return `${REGION_NAMES[g.index] || (g.index + 1)} 자리`;
+  return `${regionName(g.index)} 자리`;
 }
 
 function combinations(arr, k) {
@@ -703,7 +860,7 @@ function runLogic(n, regions, seeds, onStep) {
           if (hits.length) {
             emit({
               type: 'block', r: hits[0][0], c: hits[0][1], group: g, highlight: cs, extra: hits,
-              text: `<b>${groupLabel(g)}</b>의 토끼는 <b>${REGION_NAMES[gi] || gi + 1} 자리</b> 안에 있어야 해요. 그래서 그 자리의 다른 칸은 비워요.`,
+              text: `<b>${groupLabel(g)}</b>의 토끼는 <b>${regionName(gi)} 자리</b> 안에 있어야 해요. 그래서 그 자리의 다른 칸은 비워요.`,
             });
           }
         }
@@ -747,7 +904,7 @@ function kSetRule(n, regions, state, groups, cands, done, emit) {
             }
           }
           if (!hits.length) continue;
-          const names = [...set].map((i) => REGION_NAMES[i] || i + 1).join('·');
+          const names = [...set].map((i) => regionName(i)).join('·');
           const lineNums = combo.map((g) => g.index + 1).join('·');
           emit({
             type: 'block', r: hits[0][0], c: hits[0][1], highlight: combo.flatMap((g) => cands(g)), extra: hits,
@@ -768,7 +925,7 @@ function kSetRule(n, regions, state, groups, cands, done, emit) {
             for (const [r, c] of cands(ln)) if (!combo.some((g) => g.index === regions[r][c])) hits.push([r, c]);
           }
           if (!hits.length) continue;
-          const names = combo.map((g) => REGION_NAMES[g.index] || g.index + 1).join('·');
+          const names = combo.map((g) => regionName(g.index)).join('·');
           const lineNums = [...set].map((i) => i + 1).join('·');
           emit({
             type: 'block', r: hits[0][0], c: hits[0][1], highlight: combo.flatMap((g) => cands(g)), extra: hits,
@@ -816,6 +973,54 @@ function trialRule(n, regions, state, groups, cands, done, emit) {
 }
 
 /* ==========================================================================
+ * 4-b. 튜토리얼 — 고정 5x5 예제
+ * --------------------------------------------------------------------------
+ * 규칙을 한 번에 하나씩, 직접 놓아보면서 배운다.
+ * 이 예제는 해가 유일하고 아래 5수가 모두 "논리적으로 강제되는 수"다.
+ * (tools/build.mjs 가 빌드할 때마다 유일성과 각 수의 강제성을 검증한다)
+ *
+ *   행\열  0  1  2  3  4
+ *     0    A  B  B  B  C      A = 1칸짜리 자리
+ *     1    D  B  B  C  C
+ *     2    D  B  E  C  C
+ *     3    D  D  E  E  E
+ *     4    D  E  E  E  E
+ * ========================================================================== */
+const TUTORIAL = {
+  size: 5,
+  regions: [
+    [0, 1, 1, 1, 2],
+    [3, 1, 1, 2, 2],
+    [3, 1, 4, 2, 2],
+    [3, 3, 4, 4, 4],
+    [3, 4, 4, 4, 4],
+  ],
+  solution: [0, 2, 4, 1, 3],
+  steps: [
+    {
+      r: 0, c: 0, lesson: '1칸짜리 자리엔 무조건 토끼',
+      body: '반짝이는 자리는 <b>칸이 하나뿐</b>이에요. 그 자리의 토끼는 여기 말고 앉을 데가 없죠.<br>칸을 <b>두 번 탭</b>해서 토끼를 놓아 주세요. (한 번 탭하면 ✕ 메모예요)',
+    },
+    {
+      r: 3, c: 1, lesson: '같은 줄엔 한 마리씩',
+      body: '이 자리는 <b>맨 왼쪽 세로줄</b>에 걸쳐 있는데, 거긴 이미 토끼가 앉았어요.<br>세로줄마다 토끼는 한 마리뿐이니, 남는 칸은 반짝이는 여기 하나예요.',
+    },
+    {
+      r: 1, c: 2, lesson: '이번엔 직접 찾아보기',
+      body: '맨 위 가로줄엔 이미 토끼가 있고, 왼쪽 두 세로줄도 찼어요.<br>그럼 이 자리의 토끼가 앉을 수 있는 칸은 하나뿐이겠죠?',
+    },
+    {
+      r: 2, c: 4, lesson: '대각선으로도 붙을 수 없어요',
+      body: '이 자리엔 빈 칸이 둘 남았지만, 왼쪽 칸은 방금 놓은 토끼와 <b>대각선으로 맞닿아</b> 있어요.<br>토끼들은 모서리끼리도 붙어 앉기 싫어해요. 그러니 답은 반짝이는 칸이에요.',
+    },
+    {
+      r: 4, c: 3, lesson: '마지막 한 마리',
+      body: '남은 자리는 하나! 여기에 토끼를 놓으면 완성이에요 🌿',
+    },
+  ],
+};
+
+/* ==========================================================================
  * 5. 게임 상태
  * ========================================================================== */
 const CELL_BASE = 56;          // 논리 픽셀 기준 한 칸 크기 (화면에는 scale 로 맞춤)
@@ -834,6 +1039,7 @@ const G = {
   elapsed: 0, tickAt: 0, timer: null,
   finished: false,
   hintCells: [],
+  tutorial: null,      // 튜토리얼 진행 중이면 { step }
 };
 
 const $ = (id) => document.getElementById(id);
@@ -908,8 +1114,10 @@ function levelIndexById(id) { return PUZZLES.levels.findIndex((l) => l.id === id
 function startLevel(index, restore) {
   const lv = PUZZLES.levels[index];
   if (!lv) return;
+  if (G.tutorial) endTutorial();
   G.level = lv; G.index = index;
   G.n = lv.size; G.regions = lv.regions; G.solution = lv.solution;
+  G.colors = assignRegionColors(lv.size, lv.regions);   // 맞닿은 영역끼리 색이 겹치지 않게
   G.grid = restore ? restore.grid.map((r) => r.slice())
                    : Array.from({ length: G.n }, () => new Array(G.n).fill(0));
   G.hearts = restore ? restore.hearts : MAX_HEARTS;
@@ -928,8 +1136,12 @@ function startLevel(index, restore) {
   requestAnimationFrame(fitBoard);
 }
 
+// 영역 경계선 두께. 색이 확실히 갈리므로 선은 형태만 잡아주면 된다.
+function edgeWidth(n) { return n >= 12 ? '1.5px' : '2px'; }
+
 function buildBoard() {
   const n = G.n;
+  const EDGE_W = edgeWidth(n);
   board.style.gridTemplateColumns = `repeat(${n}, ${CELL_BASE}px)`;
   board.style.gridTemplateRows = `repeat(${n}, ${CELL_BASE}px)`;
   board.innerHTML = '';
@@ -940,14 +1152,14 @@ function buildBoard() {
       cell.className = 'cell';
       cell.dataset.r = r; cell.dataset.c = c;
       const gid = G.regions[r][c];
-      cell.style.background = PALETTE[gid % PALETTE.length];
+      cell.style.background = PALETTE[G.colors[gid]].hex;
       // 영역 경계는 굵게, 안쪽 격자는 옅게
       const edge = (rr, cc) => (rr < 0 || cc < 0 || rr >= n || cc >= n) || G.regions[rr][cc] !== gid;
-      const strong = 'rgba(122,97,83,.85)';
-      if (edge(r - 1, c)) { cell.style.borderTopWidth = '2.5px'; cell.style.borderTopColor = strong; }
-      if (edge(r + 1, c)) { cell.style.borderBottomWidth = '2.5px'; cell.style.borderBottomColor = strong; }
-      if (edge(r, c - 1)) { cell.style.borderLeftWidth = '2.5px'; cell.style.borderLeftColor = strong; }
-      if (edge(r, c + 1)) { cell.style.borderRightWidth = '2.5px'; cell.style.borderRightColor = strong; }
+      const strong = 'rgba(85,62,48,.8)';
+      if (edge(r - 1, c)) { cell.style.borderTopWidth = EDGE_W; cell.style.borderTopColor = strong; }
+      if (edge(r + 1, c)) { cell.style.borderBottomWidth = EDGE_W; cell.style.borderBottomColor = strong; }
+      if (edge(r, c - 1)) { cell.style.borderLeftWidth = EDGE_W; cell.style.borderLeftColor = strong; }
+      if (edge(r, c + 1)) { cell.style.borderRightWidth = EDGE_W; cell.style.borderRightColor = strong; }
       frag.appendChild(cell);
     }
   }
@@ -1019,10 +1231,105 @@ function findConflicts() {
 }
 
 /* ==========================================================================
+ * 9-b. 튜토리얼 진행
+ * ========================================================================== */
+function startTutorial() {
+  G.tutorial = { step: 0 };
+  G.level = { id: '__tutorial__', size: TUTORIAL.size, difficulty: 'easy' };
+  G.index = -1;
+  G.n = TUTORIAL.size; G.regions = TUTORIAL.regions; G.solution = TUTORIAL.solution;
+  G.colors = assignRegionColors(TUTORIAL.size, TUTORIAL.regions);
+  G.grid = Array.from({ length: G.n }, () => new Array(G.n).fill(0));
+  G.hearts = MAX_HEARTS; G.history = []; G.finished = false; G.elapsed = 0;
+
+  stopTimer();
+  hideHint();
+  document.body.classList.add('tutorial-mode');
+  $('gmName').textContent = '토끼네 자리 배우기';
+  buildBoard();
+  renderAll();
+  show('screen-game');
+  requestAnimationFrame(() => { fitBoard(); showTutorialStep(); });
+}
+
+function showTutorialStep() {
+  const t = G.tutorial;
+  const step = TUTORIAL.steps[t.step];
+  $('gmSub').textContent = `${t.step + 1} / ${TUTORIAL.steps.length} · ${step.lesson}`;
+  clearHintMarks();
+  cellAt(step.r, step.c).classList.add('hint');
+  G.hintCells = [[step.r, step.c]];
+  showHint(`<span class="coach-lesson">${step.lesson}</span>${step.body}`);
+  $('hintBar').classList.add('coach');
+}
+
+/** 튜토리얼에서의 탭. 목표 칸만 조작을 허용하고, 토끼가 놓이면 다음 단계로. */
+function tutorialTap(r, c) {
+  const step = TUTORIAL.steps[G.tutorial.step];
+  if (r !== step.r || c !== step.c) {
+    toast('반짝이는 칸을 탭해 주세요 🐾');
+    const el = cellAt(r, c);
+    el.classList.add('shake');
+    setTimeout(() => el.classList.remove('shake'), 400);
+    return;
+  }
+  G.grid[r][c] = (G.grid[r][c] + 1) % 3;
+  renderAll();
+  if (G.grid[r][c] !== 2) return;                    // 아직 ✕ 또는 빈칸 — 계속 탭
+
+  cellAt(r, c).classList.remove('hint');
+  const last = G.tutorial.step === TUTORIAL.steps.length - 1;
+  if (!last) {
+    G.tutorial.step++;
+    $('hintBar').innerHTML = '<span class="coach-lesson">좋아요!</span>그렇게 놓으면 돼요.';
+    setTimeout(showTutorialStep, 850);
+    return;
+  }
+
+  // 완료
+  G.finished = true;
+  clearHintMarks();
+  for (const [rr, cc] of rabbitList()) {
+    const el = cellAt(rr, cc);
+    el.classList.add('win');
+    el.querySelector('.glyph').innerHTML = RabbitArt.html('rabbit', 'happy');
+  }
+  Store.data.tutorialDone = true;
+  Store.save();
+  fireConfetti();
+  setTimeout(() => {
+    $('clearArt').innerHTML = RabbitArt.html('rabbit', 'happy');
+    $('clearTitle').textContent = '다 배웠어요!';
+    $('clearMsg').innerHTML = '이제 진짜 퍼즐을 풀어볼까요?<br>막히면 언제든 <b>힌트</b>를 누르세요.';
+    $('clearStats').style.display = 'none';
+    $('clearToLevels').textContent = '레벨 목록';
+    $('clearNext').textContent = '레벨 1 시작';
+    openModal('modalClear');
+  }, 900);
+}
+
+function endTutorial() {
+  G.tutorial = null;
+  document.body.classList.remove('tutorial-mode');
+  $('hintBar').classList.remove('coach');
+  $('clearStats').style.display = '';
+  hideHint();
+}
+
+function skipTutorial() {
+  Store.data.tutorialDone = true;
+  Store.save();
+  endTutorial();
+  refreshTitle();
+  show('screen-title');
+}
+
+/* ==========================================================================
  * 10. 조작 — 탭 1회 X, 2회 토끼, 3회 빈칸
  * ========================================================================== */
 function tapCell(r, c) {
   if (G.finished) return;
+  if (G.tutorial) { tutorialTap(r, c); return; }
   const before = G.grid[r][c];
   const next = (before + 1) % 3;              // 0 → 1(X) → 2(토끼) → 0
   G.history.push({ r, c, from: before });
@@ -1351,6 +1658,8 @@ $('lvBack').onclick = () => show('screen-title');
 $('btnHowTo').onclick = () => openModal('modalRules');
 $('btnRules').onclick = () => openModal('modalRules');
 $('rulesClose').onclick = () => closeModal('modalRules');
+$('rulesTutorial').onclick = () => { closeModal('modalRules'); stopTimer(); startTutorial(); };
+$('btnSkipTutorial').onclick = skipTutorial;
 
 $('btnContinue').onclick = () => {
   const ip = Store.data.inProgress;
@@ -1371,7 +1680,10 @@ $('btnReset').onclick = () => confirmBox('진행 초기화', '클리어 기록�
   Store.clearAll(); refreshTitle(); toast('처음부터 다시 시작해요 🌱');
 });
 
-$('gmBack').onclick = () => { saveProgress(); stopTimer(); renderLevels(); show('screen-levels'); };
+$('gmBack').onclick = () => {
+  if (G.tutorial) { skipTutorial(); return; }
+  saveProgress(); stopTimer(); renderLevels(); show('screen-levels');
+};
 $('btnHint').onclick = giveHint;
 $('btnUndo').onclick = undo;
 $('btnClear').onclick = resetBoard;
@@ -1380,11 +1692,16 @@ $('btnZoomOut').onclick = () => zoomBy(1 / 1.25);
 
 $('clearNext').onclick = () => {
   closeModal('modalClear');
+  if (G.tutorial) { endTutorial(); startLevel(0); return; }   // 튜토리얼 -> 레벨 1
   const next = G.index + 1;
   if (next < PUZZLES.levels.length) startLevel(next);
   else { renderLevels(); show('screen-levels'); }
 };
-$('clearToLevels').onclick = () => { closeModal('modalClear'); renderLevels(); show('screen-levels'); };
+$('clearToLevels').onclick = () => {
+  closeModal('modalClear');
+  if (G.tutorial) endTutorial();
+  renderLevels(); show('screen-levels');
+};
 $('overRetry').onclick = () => { closeModal('modalOver'); startLevel(G.index); };
 $('overToLevels').onclick = () => { closeModal('modalOver'); renderLevels(); show('screen-levels'); };
 
@@ -1461,8 +1778,9 @@ async function loadPuzzles() {
     return;
   }
   refreshTitle();
-  show('screen-title');
   $('loading').style.display = 'none';
+  if (Store.data.tutorialDone) show('screen-title');
+  else startTutorial();                     // 첫 실행: 바로 배우기부터
 })();
 </script>
 </body>
