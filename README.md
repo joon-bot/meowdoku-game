@@ -11,7 +11,37 @@
   ```bash
   python3 -m http.server 8000     # http://localhost:8000
   ```
-- GitHub Pages 등 정적 호스팅에 그대로 올려도 된다.
+
+## GitHub Pages 배포
+
+배포 주소: **https://joon-bot.github.io/meowdoku-game/**
+
+`.github/workflows/deploy-pages.yml` 이 `main` 또는 작업 브랜치에 push 될 때마다
+퍼즐을 검증하고 `index.html` + `puzzles.json` 을 게시한다.
+
+### 최초 1회는 수동 설정이 필요하다
+
+워크플로의 `GITHUB_TOKEN` 에는 **Pages 사이트를 생성할 권한이 없다**
+(저장소 관리자 권한이 필요하다). 그래서 처음 한 번은 사람이 켜줘야 한다.
+
+1. 레포 **Settings → Pages**
+2. **Source** 를 `GitHub Actions` 로 선택
+
+> ⚠️ **이 레포는 비공개(private)다.** 비공개 레포의 Pages 는 **GitHub Pro 이상**에서만 동작한다.
+> 무료 플랜이라면 레포를 공개로 바꾸거나 플랜을 올려야 한다.
+>
+> 그리고 어느 쪽이든 **게시된 페이지 자체는 누구나 접근 가능**하다.
+> (접근 제한이 걸린 Pages 는 Enterprise 기능이다.) 레포가 비공개면 소스만 가려질 뿐,
+> 게임 URL 은 링크를 아는 사람 누구에게나 열린다.
+
+### Actions 없이 배포하는 방법
+
+워크플로를 쓰지 않고 브랜치에서 바로 게시해도 된다. 게임이 레포 루트에 있고
+`.nojekyll` 도 있어서 추가 설정이 필요 없다.
+
+- Settings → Pages → Source: **Deploy from a branch** → 브랜치 선택 → 폴더 `/ (root)`
+
+이 경우 배포 전 퍼즐 검증은 돌지 않는다.
 
 ## 파일 구성
 
