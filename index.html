@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#FDF4EA">
+<meta name="theme-color" content="#F6F2E6">
 <meta name="description" content="토끼네 자리 — 각 자리·가로줄·세로줄에 토끼를 한 마리씩 놓는 아늑한 논리 퍼즐">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -12,7 +12,7 @@
 <style>
 /* ============================================================ 기본 토큰 */
 :root{
-  --cream:#F5EDE4;
+  --cream:#F4F0E4;
   --cream-2:#EFE3D6;
   --ink:#5A4638;
   --ink-soft:#8B7565;
@@ -38,9 +38,11 @@ html,body{height:100%;margin:0;}
 body{
   font-family:"Pretendard","Apple SD Gothic Neo","Noto Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   color:var(--ink);
+  /* 아주 연한 풀밭 기운이 도는 웜 크림 */
   background:
-    radial-gradient(1100px 600px at 15% -10%, #FBF4EA 0%, rgba(251,244,234,0) 62%),
-    linear-gradient(180deg,#F7F0E7 0%,#F2E8DC 100%);
+    radial-gradient(1000px 560px at 18% -12%, #FAF6EA 0%, rgba(250,246,234,0) 60%),
+    radial-gradient(900px 520px at 92% 8%, #F1F3E4 0%, rgba(241,243,228,0) 55%),
+    linear-gradient(180deg,#F6F2E6 0%,#EFEADB 100%);
   background-attachment:fixed;
   overscroll-behavior:none;
   user-select:none;-webkit-user-select:none;
@@ -156,11 +158,15 @@ h1.game-title{
 }
 .counter svg{width:21px;height:21px;}
 .counter .done{color:var(--mint);}
-.lives{display:flex;gap:3px;margin-left:auto;}
 .lives svg{width:22px;height:22px;transition:transform .2s ease,opacity .2s ease;}
 .lives .gone{opacity:.32;transform:scale(.86);}
 .lives .pop{animation:heartPop .5s ease;}
-.timer{font-size:12.5px;color:var(--ink-soft);font-weight:700;font-variant-numeric:tabular-nums;}
+.score{
+  display:flex;align-items:baseline;gap:4px;margin-left:auto;
+  font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);
+}
+.score small{font-size:10.5px;font-weight:700;color:var(--ink-faint);}
+.lives{display:flex;gap:3px;}
 
 /* 규칙 알약 칩 */
 .rule-chips{display:flex;gap:5px;padding:6px 2px 2px;flex:0 0 auto;}
@@ -190,8 +196,8 @@ h1.game-title{
 .fab svg{width:27px;height:27px;}
 .fab-hint{color:#B8860B;background:linear-gradient(180deg,#FFF6DF,#FCE9B8);border-color:rgba(230,190,120,.6);}
 .fab-boost{background:linear-gradient(180deg,#F3EDFF,#E2D8FA);border-color:rgba(160,140,220,.5);}
-.fab-face{width:30px;height:30px;display:grid;place-items:center;}
-.fab-face svg{width:100%;height:100%;}
+.fab-paw{width:30px;height:30px;display:grid;place-items:center;}
+.fab-paw svg{width:100%;height:100%;}
 .fab-count{
   position:absolute;top:-3px;right:-3px;min-width:22px;height:22px;padding:0 5px;
   border-radius:999px;background:var(--accent-deep);color:#fff;
@@ -500,14 +506,16 @@ body.tutorial-mode #hintBar{display:none;}
 }
 .toast.on{opacity:1;}
 
-/* 세로가 짧은 화면: 규칙 칩은 접고(설정 > 규칙 보기에 그대로 있다) 보드에 자리를 준다 */
+/* 세로가 짧은 화면: 규칙 칩은 항상 보여 주되 잘게 줄여서 보드에 자리를 낸다 */
 @media (max-height:720px){
-  .rule-chips{display:none;}
+  .rule-chips{padding:4px 2px 0;gap:4px;}
+  .chip{font-size:9.5px;padding:4px 3px;gap:3px;}
+  .chip i{width:5px;height:5px;}
   .hud{padding-top:2px;}
   .hud-2{padding:5px 4px 0;}
   .fab{width:54px;height:54px;}
   .fab svg{width:24px;height:24px;}
-  .fab-face{width:26px;height:26px;}
+  .fab-paw{width:26px;height:26px;}
   .fab-row{gap:26px;padding:4px 0 calc(var(--safe-bottom) + 4px);}
   .fab-label{bottom:-15px;font-size:10px;}
   #hintBar.show{max-height:110px;}
@@ -523,11 +531,12 @@ body.tutorial-mode #hintBar{display:none;}
   .sky-deco{display:none;}
 }
 
-@media (max-width:360px){
-  .toolbar{gap:6px;}
-  .tool{font-size:10px;padding:10px 3px 8px;border-radius:15px;}
-  .tool svg{width:19px;height:19px;}
-  .zoomgroup{flex:0 0 38px;}
+/* 아주 좁은 화면 — 규칙 문구는 그대로 두고 칩 안에서 줄바꿈시킨다 */
+@media (max-width:380px){
+  .chip{white-space:normal;line-height:1.25;text-align:center;font-size:9.5px;padding:4px 5px;}
+  .rule-chips{gap:4px;}
+  .hud-2{gap:6px;}
+  .score{font-size:14px;}
   #screen-game{padding-left:8px;padding-right:8px;}
 }
 @media (max-height:640px){
@@ -590,14 +599,14 @@ body.tutorial-mode #hintBar{display:none;}
 
     <div class="hud-2" id="hudStats">
       <span class="counter" id="gmCount"></span>
+      <span class="score" id="gmScore"></span>
       <span class="lives" id="gmLives"></span>
-      <span class="timer" id="gmTimer">00:00</span>
     </div>
 
     <div class="rule-chips" id="ruleChips">
-      <span class="chip"><i></i>한 자리에 한 마리</span>
-      <span class="chip"><i></i>한 줄에 한 마리</span>
-      <span class="chip"><i></i>대각선 금지</span>
+      <span class="chip"><i></i>색깔 자리마다 토끼 1마리</span>
+      <span class="chip"><i></i>행·열마다 1마리</span>
+      <span class="chip"><i></i>토끼끼리 붙기 금지</span>
     </div>
 
     <div id="coachLine"></div>
@@ -626,7 +635,7 @@ body.tutorial-mode #hintBar{display:none;}
         <span class="fab-label">힌트</span>
       </button>
       <button class="fab fab-boost" id="btnBoost">
-        <span class="fab-face"></span>
+        <span class="fab-paw"></span>
         <span class="fab-count" id="boostCount">2</span>
         <span class="fab-label">자동배치</span>
       </button>
@@ -643,7 +652,7 @@ body.tutorial-mode #hintBar{display:none;}
     <div class="score-box" id="clearStats">
       <div class="score-main"><span>점수</span><b id="clearScore">0</b></div>
       <div class="score-sub">
-        <span>시간 <b id="clearTime">00:00</b></span>
+        <span id="clearDetail"></span>
         <span id="clearBest"></span>
       </div>
     </div>
@@ -723,7 +732,7 @@ body.tutorial-mode #hintBar{display:none;}
 <div id="loading"><div class="box"><div id="loadArt"></div><p id="loadMsg">토끼들을 부르는 중…</p></div></div>
 
 <!-- 퍼즐 데이터 내장 사본 (puzzles.json 을 불러오지 못하는 환경용 대비책) -->
-<script id="puzzles-embedded" type="application/json">{"version":2,"title":"토끼네 자리","rules":{"perRow":1,"perCol":1,"perRegion":1,"diagonalAdjacencyForbidden":true},"levels":[{"id":"L01","index":1,"size":5,"difficulty":"easy","regions":[[3,1,1,1,0],[3,1,1,2,2],[3,3,3,2,2],[3,3,3,3,2],[4,4,4,4,4]],"solution":[4,1,3,0,2],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":9,"giantShare":0.36,"onesCount":1,"miniCount":1}},{"id":"L02","index":2,"size":5,"difficulty":"easy","regions":[[0,0,0,0,0],[0,1,1,1,1],[0,4,2,1,1],[3,4,2,1,1],[4,4,4,4,4]],"solution":[1,4,2,0,3],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":8,"giantShare":0.32,"onesCount":1,"miniCount":2}},{"id":"L03","index":3,"size":5,"difficulty":"easy","regions":[[3,3,0,0,2],[3,1,2,0,2],[3,2,2,2,2],[3,3,3,3,2],[3,4,4,2,2]],"solution":[3,1,4,0,2],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":10,"giantShare":0.4,"onesCount":1,"miniCount":2}},{"id":"L04","index":4,"size":5,"difficulty":"normal","regions":[[1,0,0,0,0],[1,0,0,0,0],[3,0,0,2,2],[3,3,2,2,2],[3,3,3,2,4]],"solution":[2,0,3,1,4],"metrics":{"tier":1,"steps":6,"firstPlace":0,"depth":9,"minRegion":1,"maxRegion":10,"giantShare":0.4,"onesCount":1,"miniCount":2}},{"id":"L05","index":5,"size":5,"difficulty":"normal","regions":[[0,0,0,1,1],[0,0,1,1,2],[0,0,1,1,2],[0,3,3,1,1],[3,3,3,4,4]],"solution":[0,2,4,1,3],"metrics":{"tier":1,"steps":6,"firstPlace":1,"depth":10,"minRegion":2,"maxRegion":8,"giantShare":0.32,"onesCount":0,"miniCount":2}},{"id":"L06","index":6,"size":6,"difficulty":"easy","regions":[[1,1,0,0,0,0],[1,2,0,0,5,0],[1,2,0,2,5,5],[1,2,2,2,5,3],[1,4,5,2,5,5],[5,5,5,5,5,5]],"solution":[2,0,3,5,1,4],"metrics":{"tier":0,"steps":6,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":13,"giantShare":0.361,"onesCount":2,"miniCount":2}},{"id":"L07","index":7,"size":6,"difficulty":"easy","regions":[[0,0,1,1,1,1],[0,2,2,1,1,1],[0,2,2,1,1,1],[0,2,1,1,3,1],[4,2,5,1,3,3],[5,5,5,5,3,3]],"solution":[1,5,2,4,0,3],"metrics":{"tier":0,"steps":6,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":14,"giantShare":0.389,"onesCount":1,"miniCount":1}},{"id":"L08","index":8,"size":6,"difficulty":"normal","regions":[[1,0,0,0,0,0],[1,0,0,0,0,0],[5,0,3,0,2,4],[5,5,3,0,0,4],[5,5,5,5,4,4],[5,5,5,4,4,4]],"solution":[3,0,4,2,5,1],"metrics":{"tier":1,"steps":7,"firstPlace":0,"depth":9,"minRegion":1,"maxRegion":14,"giantShare":0.389,"onesCount":1,"miniCount":3}},{"id":"L09","index":9,"size":7,"difficulty":"normal","regions":[[1,0,0,0,0,2,2],[1,5,5,0,2,2,2],[1,5,5,0,5,2,5],[3,3,5,5,5,2,5],[3,6,5,4,5,5,5],[6,6,5,4,5,5,5],[6,6,6,4,4,4,5]],"solution":[4,0,5,1,3,6,2],"metrics":{"tier":1,"steps":8,"firstPlace":1,"depth":10,"minRegion":3,"maxRegion":19,"giantShare":0.388,"onesCount":0,"miniCount":0}},{"id":"L10","index":10,"size":7,"difficulty":"normal","regions":[[1,1,1,2,0,0,0],[1,1,1,2,2,0,0],[1,1,1,2,2,2,0],[1,2,2,2,2,3,5],[1,4,2,2,2,2,5],[1,4,2,2,2,5,5],[6,6,6,6,6,6,5]],"solution":[4,0,3,5,1,6,2],"metrics":{"tier":1,"steps":10,"firstPlace":0,"depth":11,"minRegion":1,"maxRegion":17,"giantShare":0.347,"onesCount":1,"miniCount":2}},{"id":"L11","index":11,"size":7,"difficulty":"normal","regions":[[2,2,2,2,2,2,0],[2,2,1,1,1,3,3],[2,6,1,6,3,3,3],[2,6,4,6,3,3,3],[2,6,4,6,3,3,3],[6,6,6,6,6,5,5],[6,6,6,6,6,6,6]],"solution":[6,3,0,4,2,5,1],"metrics":{"tier":1,"steps":10,"firstPlace":0,"depth":11,"minRegion":1,"maxRegion":18,"giantShare":0.367,"onesCount":1,"miniCount":3}},{"id":"L12","index":12,"size":8,"difficulty":"normal","regions":[[3,3,0,0,0,2,2,2],[3,3,0,1,1,1,1,2],[3,3,1,1,1,2,2,2],[4,3,3,3,1,1,2,2],[4,4,3,5,5,5,5,3],[4,4,3,3,5,3,3,3],[6,4,3,3,3,3,3,3],[6,6,6,3,3,7,7,3]],"solution":[2,5,7,3,1,4,0,6],"metrics":{"tier":1,"steps":10,"firstPlace":1,"depth":11,"minRegion":2,"maxRegion":25,"giantShare":0.391,"onesCount":0,"miniCount":1}},{"id":"L13","index":13,"size":8,"difficulty":"normal","regions":[[0,0,0,0,0,0,0,0],[0,0,0,1,1,3,2,2],[0,0,0,0,3,3,3,2],[0,0,0,0,3,5,5,5],[0,0,4,4,4,5,5,5],[0,0,0,4,5,5,7,7],[0,6,6,6,5,7,7,7],[6,6,6,6,7,7,7,7]],"solution":[0,3,7,4,2,5,1,6],"metrics":{"tier":1,"steps":10,"firstPlace":2,"depth":12,"minRegion":2,"maxRegion":25,"giantShare":0.391,"onesCount":0,"miniCount":1}},{"id":"L14","index":14,"size":8,"difficulty":"normal","regions":[[4,4,0,1,1,1,1,1],[4,2,0,1,1,1,3,3],[4,2,2,6,1,3,3,3],[4,2,2,6,6,6,6,3],[4,4,2,6,6,6,6,6],[4,4,2,6,5,6,6,6],[5,5,5,5,5,6,6,6],[5,5,7,7,6,6,6,6]],"solution":[2,5,1,7,0,4,6,3],"metrics":{"tier":1,"steps":12,"firstPlace":1,"depth":13,"minRegion":2,"maxRegion":21,"giantShare":0.328,"onesCount":0,"miniCount":2}},{"id":"L15","index":15,"size":9,"difficulty":"normal","regions":[[3,3,4,4,4,4,4,0,0],[3,1,4,4,0,0,0,0,0],[3,7,7,4,4,4,4,2,4],[3,7,7,7,4,4,4,4,4],[7,7,7,7,4,6,6,6,4],[7,7,5,7,4,6,6,6,6],[7,7,7,7,7,7,6,6,6],[7,7,7,7,8,8,8,6,6],[7,7,7,7,8,8,6,6,6]],"solution":[8,1,7,0,4,2,6,3,5],"metrics":{"tier":1,"steps":10,"firstPlace":0,"depth":9,"minRegion":1,"maxRegion":26,"giantShare":0.321,"onesCount":3,"miniCount":3}},{"id":"L16","index":16,"size":9,"difficulty":"normal","regions":[[5,5,0,0,0,0,0,2,2],[5,5,1,0,0,0,0,2,2],[5,5,8,3,0,3,3,2,2],[5,5,8,3,3,3,3,2,2],[5,8,8,8,8,7,7,2,4],[5,8,8,8,8,7,7,6,6],[8,8,8,8,7,7,6,6,6],[8,8,8,8,7,7,8,6,6],[8,8,8,8,8,8,8,6,6]],"solution":[5,2,7,3,8,0,6,4,1],"metrics":{"tier":1,"steps":10,"firstPlace":0,"depth":9,"minRegion":1,"maxRegion":26,"giantShare":0.321,"onesCount":2,"miniCount":2}},{"id":"L17","index":17,"size":9,"difficulty":"normal","regions":[[0,0,0,2,3,3,3,1,1],[2,2,2,2,3,5,5,5,1],[2,4,3,3,3,5,5,5,5],[2,4,4,4,3,3,5,8,5],[4,4,7,4,6,5,5,8,5],[7,7,7,4,6,5,5,8,5],[5,7,7,6,6,5,8,8,5],[5,7,5,6,5,5,8,8,5],[5,5,5,5,5,8,8,8,8]],"solution":[2,8,0,5,3,6,4,1,7],"metrics":{"tier":1,"steps":12,"firstPlace":1,"depth":12,"minRegion":3,"maxRegion":28,"giantShare":0.346,"onesCount":0,"miniCount":0}},{"id":"L18","index":18,"size":10,"difficulty":"normal","regions":[[4,4,4,0,0,0,1,1,1,1],[4,4,4,4,0,1,1,1,3,3],[4,2,2,2,2,3,3,3,3,3],[4,4,4,4,2,2,3,5,5,3],[4,4,4,4,4,6,6,5,3,3],[4,4,4,6,4,6,5,5,3,3],[4,4,6,6,6,6,5,5,7,3],[4,4,4,4,4,6,5,5,7,7],[4,4,8,8,6,6,7,7,7,7],[4,4,6,6,6,6,6,7,9,7]],"solution":[3,5,1,6,0,7,4,9,2,8],"metrics":{"tier":1,"steps":13,"firstPlace":0,"depth":11,"minRegion":1,"maxRegion":32,"giantShare":0.32,"onesCount":1,"miniCount":2}},{"id":"L19","index":19,"size":10,"difficulty":"normal","regions":[[0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1],[0,0,0,3,0,0,2,0,0,1],[0,0,0,3,3,0,2,2,2,1],[0,0,0,3,0,0,2,4,1,1],[5,0,0,3,0,6,2,4,1,7],[5,5,3,3,6,6,2,2,7,7],[8,3,3,8,8,6,2,7,7,7],[8,3,8,8,8,6,9,7,9,9],[8,8,8,8,8,9,9,9,9,9]],"solution":[1,9,6,3,7,0,4,8,2,5],"metrics":{"tier":1,"steps":14,"firstPlace":1,"depth":13,"minRegion":2,"maxRegion":38,"giantShare":0.38,"onesCount":0,"miniCount":1}},{"id":"L20","index":20,"size":10,"difficulty":"normal","regions":[[1,1,1,1,1,0,0,0,0,0],[3,1,1,1,1,1,1,1,0,0],[3,1,1,1,1,1,1,1,4,2],[3,3,1,1,4,4,4,1,4,2],[1,1,1,1,1,1,4,4,4,2],[5,5,1,1,1,4,4,4,2,2],[5,6,6,1,1,4,2,2,2,2],[5,5,6,1,8,8,8,7,2,2],[5,5,6,1,8,8,8,7,7,2],[5,6,6,1,1,1,8,7,9,2]],"solution":[5,3,9,1,6,0,2,7,4,8],"metrics":{"tier":1,"steps":15,"firstPlace":0,"depth":13,"minRegion":1,"maxRegion":38,"giantShare":0.38,"onesCount":1,"miniCount":1}},{"id":"L21","index":21,"size":11,"difficulty":"normal","regions":[[3,3,3,3,2,3,0,0,0,0,1],[3,3,2,2,2,3,3,0,0,0,1],[3,2,2,2,3,3,3,4,4,0,5],[3,3,3,3,3,3,4,4,4,0,5],[3,3,3,3,3,4,4,5,5,5,5],[3,3,3,3,3,3,3,3,5,5,5],[3,3,3,3,6,3,3,3,5,9,5],[3,7,3,3,6,3,6,3,9,9,8],[3,7,3,3,6,6,6,6,9,8,8],[7,7,7,3,9,6,6,9,9,9,8],[7,10,10,9,9,9,9,9,9,9,8]],"solution":[6,10,3,0,5,8,4,1,9,7,2],"metrics":{"tier":1,"steps":15,"firstPlace":1,"depth":13,"minRegion":2,"maxRegion":48,"giantShare":0.397,"onesCount":0,"miniCount":2}},{"id":"L22","index":22,"size":11,"difficulty":"normal","regions":[[1,1,1,1,1,1,0,0,2,2,2],[1,1,1,1,1,1,1,0,0,0,2],[1,1,1,1,1,1,1,1,0,2,2],[3,1,5,1,1,0,0,0,0,2,2],[1,1,5,5,1,1,1,4,0,0,2],[1,1,1,5,5,1,1,0,0,2,2],[9,5,1,1,5,6,6,6,0,6,2],[9,5,5,5,5,5,6,6,6,6,7],[9,9,9,5,10,10,6,8,8,8,7],[10,9,10,10,10,10,10,10,10,7,7],[10,10,10,10,10,10,10,10,10,10,7]],"solution":[6,2,9,0,7,3,5,10,8,1,4],"metrics":{"tier":1,"steps":16,"firstPlace":0,"depth":13,"minRegion":1,"maxRegion":36,"giantShare":0.298,"onesCount":2,"miniCount":2}},{"id":"L23","index":23,"size":12,"difficulty":"normal","regions":[[4,1,1,1,0,0,0,0,0,0,0,2],[4,4,3,1,1,1,1,1,2,2,2,2],[4,3,3,3,3,1,5,5,5,5,2,8],[4,4,6,6,3,3,8,5,5,2,2,8],[7,4,6,6,3,8,8,5,8,2,8,8],[7,6,6,6,6,8,8,5,8,8,8,8],[7,6,8,6,6,8,8,8,8,8,11,8],[7,6,8,8,8,8,8,11,11,11,11,11],[10,8,8,10,10,8,8,8,8,11,11,11],[10,8,10,10,9,8,8,11,8,8,8,11],[10,10,10,8,8,8,8,11,11,8,11,11],[10,10,8,8,8,8,8,8,11,11,11,11]],"solution":[9,6,10,5,1,7,3,0,8,4,2,11],"metrics":{"tier":1,"steps":17,"firstPlace":0,"depth":13,"minRegion":1,"maxRegion":49,"giantShare":0.34,"onesCount":1,"miniCount":1}},{"id":"L24","index":24,"size":12,"difficulty":"hard","regions":[[0,4,4,4,2,2,2,2,2,2,2,2],[0,4,5,4,4,4,4,4,4,2,1,2],[5,5,5,4,4,2,2,2,2,2,1,2],[5,5,4,4,4,4,4,2,2,2,3,3],[7,5,4,4,4,2,4,2,2,2,2,2],[7,5,5,5,2,2,2,2,2,2,2,2],[7,5,5,2,2,2,6,6,6,6,2,2],[7,7,5,2,8,2,2,6,2,6,2,6],[5,5,5,8,8,2,2,2,2,6,2,6],[8,8,8,8,8,11,11,9,2,6,2,6],[8,10,10,11,8,11,9,9,9,6,6,6],[10,10,11,11,11,11,11,9,9,9,9,6]],"solution":[0,10,8,11,6,3,9,1,4,7,2,5],"metrics":{"tier":1,"steps":17,"firstPlace":1,"depth":14,"minRegion":2,"maxRegion":50,"giantShare":0.347,"onesCount":0,"miniCount":3}},{"id":"L25","index":25,"size":13,"difficulty":"hard","regions":[[0,0,0,0,0,0,4,4,4,4,4,4,4],[0,0,0,3,3,0,4,4,4,4,4,1,7],[3,3,3,3,3,3,3,4,4,2,7,7,7],[6,6,6,6,3,7,7,7,4,4,4,4,7],[6,5,6,5,3,7,7,4,4,7,7,7,7],[6,5,5,5,7,7,7,7,7,7,7,7,7],[6,6,5,5,5,5,5,7,7,7,7,7,7],[6,5,5,7,7,7,7,7,7,7,7,9,7],[6,5,7,7,8,8,7,9,9,9,9,9,7],[6,5,7,7,8,7,7,9,9,10,9,7,7],[6,5,7,8,8,7,7,9,10,10,9,10,7],[12,8,8,8,11,11,11,11,10,10,10,10,7],[12,11,11,11,11,10,10,10,10,10,7,7,7]],"solution":[2,11,9,4,7,3,1,12,5,10,8,6,0],"metrics":{"tier":1,"steps":19,"firstPlace":0,"depth":14,"minRegion":1,"maxRegion":56,"giantShare":0.331,"onesCount":2,"miniCount":3}},{"id":"L26","index":26,"size":13,"difficulty":"hard","regions":[[1,1,1,1,1,8,3,3,0,0,0,0,0],[6,6,1,6,1,8,8,3,3,3,3,3,0],[2,6,6,6,1,8,8,4,4,4,4,3,0],[2,6,6,8,8,8,8,8,4,3,3,3,3],[2,6,6,6,8,8,4,8,4,4,3,7,3],[6,6,6,6,6,8,4,4,4,7,7,7,5],[9,9,9,8,6,8,8,8,4,8,8,7,5],[9,8,8,8,6,8,8,8,4,4,8,7,7],[9,8,8,8,8,8,8,8,8,4,8,8,7],[9,8,8,9,8,8,8,8,8,8,8,8,8],[9,9,9,9,9,8,8,8,8,10,8,8,8],[11,11,11,8,9,9,8,8,8,10,8,10,10],[11,11,11,8,8,8,8,12,12,10,10,10,10]],"solution":[8,2,0,10,6,12,4,11,5,3,9,1,7],"metrics":{"tier":1,"steps":20,"firstPlace":5,"depth":20,"minRegion":2,"maxRegion":64,"giantShare":0.379,"onesCount":0,"miniCount":2}}]}</script>
+<script id="puzzles-embedded" type="application/json">{"version":2,"title":"토끼네 자리","rules":{"perRow":1,"perCol":1,"perRegion":1,"diagonalAdjacencyForbidden":true},"levels":[{"id":"L01","index":1,"size":5,"difficulty":"easy","regions":[[0,0,0,0,0],[1,2,2,0,0],[4,2,2,2,2],[4,4,2,2,3],[4,4,4,4,4]],"solution":[3,0,2,4,1],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":8,"giantShare":0.32,"onesCount":2,"miniCount":2}},{"id":"L02","index":2,"size":5,"difficulty":"easy","regions":[[0,0,0,1,1],[0,0,1,1,3],[0,2,1,1,3],[3,3,3,3,3],[3,4,4,3,3]],"solution":[0,3,1,4,2],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":10,"giantShare":0.4,"onesCount":1,"miniCount":2}},{"id":"L03","index":3,"size":5,"difficulty":"easy","regions":[[0,0,0,0,1],[0,0,0,0,1],[3,3,2,0,4],[3,3,4,0,4],[4,4,4,4,4]],"solution":[1,4,2,0,3],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":10,"giantShare":0.4,"onesCount":1,"miniCount":2}},{"id":"L04","index":4,"size":5,"difficulty":"easy","regions":[[0,0,0,0,0],[1,2,2,0,0],[2,2,2,4,4],[4,4,4,4,3],[4,4,4,4,3]],"solution":[3,0,2,4,1],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":10,"giantShare":0.4,"onesCount":1,"miniCount":2}},{"id":"L05","index":5,"size":5,"difficulty":"easy","regions":[[0,0,0,0,0],[1,1,0,0,2],[4,4,2,2,2],[4,4,2,2,3],[4,4,4,4,4]],"solution":[3,0,2,4,1],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":9,"giantShare":0.36,"onesCount":1,"miniCount":2}},{"id":"L06","index":6,"size":6,"difficulty":"normal","regions":[[2,0,0,0,0,0],[2,2,0,1,0,4],[2,0,0,0,0,4],[2,0,3,4,4,4],[5,0,5,5,4,4],[5,5,5,4,4,4]],"solution":[5,3,0,2,4,1],"metrics":{"tier":1,"steps":7,"firstPlace":0,"depth":9,"minRegion":1,"maxRegion":13,"giantShare":0.361,"onesCount":2,"miniCount":2}},{"id":"L07","index":7,"size":6,"difficulty":"normal","regions":[[0,1,1,1,1,1],[2,2,1,1,1,1],[3,2,2,2,1,1],[3,3,3,2,2,1],[3,5,5,5,4,5],[3,5,5,5,5,5]],"solution":[0,5,3,1,4,2],"metrics":{"tier":1,"steps":7,"firstPlace":0,"depth":9,"minRegion":1,"maxRegion":12,"giantShare":0.333,"onesCount":2,"miniCount":2}},{"id":"L08","index":8,"size":6,"difficulty":"normal","regions":[[1,1,1,1,0,2],[1,1,1,1,2,2],[1,1,1,1,2,2],[3,3,1,1,2,2],[3,3,3,4,4,4],[5,3,4,4,4,4]],"solution":[4,2,5,1,3,0],"metrics":{"tier":1,"steps":7,"firstPlace":0,"depth":9,"minRegion":1,"maxRegion":14,"giantShare":0.389,"onesCount":2,"miniCount":2}},{"id":"L09","index":9,"size":7,"difficulty":"normal","regions":[[0,0,1,1,1,2,2],[0,1,1,1,1,1,2],[0,2,2,1,2,1,2],[3,2,2,2,2,1,2],[3,4,4,6,2,2,2],[3,6,6,6,5,5,2],[6,6,6,6,5,5,2]],"solution":[1,4,6,0,2,5,3],"metrics":{"tier":1,"steps":9,"firstPlace":2,"depth":12,"minRegion":2,"maxRegion":17,"giantShare":0.347,"onesCount":0,"miniCount":1}},{"id":"L10","index":10,"size":7,"difficulty":"normal","regions":[[4,2,2,0,1,1,1],[4,2,2,1,1,1,1],[4,2,2,2,1,1,1],[4,4,2,3,3,1,1],[4,3,3,3,1,1,1],[4,5,5,3,3,1,1],[4,4,4,3,3,1,6]],"solution":[3,5,1,4,0,2,6],"metrics":{"tier":1,"steps":11,"firstPlace":0,"depth":12,"minRegion":1,"maxRegion":18,"giantShare":0.367,"onesCount":2,"miniCount":3}},{"id":"L11","index":11,"size":7,"difficulty":"normal","regions":[[0,2,2,1,1,3,3],[0,0,2,2,1,1,3],[0,0,2,2,3,3,3],[0,0,0,3,3,3,3],[0,4,0,3,3,3,3],[0,4,3,3,5,3,3],[0,6,6,5,5,3,3]],"solution":[0,5,3,6,1,4,2],"metrics":{"tier":1,"steps":10,"firstPlace":2,"depth":13,"minRegion":2,"maxRegion":20,"giantShare":0.408,"onesCount":0,"miniCount":2}},{"id":"L12","index":12,"size":8,"difficulty":"normal","regions":[[0,0,0,0,0,0,0,0],[5,5,0,1,0,0,0,0],[5,5,6,6,0,2,0,0],[5,3,3,6,0,4,4,0],[5,5,6,6,4,4,4,0],[5,5,5,6,6,4,0,0],[5,5,6,6,4,4,0,0],[5,5,5,6,6,7,7,0]],"solution":[7,3,5,1,4,0,2,6],"metrics":{"tier":1,"steps":10,"firstPlace":0,"depth":10,"minRegion":1,"maxRegion":24,"giantShare":0.375,"onesCount":2,"miniCount":4}},{"id":"L13","index":13,"size":8,"difficulty":"normal","regions":[[2,0,2,2,2,3,3,3],[2,2,2,3,3,1,3,3],[2,5,3,3,3,3,3,3],[2,5,3,3,3,3,3,3],[2,5,5,4,4,3,3,3],[5,5,5,4,6,3,6,6],[5,7,7,6,6,3,3,6],[7,7,7,7,6,6,6,6]],"solution":[1,5,0,6,4,2,7,3],"metrics":{"tier":1,"steps":10,"firstPlace":0,"depth":10,"minRegion":1,"maxRegion":25,"giantShare":0.391,"onesCount":2,"miniCount":2}},{"id":"L14","index":14,"size":8,"difficulty":"normal","regions":[[0,0,0,0,0,0,0,0],[0,0,1,1,0,0,0,0],[0,2,0,1,1,1,1,1],[0,2,0,0,0,1,3,1],[0,0,0,4,4,3,3,3],[5,5,0,4,6,6,6,3],[6,6,6,6,6,6,3,3],[6,6,7,7,3,3,3,3]],"solution":[7,3,1,6,4,0,5,2],"metrics":{"tier":1,"steps":10,"firstPlace":2,"depth":12,"minRegion":2,"maxRegion":24,"giantShare":0.375,"onesCount":0,"miniCount":3}},{"id":"L15","index":15,"size":9,"difficulty":"normal","regions":[[0,0,0,0,2,2,1,1,1],[3,3,3,3,3,2,2,2,1],[3,8,3,3,3,2,8,8,4],[3,8,8,8,8,8,8,8,4],[8,8,5,5,8,8,8,4,4],[5,8,5,5,8,8,6,6,6],[5,5,5,7,8,8,6,8,6],[5,5,7,7,8,8,8,8,6],[5,8,8,8,8,8,8,8,6]],"solution":[1,8,5,0,7,3,6,2,4],"metrics":{"tier":1,"steps":11,"firstPlace":1,"depth":11,"minRegion":3,"maxRegion":32,"giantShare":0.395,"onesCount":0,"miniCount":0}},{"id":"L16","index":16,"size":9,"difficulty":"normal","regions":[[5,5,5,5,5,5,5,0,6],[5,1,5,2,2,5,0,0,6],[5,1,5,2,2,0,0,0,6],[3,5,5,2,5,5,5,6,6],[7,5,5,2,5,4,4,4,6],[7,5,5,5,5,5,6,6,6],[7,5,5,5,5,5,6,6,6],[7,7,5,7,5,7,6,8,6],[7,7,7,7,7,7,6,8,8]],"solution":[7,1,4,0,5,2,6,3,8],"metrics":{"tier":1,"steps":12,"firstPlace":0,"depth":11,"minRegion":1,"maxRegion":32,"giantShare":0.395,"onesCount":1,"miniCount":2}},{"id":"L17","index":17,"size":9,"difficulty":"normal","regions":[[0,0,0,0,0,0,0,0,0],[1,1,0,0,0,0,0,0,0],[1,1,2,0,0,0,0,0,0],[4,1,2,0,3,0,0,0,5],[4,4,2,0,3,3,3,5,5],[4,2,2,0,3,5,5,5,5],[4,8,2,6,6,6,7,5,5],[4,8,8,6,6,7,7,7,5],[8,8,8,8,6,6,7,7,7]],"solution":[6,0,2,4,1,8,5,7,3],"metrics":{"tier":1,"steps":12,"firstPlace":2,"depth":13,"minRegion":5,"maxRegion":28,"giantShare":0.346,"onesCount":0,"miniCount":0}},{"id":"L18","index":18,"size":10,"difficulty":"normal","regions":[[2,2,3,3,3,0,0,4,4,4],[2,2,2,1,3,3,3,8,4,4],[2,2,2,3,3,8,8,8,8,4],[2,2,6,6,3,8,8,8,8,4],[6,6,6,6,8,8,8,5,5,4],[6,6,8,8,8,5,5,5,5,5],[7,6,6,8,8,8,8,8,8,5],[7,8,8,8,9,9,9,9,5,5],[7,8,8,8,9,8,9,9,5,9],[7,8,8,8,8,8,8,9,9,9]],"solution":[6,3,1,4,9,7,2,0,5,8],"metrics":{"tier":1,"steps":14,"firstPlace":0,"depth":12,"minRegion":1,"maxRegion":34,"giantShare":0.34,"onesCount":1,"miniCount":2}},{"id":"L19","index":19,"size":10,"difficulty":"hard","regions":[[8,8,8,0,0,4,9,9,9,9],[8,2,2,2,2,4,4,9,1,9],[8,2,2,3,2,2,4,1,1,9],[8,2,2,3,9,9,4,1,9,9],[8,8,8,5,5,9,4,1,1,9],[8,5,5,5,9,9,9,9,9,9],[8,5,9,9,9,9,9,6,9,6],[8,8,7,7,9,9,6,6,6,6],[8,9,9,7,7,9,9,6,9,6],[8,8,9,9,9,9,9,9,9,6]],"solution":[4,8,5,3,6,1,9,2,0,7],"metrics":{"tier":1,"steps":13,"firstPlace":3,"depth":14,"minRegion":2,"maxRegion":39,"giantShare":0.39,"onesCount":0,"miniCount":2}},{"id":"L20","index":20,"size":10,"difficulty":"hard","regions":[[0,0,1,1,1,1,1,1,1,2],[0,1,1,1,1,1,1,1,1,2],[3,1,1,1,1,1,1,5,1,2],[3,1,1,1,5,5,5,5,1,1],[4,1,4,1,5,7,7,7,1,1],[4,4,4,1,5,5,7,7,1,7],[4,6,6,6,5,8,7,7,7,7],[4,6,6,9,5,8,7,8,8,7],[9,9,6,9,5,8,8,8,8,7],[9,9,9,9,9,8,8,8,8,8]],"solution":[1,7,9,0,2,5,3,6,8,4],"metrics":{"tier":1,"steps":14,"firstPlace":2,"depth":14,"minRegion":2,"maxRegion":33,"giantShare":0.33,"onesCount":0,"miniCount":1}},{"id":"L21","index":21,"size":11,"difficulty":"normal","regions":[[1,1,5,5,5,5,5,6,6,0,6],[1,1,5,5,5,5,5,5,6,6,6],[1,1,1,1,1,1,5,2,6,6,6],[1,5,1,5,5,5,5,6,6,3,3],[4,5,5,5,10,10,10,10,6,6,6],[4,5,7,5,5,10,10,10,10,10,6],[7,5,7,7,10,10,10,10,6,6,6],[7,7,7,10,10,8,8,10,10,10,6],[7,7,9,9,8,8,10,10,10,10,10],[9,9,9,9,10,10,10,10,10,10,10],[9,9,10,10,10,10,10,10,10,10,10]],"solution":[9,1,7,10,0,4,8,2,5,3,6],"metrics":{"tier":1,"steps":16,"firstPlace":0,"depth":13,"minRegion":1,"maxRegion":39,"giantShare":0.322,"onesCount":2,"miniCount":4}},{"id":"L22","index":22,"size":11,"difficulty":"normal","regions":[[2,0,2,1,1,1,1,1,1,1,1],[2,2,2,1,1,5,5,4,4,1,4],[6,6,2,2,2,5,5,5,4,1,4],[6,6,6,6,3,3,5,4,4,4,4],[6,6,7,7,5,5,5,4,4,4,4],[6,6,7,7,7,5,5,5,9,4,4],[6,6,8,7,7,7,9,9,9,9,9],[8,8,8,7,7,9,9,9,9,9,9],[8,8,8,9,9,9,9,9,9,9,9],[8,8,9,9,9,9,9,9,9,9,9],[8,9,9,9,9,9,9,10,9,9,9]],"solution":[1,9,3,5,8,6,0,4,2,10,7],"metrics":{"tier":1,"steps":16,"firstPlace":0,"depth":13,"minRegion":1,"maxRegion":38,"giantShare":0.314,"onesCount":2,"miniCount":3}},{"id":"L23","index":23,"size":12,"difficulty":"normal","regions":[[8,1,1,1,1,1,1,1,0,0,0,6],[8,2,8,1,1,8,8,1,1,0,0,6],[8,2,8,8,8,8,4,4,0,0,3,6],[8,2,2,8,4,4,4,4,0,3,3,6],[8,2,8,8,4,8,4,4,0,0,0,6],[8,8,8,8,4,8,8,5,5,5,0,6],[8,10,8,8,8,8,7,7,7,7,0,6],[10,10,8,8,7,7,7,8,8,7,8,9],[10,10,8,7,7,8,8,8,8,8,8,9],[10,8,8,8,8,8,8,8,11,8,9,9],[10,10,10,8,8,8,8,8,11,8,11,11],[10,8,8,8,8,8,11,11,11,11,11,11]],"solution":[8,3,1,9,4,7,11,5,2,10,0,6],"metrics":{"tier":1,"steps":14,"firstPlace":2,"depth":12,"minRegion":3,"maxRegion":58,"giantShare":0.403,"onesCount":0,"miniCount":0}},{"id":"L24","index":24,"size":12,"difficulty":"hard","regions":[[3,3,3,0,0,0,0,0,0,0,1,1],[3,3,0,0,0,0,2,2,2,1,1,1],[3,3,0,3,0,2,2,2,2,2,1,1],[3,3,3,3,6,2,5,5,5,5,1,7],[3,8,3,4,6,6,5,5,5,7,7,7],[8,8,8,6,6,6,5,5,11,11,7,7],[8,8,8,6,11,6,11,11,11,11,7,7],[8,8,8,11,11,11,11,11,11,11,7,7],[10,8,11,11,11,11,11,11,11,11,9,11],[10,10,10,11,11,11,11,11,11,11,9,11],[10,10,10,11,11,11,11,11,11,11,11,11],[10,10,11,11,11,11,11,11,11,11,11,11]],"solution":[4,9,6,0,3,7,5,11,1,10,2,8],"metrics":{"tier":1,"steps":20,"firstPlace":0,"depth":16,"minRegion":1,"maxRegion":50,"giantShare":0.347,"onesCount":1,"miniCount":2}},{"id":"L25","index":25,"size":13,"difficulty":"normal","regions":[[1,1,1,1,1,1,1,1,0,0,0,0,0],[5,5,1,1,8,1,1,1,1,1,1,0,0],[2,5,5,1,8,8,1,8,8,8,0,0,7],[2,5,5,1,8,8,8,8,3,3,0,0,7],[5,5,10,10,10,8,6,6,6,6,6,4,7],[5,5,5,10,10,8,8,10,6,10,10,7,7],[9,9,10,10,8,8,8,10,6,10,10,7,7],[9,9,10,10,10,8,10,10,10,10,10,10,7],[9,10,10,10,10,8,8,10,11,10,10,7,7],[9,9,10,10,10,10,10,10,11,10,11,12,12],[9,10,10,10,10,10,10,10,11,11,11,11,12],[9,10,10,10,12,12,10,11,11,11,12,12,12],[10,10,10,10,10,12,12,12,12,12,12,12,12]],"solution":[10,3,0,9,11,2,8,12,6,1,4,7,5],"metrics":{"tier":1,"steps":18,"firstPlace":0,"depth":13,"minRegion":1,"maxRegion":52,"giantShare":0.308,"onesCount":1,"miniCount":3}},{"id":"L26","index":26,"size":13,"difficulty":"hard","regions":[[3,0,4,4,4,4,4,4,4,4,4,4,4],[3,0,4,4,1,4,2,2,4,4,4,4,4],[3,0,3,1,1,4,4,2,2,4,6,4,4],[3,3,3,3,1,1,2,2,4,4,6,4,4],[7,3,3,5,1,2,2,4,4,4,6,4,4],[7,7,5,5,5,5,2,4,6,6,6,6,4],[7,4,4,4,4,4,4,4,6,6,6,4,4],[7,4,7,8,4,6,6,6,6,4,4,4,4],[7,4,7,8,4,6,8,6,4,4,8,8,4],[7,7,7,8,8,8,8,8,4,4,8,8,9],[11,11,7,10,10,10,10,8,8,8,8,9,9],[11,11,10,10,12,10,12,8,9,8,9,9,9],[11,11,12,12,12,12,12,12,9,9,9,9,9]],"solution":[1,4,8,3,11,5,9,2,10,12,6,0,7],"metrics":{"tier":1,"steps":16,"firstPlace":3,"depth":14,"minRegion":3,"maxRegion":57,"giantShare":0.337,"onesCount":0,"miniCount":0}}]}</script>
 
 <script>
 "use strict";
@@ -736,9 +745,29 @@ body.tutorial-mode #hintBar{display:none;}
  *   RabbitArt.mode = 'image';
  *   RabbitArt.images = { rabbit:'assets/rabbit.png', mark:'assets/x.png' };
  * ========================================================================== */
+/* --------------------------------------------------------------------------
+ * 에셋 경로 — 그림을 이미지로 바꾸려면 여기만 고치면 된다.
+ *
+ *   1) 파일을 assets/ 에 넣는다
+ *   2) 아래 경로 상수를 채운다 (null 이면 내장 SVG 를 쓴다)
+ *   3) 끝. 게임 로직은 RabbitArt.html() 만 호출하므로 다른 곳은 손댈 필요 없다.
+ *
+ * 칸에 들어가는 그림은 정사각형·투명 배경을 권장한다 (칸의 78% 크기로 그려진다).
+ * -------------------------------------------------------------------------- */
+const ASSETS = {
+  rabbit: null,          // 예: 'assets/rabbit.png'  — 기본 토끼
+  happy:  null,          //     'assets/rabbit-happy.png'  — 클리어 때
+  tired:  null,          //     'assets/rabbit-tired.png'  — 게임 오버 때
+  mark:   null,          //     'assets/x.png'      — ✕ 메모
+  locked: null,          //     'assets/x-locked.png' — 잠긴 칸
+  face:   null,          //     'assets/face.png'   — 배치 카운터 아이콘
+  paw:    null,          //     'assets/paw.png'    — 자동배치 부스터 아이콘
+  carrot: null,          //     'assets/carrot.png' — 난이도·목숨 아이콘
+};
+
 const RabbitArt = {
-  mode: 'svg',                      // 'svg' | 'image'
-  images: { rabbit: null, mark: null, happy: null, tired: null },
+  /** ASSETS 에 경로가 채워진 종류는 이미지로, 나머지는 내장 SVG 로 그린다 */
+  src(kind) { return ASSETS[kind] || null; },
 
   /** 기본 토끼 — 흰 토끼, 귀 강조, 작은 칸에서도 실루엣이 살아있게 외곽선 처리 */
   rabbit(mood) {
@@ -799,7 +828,20 @@ const RabbitArt = {
 </svg>`;
   },
 
-  /** 토끼 얼굴 (배치 카운터·부스터 버튼용 작은 아이콘) */
+  /** 토끼 발자국 (자동배치 부스터 버튼) */
+  paw() {
+    return `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <g fill="#7A6699">
+    <ellipse cx="7.6" cy="8.4" rx="2.1" ry="2.9"/>
+    <ellipse cx="12" cy="6.7" rx="2.1" ry="3.1"/>
+    <ellipse cx="16.4" cy="8.4" rx="2.1" ry="2.9"/>
+    <ellipse cx="19.2" cy="12.8" rx="1.9" ry="2.5"/>
+    <path d="M12 11.4c3 0 5.6 2.4 5.6 4.9 0 2.1-1.9 3.4-4 3.4-.9 0-1.2.4-1.6.4s-.7-.4-1.6-.4c-2.1 0-4-1.3-4-3.4 0-2.5 2.6-4.9 5.6-4.9z"/>
+  </g>
+</svg>`;
+  },
+
+  /** 토끼 얼굴 (배치 카운터용 작은 아이콘) */
   face() {
     return `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <g stroke="#8A6E5C" stroke-width="1.7" stroke-linejoin="round">
@@ -821,13 +863,20 @@ const RabbitArt = {
 </svg>`;
   },
 
-  /** 화면에 그리기 — mode 에 따라 svg 또는 <img> 로 출력 */
+  /**
+   * 화면에 그리기. 경로가 있으면 <img>, 없으면 내장 SVG.
+   * kind: 'rabbit' | 'mark' | 'locked' | 'face' | 'paw' | 'carrot'
+   */
   html(kind, mood) {
-    if (this.mode === 'image' && this.images[kind]) {
-      return `<img src="${this.images[kind]}" alt="" style="width:100%;height:100%;object-fit:contain">`;
-    }
+    // 토끼는 표정별로 다른 파일을 쓸 수 있다
+    const assetKey = kind === 'rabbit' && mood && ASSETS[mood] ? mood : kind;
+    const url = this.src(assetKey);
+    if (url) return `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:contain">`;
     if (kind === 'mark') return this.mark('memo');
     if (kind === 'locked') return this.mark('locked');
+    if (kind === 'face') return this.face();
+    if (kind === 'paw') return this.paw();
+    if (kind === 'carrot') return this.carrot(true);
     return this.rabbit(mood);
   },
 };
@@ -915,21 +964,20 @@ function buzz(ms) {
  * 명도 차이가 항상 보조 단서로 남도록 L(밝기) 값을 넓게 벌려 두었다.
  */
 const PALETTE = [
-  // 채도 있는 소프트 파스텔 10색. 색상환을 크게 도는 순서로 적어 두었고,
-  // 인접 영역에는 이 환에서 서로 먼 색이 배정된다.
-  // 적록색약이 있으면 빨강·주황·노랑·초록이 전부 노란 계열로 뭉개진다.
-  // 그래서 이 8색은 "밝기 사다리"에 올려 놓아 색이 뭉개져도 층으로 갈리게 했다.
-  // 하늘·라벤더는 파랑 계열이라 적록색약에서도 색상 자체가 남는다.
-  { hex: '#B4E06B', name: '연초록', hue: 84 },     // 가장 밝음
-  { hex: '#F7A9BC', name: '핑크',   hue: 345 },
-  { hex: '#EDAE43', name: '머스터드', hue: 39 },
-  { hex: '#7FC7EA', name: '하늘',   hue: 202 },
-  { hex: '#2FA79A', name: '청록',   hue: 175 },
-  { hex: '#9B8BE0', name: '라벤더', hue: 252 },
-  { hex: '#E9663C', name: '오렌지', hue: 15 },
-  { hex: '#C2538C', name: '로즈',   hue: 327 },
-  { hex: '#96632A', name: '브라운', hue: 33 },
-  { hex: '#22713F', name: '진초록', hue: 148 },    // 가장 어두움
+  // "토끼네 마당" — 봄 텃밭의 자연색 10가지.
+  // 채도는 부드럽게 누르되 명도는 확실히 벌려 놓았다: 적록색약이 있으면
+  // 초록·노랑·주황·빨강이 모두 노란 계열로 뭉개지므로, 그 색들이 밝기 사다리 위에
+  // 흩어져 있어야 층으로라도 갈린다. 하늘·라일락은 파랑 계열이라 색상 자체가 남는다.
+  { hex: '#D4EC96', name: '새싹',   hue: 79 },      // 새싹 연두 — 가장 밝음
+  { hex: '#E6C96B', name: '볏짚',   hue: 45 },      // 볏짚 노랑
+  { hex: '#F3AFC3', name: '진달래', hue: 342 },     // 진달래 핑크
+  { hex: '#79B7E4', name: '하늘',   hue: 203 },     // 맑은 하늘
+  { hex: '#A48FD2', name: '라일락', hue: 263 },     // 라일락
+  { hex: '#E5904B', name: '호박',   hue: 28 },      // 호박 주황
+  { hex: '#97B27B', name: '이끼',   hue: 92 },      // 이끼 세이지
+  { hex: '#BC5A64', name: '감',     hue: 355 },     // 감 로즈
+  { hex: '#8A5B33', name: '흙',     hue: 28 },      // 흙 브라운
+  { hex: '#37704A', name: '잎',     hue: 140 },     // 진한 잎초록 — 가장 어두움
 ];
 
 /* ---- 색 거리 계산 ----------------------------------------------------------
@@ -1605,6 +1653,7 @@ function renderAll() {
   }
   renderLives();
   renderCounter();
+  renderScore();
 }
 
 function renderLives(popIndex) {
@@ -1612,7 +1661,7 @@ function renderLives(popIndex) {
   box.innerHTML = '';
   for (let i = 0; i < MAX_LIVES; i++) {
     const d = document.createElement('div');
-    d.innerHTML = RabbitArt.carrot(i < G.lives);
+    d.innerHTML = ASSETS.carrot && i < G.lives ? RabbitArt.html('carrot') : RabbitArt.carrot(i < G.lives);
     const svg = d.firstElementChild;
     if (i >= G.lives) svg.classList.add('gone');
     if (popIndex === i) svg.classList.add('pop');
@@ -1624,7 +1673,7 @@ function renderLives(popIndex) {
 function renderCounter() {
   const placed = rabbitList().length;
   $('gmCount').innerHTML =
-    `${RabbitArt.face()}<span class="${placed === G.n ? 'done' : ''}">${placed} / ${G.n}</span>`;
+    `${RabbitArt.html('face')}<span class="${placed === G.n ? 'done' : ''}">${placed} / ${G.n}</span>`;
 }
 
 /** 난이도를 당근 개수로 (쉬움 1 · 보통 2 · 어려움 3) */
@@ -1634,6 +1683,7 @@ function renderDifficulty(difficulty) {
 }
 
 function renderBoosters() {
+  renderScore();
   $('hintCount').textContent = G.hints;
   $('boostCount').textContent = G.boosts;
   $('btnHint').disabled = G.hints <= 0 || G.finished;
@@ -2013,10 +2063,12 @@ function checkWin() {
   Store.data.inProgress = null;
   Store.save();
   setTimeout(() => {
-    $('clearTime').textContent = fmtTime(G.elapsed);
     $('clearScore').textContent = score.toLocaleString();
+    $('clearDetail').innerHTML = `당근 ${G.lives}/${MAX_LIVES} · 힌트 ${G.hints}/${HINTS_PER_LEVEL} 남김`;
     const best = Store.data.cleared[id];
-    $('clearBest').textContent = best && best.score > score ? `최고 ${best.score.toLocaleString()}` : '최고 기록!';
+    $('clearBest').textContent = best && best.score > score
+      ? `최고 ${best.score.toLocaleString()}`
+      : (score >= maxScore() ? '만점!' : '최고 기록!');
     const last = G.index >= PUZZLES.levels.length - 1;
     $('clearTitle').textContent = last ? '토끼 마을 완성!' : '축하해요!';
     $('clearMsg').innerHTML = last
@@ -2030,18 +2082,27 @@ function checkWin() {
 }
 
 /**
- * 점수 — 크기가 클수록 기본 점수가 높고, 빨리 풀수록 시간 보너스가 크다.
- * 힌트·자동배치·실수는 감점. 0 밑으로는 내려가지 않는다.
+ * 점수 — 남은 당근과 아껴 둔 힌트가 전부다. 시간은 보지 않는다.
+ * 실수 없이(당근 3개) 힌트도 안 쓰고 풀면 만점.
  */
+const SCORE = { perCell: 10, carrot: 150, hint: 100, boost: 60 };
+
 function computeScore() {
-  const base = G.n * G.n * 10;
-  const par = G.n * 12;                                   // 이 크기의 기준 시간(초)
-  const timeBonus = Math.max(0, Math.round((par - G.elapsed) * 6));
-  const hintsUsed = HINTS_PER_LEVEL - G.hints;
-  const boostsUsed = BOOSTS_PER_LEVEL - G.boosts;
-  const livesLost = MAX_LIVES - G.lives;
-  const penalty = hintsUsed * 60 + boostsUsed * 120 + livesLost * 80;
-  return Math.max(0, base + timeBonus - penalty);
+  return G.n * G.n * SCORE.perCell
+    + G.lives * SCORE.carrot
+    + G.hints * SCORE.hint
+    + G.boosts * SCORE.boost;
+}
+/** 한 번도 안 틀리고 힌트도 안 썼을 때의 점수 */
+function maxScore() {
+  return G.n * G.n * SCORE.perCell
+    + MAX_LIVES * SCORE.carrot
+    + HINTS_PER_LEVEL * SCORE.hint
+    + BOOSTS_PER_LEVEL * SCORE.boost;
+}
+
+function renderScore() {
+  $('gmScore').innerHTML = `${computeScore().toLocaleString()}<small>점</small>`;
 }
 
 function undo() {
@@ -2316,13 +2377,12 @@ function fmtTime(s) {
   const m = Math.floor(s / 60), ss = s % 60;
   return `${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
 }
+/* 시간은 기록용으로만 센다. 화면에는 표시하지 않는다 (점수에도 쓰이지 않음) */
 function startTimer() {
   stopTimer();
-  $('gmTimer').textContent = fmtTime(G.elapsed);
   G.timer = setInterval(() => {
     if (G.finished) return;
     G.elapsed++;
-    $('gmTimer').textContent = fmtTime(G.elapsed);
     if (G.elapsed % 10 === 0) saveProgress();
   }, 1000);
 }
@@ -2529,7 +2589,7 @@ async function loadPuzzles() {
   $('titleArt').innerHTML = RabbitArt.rabbit('happy');
   $('overArt').innerHTML = RabbitArt.rabbit('tired');
   buildTapGuide();
-  document.querySelector('.fab-face').innerHTML = RabbitArt.face();
+  document.querySelector('.fab-paw').innerHTML = RabbitArt.html('paw');
   decorateSky();
   Store.load();
   refreshSound();

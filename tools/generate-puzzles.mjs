@@ -549,7 +549,8 @@ const BUDGET_MS = (n) => (n >= 13 ? 180000 : n >= 11 ? 90000 : 30000);
 const OUT = process.argv[2] || 'puzzles-pool.json';
 const SIZES_ONLY = process.argv[3] ? process.argv[3].split(',').map(Number) : null;
 const APPEND = process.argv[4] === '--append';
-const rnd = mulberry32(APPEND ? 990113 : 20260727);
+const SEED = Number(process.env.SEED || (APPEND ? 990113 : 20260727));
+const rnd = mulberry32(SEED);
 const pool = [];
 if (APPEND && IS_MAIN) {
   try { pool.push(...JSON.parse(readFileSync(OUT, 'utf8')).puzzles); } catch (e) {}
