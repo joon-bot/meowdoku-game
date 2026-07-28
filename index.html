@@ -207,7 +207,7 @@ h1.game-title{
 .lv.locked .size,.lv.locked .diff{opacity:.7;}
 .lv.cleared{border-color:rgba(143,203,179,.75);box-shadow:0 0 0 2px rgba(143,203,179,.22),var(--shadow-sm);}
 .lv-hint{text-align:center;font-size:12px;color:var(--ink-faint);padding-bottom:6px;}
-/* 무한 마당 — 26판을 다 깨야 열린다. 목록 맨 위에 한 줄로 눕는다. */
+/* 무한 마당 — 스테이지를 다 깨야 열린다. 목록 맨 위에 한 줄로 눕는다. */
 #endlessCard{
   grid-column:1/-1;display:none;align-items:center;gap:12px;
   padding:14px 16px;border-radius:21px;text-align:left;
@@ -919,7 +919,7 @@ body.tutorial-mode #hintBar{display:none;}
 <div id="loading"><div class="box"><div id="loadArt"></div><p id="loadMsg">토끼들을 부르는 중…</p></div></div>
 
 <!-- 퍼즐 데이터 내장 사본 (puzzles.json 을 불러오지 못하는 환경용 대비책) -->
-<script id="puzzles-embedded" type="application/json">{"version":2,"title":"토끼네 자리","rules":{"perRow":1,"perCol":1,"perRegion":1,"diagonalAdjacencyForbidden":true},"levels":[{"id":"L01","index":1,"size":5,"difficulty":"easy","regions":[[0,0,0,0,0],[1,2,2,0,0],[4,2,2,2,2],[4,4,2,2,3],[4,4,4,4,4]],"solution":[3,0,2,4,1],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":8,"giantShare":0.32,"onesCount":2,"miniCount":2}},{"id":"L02","index":2,"size":5,"difficulty":"easy","regions":[[0,0,0,1,1],[0,0,1,1,3],[0,2,1,1,3],[3,3,3,3,3],[3,4,4,3,3]],"solution":[0,3,1,4,2],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":10,"giantShare":0.4,"onesCount":1,"miniCount":2}},{"id":"L03","index":3,"size":5,"difficulty":"easy","regions":[[0,0,0,0,1],[0,0,0,0,1],[3,3,2,0,4],[3,3,4,0,4],[4,4,4,4,4]],"solution":[1,4,2,0,3],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":10,"giantShare":0.4,"onesCount":1,"miniCount":2}},{"id":"L04","index":4,"size":5,"difficulty":"easy","regions":[[0,0,0,0,0],[1,2,2,0,0],[2,2,2,4,4],[4,4,4,4,3],[4,4,4,4,3]],"solution":[3,0,2,4,1],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":10,"giantShare":0.4,"onesCount":1,"miniCount":2}},{"id":"L05","index":5,"size":5,"difficulty":"easy","regions":[[0,0,0,0,0],[1,1,0,0,2],[4,4,2,2,2],[4,4,2,2,3],[4,4,4,4,4]],"solution":[3,0,2,4,1],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":9,"giantShare":0.36,"onesCount":1,"miniCount":2}},{"id":"L06","index":6,"size":6,"difficulty":"normal","regions":[[2,0,0,0,0,0],[2,2,0,1,0,4],[2,0,0,0,0,4],[2,0,3,4,4,4],[5,0,5,5,4,4],[5,5,5,4,4,4]],"solution":[5,3,0,2,4,1],"metrics":{"tier":1,"steps":7,"firstPlace":0,"depth":9,"minRegion":1,"maxRegion":13,"giantShare":0.361,"onesCount":2,"miniCount":2}},{"id":"L07","index":7,"size":6,"difficulty":"normal","regions":[[0,1,1,1,1,1],[2,2,1,1,1,1],[3,2,2,2,1,1],[3,3,3,2,2,1],[3,5,5,5,4,5],[3,5,5,5,5,5]],"solution":[0,5,3,1,4,2],"metrics":{"tier":1,"steps":7,"firstPlace":0,"depth":9,"minRegion":1,"maxRegion":12,"giantShare":0.333,"onesCount":2,"miniCount":2}},{"id":"L08","index":8,"size":6,"difficulty":"normal","regions":[[1,1,1,1,0,2],[1,1,1,1,2,2],[1,1,1,1,2,2],[3,3,1,1,2,2],[3,3,3,4,4,4],[5,3,4,4,4,4]],"solution":[4,2,5,1,3,0],"metrics":{"tier":1,"steps":7,"firstPlace":0,"depth":9,"minRegion":1,"maxRegion":14,"giantShare":0.389,"onesCount":2,"miniCount":2}},{"id":"L09","index":9,"size":7,"difficulty":"normal","regions":[[0,0,1,1,1,2,2],[0,1,1,1,1,1,2],[0,2,2,1,2,1,2],[3,2,2,2,2,1,2],[3,4,4,6,2,2,2],[3,6,6,6,5,5,2],[6,6,6,6,5,5,2]],"solution":[1,4,6,0,2,5,3],"metrics":{"tier":1,"steps":9,"firstPlace":2,"depth":12,"minRegion":2,"maxRegion":17,"giantShare":0.347,"onesCount":0,"miniCount":1}},{"id":"L10","index":10,"size":7,"difficulty":"normal","regions":[[4,2,2,0,1,1,1],[4,2,2,1,1,1,1],[4,2,2,2,1,1,1],[4,4,2,3,3,1,1],[4,3,3,3,1,1,1],[4,5,5,3,3,1,1],[4,4,4,3,3,1,6]],"solution":[3,5,1,4,0,2,6],"metrics":{"tier":1,"steps":11,"firstPlace":0,"depth":12,"minRegion":1,"maxRegion":18,"giantShare":0.367,"onesCount":2,"miniCount":3}},{"id":"L11","index":11,"size":7,"difficulty":"normal","regions":[[0,2,2,1,1,3,3],[0,0,2,2,1,1,3],[0,0,2,2,3,3,3],[0,0,0,3,3,3,3],[0,4,0,3,3,3,3],[0,4,3,3,5,3,3],[0,6,6,5,5,3,3]],"solution":[0,5,3,6,1,4,2],"metrics":{"tier":1,"steps":10,"firstPlace":2,"depth":13,"minRegion":2,"maxRegion":20,"giantShare":0.408,"onesCount":0,"miniCount":2}},{"id":"L12","index":12,"size":8,"difficulty":"normal","regions":[[0,0,0,0,0,0,0,0],[5,5,0,1,0,0,0,0],[5,5,6,6,0,2,0,0],[5,3,3,6,0,4,4,0],[5,5,6,6,4,4,4,0],[5,5,5,6,6,4,0,0],[5,5,6,6,4,4,0,0],[5,5,5,6,6,7,7,0]],"solution":[7,3,5,1,4,0,2,6],"metrics":{"tier":1,"steps":10,"firstPlace":0,"depth":10,"minRegion":1,"maxRegion":24,"giantShare":0.375,"onesCount":2,"miniCount":4}},{"id":"L13","index":13,"size":8,"difficulty":"normal","regions":[[2,0,2,2,2,3,3,3],[2,2,2,3,3,1,3,3],[2,5,3,3,3,3,3,3],[2,5,3,3,3,3,3,3],[2,5,5,4,4,3,3,3],[5,5,5,4,6,3,6,6],[5,7,7,6,6,3,3,6],[7,7,7,7,6,6,6,6]],"solution":[1,5,0,6,4,2,7,3],"metrics":{"tier":1,"steps":10,"firstPlace":0,"depth":10,"minRegion":1,"maxRegion":25,"giantShare":0.391,"onesCount":2,"miniCount":2}},{"id":"L14","index":14,"size":8,"difficulty":"normal","regions":[[0,0,0,0,0,0,0,0],[0,0,1,1,0,0,0,0],[0,2,0,1,1,1,1,1],[0,2,0,0,0,1,3,1],[0,0,0,4,4,3,3,3],[5,5,0,4,6,6,6,3],[6,6,6,6,6,6,3,3],[6,6,7,7,3,3,3,3]],"solution":[7,3,1,6,4,0,5,2],"metrics":{"tier":1,"steps":10,"firstPlace":2,"depth":12,"minRegion":2,"maxRegion":24,"giantShare":0.375,"onesCount":0,"miniCount":3}},{"id":"L15","index":15,"size":9,"difficulty":"normal","regions":[[0,0,0,0,2,2,1,1,1],[3,3,3,3,3,2,2,2,1],[3,8,3,3,3,2,8,8,4],[3,8,8,8,8,8,8,8,4],[8,8,5,5,8,8,8,4,4],[5,8,5,5,8,8,6,6,6],[5,5,5,7,8,8,6,8,6],[5,5,7,7,8,8,8,8,6],[5,8,8,8,8,8,8,8,6]],"solution":[1,8,5,0,7,3,6,2,4],"metrics":{"tier":1,"steps":11,"firstPlace":1,"depth":11,"minRegion":3,"maxRegion":32,"giantShare":0.395,"onesCount":0,"miniCount":0}},{"id":"L16","index":16,"size":9,"difficulty":"normal","regions":[[5,5,5,5,5,5,5,0,6],[5,1,5,2,2,5,0,0,6],[5,1,5,2,2,0,0,0,6],[3,5,5,2,5,5,5,6,6],[7,5,5,2,5,4,4,4,6],[7,5,5,5,5,5,6,6,6],[7,5,5,5,5,5,6,6,6],[7,7,5,7,5,7,6,8,6],[7,7,7,7,7,7,6,8,8]],"solution":[7,1,4,0,5,2,6,3,8],"metrics":{"tier":1,"steps":12,"firstPlace":0,"depth":11,"minRegion":1,"maxRegion":32,"giantShare":0.395,"onesCount":1,"miniCount":2}},{"id":"L17","index":17,"size":9,"difficulty":"normal","regions":[[0,0,0,0,0,0,0,0,0],[1,1,0,0,0,0,0,0,0],[1,1,2,0,0,0,0,0,0],[4,1,2,0,3,0,0,0,5],[4,4,2,0,3,3,3,5,5],[4,2,2,0,3,5,5,5,5],[4,8,2,6,6,6,7,5,5],[4,8,8,6,6,7,7,7,5],[8,8,8,8,6,6,7,7,7]],"solution":[6,0,2,4,1,8,5,7,3],"metrics":{"tier":1,"steps":12,"firstPlace":2,"depth":13,"minRegion":5,"maxRegion":28,"giantShare":0.346,"onesCount":0,"miniCount":0}},{"id":"L18","index":18,"size":10,"difficulty":"normal","regions":[[2,2,3,3,3,0,0,4,4,4],[2,2,2,1,3,3,3,8,4,4],[2,2,2,3,3,8,8,8,8,4],[2,2,6,6,3,8,8,8,8,4],[6,6,6,6,8,8,8,5,5,4],[6,6,8,8,8,5,5,5,5,5],[7,6,6,8,8,8,8,8,8,5],[7,8,8,8,9,9,9,9,5,5],[7,8,8,8,9,8,9,9,5,9],[7,8,8,8,8,8,8,9,9,9]],"solution":[6,3,1,4,9,7,2,0,5,8],"metrics":{"tier":1,"steps":14,"firstPlace":0,"depth":12,"minRegion":1,"maxRegion":34,"giantShare":0.34,"onesCount":1,"miniCount":2}},{"id":"L19","index":19,"size":10,"difficulty":"hard","regions":[[8,8,8,0,0,4,9,9,9,9],[8,2,2,2,2,4,4,9,1,9],[8,2,2,3,2,2,4,1,1,9],[8,2,2,3,9,9,4,1,9,9],[8,8,8,5,5,9,4,1,1,9],[8,5,5,5,9,9,9,9,9,9],[8,5,9,9,9,9,9,6,9,6],[8,8,7,7,9,9,6,6,6,6],[8,9,9,7,7,9,9,6,9,6],[8,8,9,9,9,9,9,9,9,6]],"solution":[4,8,5,3,6,1,9,2,0,7],"metrics":{"tier":1,"steps":13,"firstPlace":3,"depth":14,"minRegion":2,"maxRegion":39,"giantShare":0.39,"onesCount":0,"miniCount":2}},{"id":"L20","index":20,"size":10,"difficulty":"hard","regions":[[0,0,1,1,1,1,1,1,1,2],[0,1,1,1,1,1,1,1,1,2],[3,1,1,1,1,1,1,5,1,2],[3,1,1,1,5,5,5,5,1,1],[4,1,4,1,5,7,7,7,1,1],[4,4,4,1,5,5,7,7,1,7],[4,6,6,6,5,8,7,7,7,7],[4,6,6,9,5,8,7,8,8,7],[9,9,6,9,5,8,8,8,8,7],[9,9,9,9,9,8,8,8,8,8]],"solution":[1,7,9,0,2,5,3,6,8,4],"metrics":{"tier":1,"steps":14,"firstPlace":2,"depth":14,"minRegion":2,"maxRegion":33,"giantShare":0.33,"onesCount":0,"miniCount":1}},{"id":"L21","index":21,"size":11,"difficulty":"normal","regions":[[1,1,5,5,5,5,5,6,6,0,6],[1,1,5,5,5,5,5,5,6,6,6],[1,1,1,1,1,1,5,2,6,6,6],[1,5,1,5,5,5,5,6,6,3,3],[4,5,5,5,10,10,10,10,6,6,6],[4,5,7,5,5,10,10,10,10,10,6],[7,5,7,7,10,10,10,10,6,6,6],[7,7,7,10,10,8,8,10,10,10,6],[7,7,9,9,8,8,10,10,10,10,10],[9,9,9,9,10,10,10,10,10,10,10],[9,9,10,10,10,10,10,10,10,10,10]],"solution":[9,1,7,10,0,4,8,2,5,3,6],"metrics":{"tier":1,"steps":16,"firstPlace":0,"depth":13,"minRegion":1,"maxRegion":39,"giantShare":0.322,"onesCount":2,"miniCount":4}},{"id":"L22","index":22,"size":11,"difficulty":"normal","regions":[[2,0,2,1,1,1,1,1,1,1,1],[2,2,2,1,1,5,5,4,4,1,4],[6,6,2,2,2,5,5,5,4,1,4],[6,6,6,6,3,3,5,4,4,4,4],[6,6,7,7,5,5,5,4,4,4,4],[6,6,7,7,7,5,5,5,9,4,4],[6,6,8,7,7,7,9,9,9,9,9],[8,8,8,7,7,9,9,9,9,9,9],[8,8,8,9,9,9,9,9,9,9,9],[8,8,9,9,9,9,9,9,9,9,9],[8,9,9,9,9,9,9,10,9,9,9]],"solution":[1,9,3,5,8,6,0,4,2,10,7],"metrics":{"tier":1,"steps":16,"firstPlace":0,"depth":13,"minRegion":1,"maxRegion":38,"giantShare":0.314,"onesCount":2,"miniCount":3}},{"id":"L23","index":23,"size":12,"difficulty":"normal","regions":[[8,1,1,1,1,1,1,1,0,0,0,6],[8,2,8,1,1,8,8,1,1,0,0,6],[8,2,8,8,8,8,4,4,0,0,3,6],[8,2,2,8,4,4,4,4,0,3,3,6],[8,2,8,8,4,8,4,4,0,0,0,6],[8,8,8,8,4,8,8,5,5,5,0,6],[8,10,8,8,8,8,7,7,7,7,0,6],[10,10,8,8,7,7,7,8,8,7,8,9],[10,10,8,7,7,8,8,8,8,8,8,9],[10,8,8,8,8,8,8,8,11,8,9,9],[10,10,10,8,8,8,8,8,11,8,11,11],[10,8,8,8,8,8,11,11,11,11,11,11]],"solution":[8,3,1,9,4,7,11,5,2,10,0,6],"metrics":{"tier":1,"steps":14,"firstPlace":2,"depth":12,"minRegion":3,"maxRegion":58,"giantShare":0.403,"onesCount":0,"miniCount":0}},{"id":"L24","index":24,"size":12,"difficulty":"hard","regions":[[3,3,3,0,0,0,0,0,0,0,1,1],[3,3,0,0,0,0,2,2,2,1,1,1],[3,3,0,3,0,2,2,2,2,2,1,1],[3,3,3,3,6,2,5,5,5,5,1,7],[3,8,3,4,6,6,5,5,5,7,7,7],[8,8,8,6,6,6,5,5,11,11,7,7],[8,8,8,6,11,6,11,11,11,11,7,7],[8,8,8,11,11,11,11,11,11,11,7,7],[10,8,11,11,11,11,11,11,11,11,9,11],[10,10,10,11,11,11,11,11,11,11,9,11],[10,10,10,11,11,11,11,11,11,11,11,11],[10,10,11,11,11,11,11,11,11,11,11,11]],"solution":[4,9,6,0,3,7,5,11,1,10,2,8],"metrics":{"tier":1,"steps":20,"firstPlace":0,"depth":16,"minRegion":1,"maxRegion":50,"giantShare":0.347,"onesCount":1,"miniCount":2}},{"id":"L25","index":25,"size":13,"difficulty":"normal","regions":[[1,1,1,1,1,1,1,1,0,0,0,0,0],[5,5,1,1,8,1,1,1,1,1,1,0,0],[2,5,5,1,8,8,1,8,8,8,0,0,7],[2,5,5,1,8,8,8,8,3,3,0,0,7],[5,5,10,10,10,8,6,6,6,6,6,4,7],[5,5,5,10,10,8,8,10,6,10,10,7,7],[9,9,10,10,8,8,8,10,6,10,10,7,7],[9,9,10,10,10,8,10,10,10,10,10,10,7],[9,10,10,10,10,8,8,10,11,10,10,7,7],[9,9,10,10,10,10,10,10,11,10,11,12,12],[9,10,10,10,10,10,10,10,11,11,11,11,12],[9,10,10,10,12,12,10,11,11,11,12,12,12],[10,10,10,10,10,12,12,12,12,12,12,12,12]],"solution":[10,3,0,9,11,2,8,12,6,1,4,7,5],"metrics":{"tier":1,"steps":18,"firstPlace":0,"depth":13,"minRegion":1,"maxRegion":52,"giantShare":0.308,"onesCount":1,"miniCount":3}},{"id":"L26","index":26,"size":13,"difficulty":"hard","regions":[[3,0,4,4,4,4,4,4,4,4,4,4,4],[3,0,4,4,1,4,2,2,4,4,4,4,4],[3,0,3,1,1,4,4,2,2,4,6,4,4],[3,3,3,3,1,1,2,2,4,4,6,4,4],[7,3,3,5,1,2,2,4,4,4,6,4,4],[7,7,5,5,5,5,2,4,6,6,6,6,4],[7,4,4,4,4,4,4,4,6,6,6,4,4],[7,4,7,8,4,6,6,6,6,4,4,4,4],[7,4,7,8,4,6,8,6,4,4,8,8,4],[7,7,7,8,8,8,8,8,4,4,8,8,9],[11,11,7,10,10,10,10,8,8,8,8,9,9],[11,11,10,10,12,10,12,8,9,8,9,9,9],[11,11,12,12,12,12,12,12,9,9,9,9,9]],"solution":[1,4,8,3,11,5,9,2,10,12,6,0,7],"metrics":{"tier":1,"steps":16,"firstPlace":3,"depth":14,"minRegion":3,"maxRegion":57,"giantShare":0.337,"onesCount":0,"miniCount":0}}]}</script>
+<script id="puzzles-embedded" type="application/json">{"version":2,"title":"토끼네 자리","rules":{"perRow":1,"perCol":1,"perRegion":1,"diagonalAdjacencyForbidden":true},"levels":[{"id":"L01","index":1,"size":5,"difficulty":"easy","regions":[[0,0,0,0,0],[1,2,2,0,0],[4,2,2,2,2],[4,4,2,2,3],[4,4,4,4,4]],"solution":[3,0,2,4,1],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":8,"giantShare":0.32,"onesCount":2,"miniCount":2}},{"id":"L02","index":2,"size":5,"difficulty":"easy","regions":[[0,0,0,1,1],[0,0,1,1,3],[0,2,1,1,3],[3,3,3,3,3],[3,4,4,3,3]],"solution":[0,3,1,4,2],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":10,"giantShare":0.4,"onesCount":1,"miniCount":2}},{"id":"L03","index":3,"size":5,"difficulty":"easy","regions":[[0,0,0,0,1],[0,0,0,0,1],[3,3,2,0,4],[3,3,4,0,4],[4,4,4,4,4]],"solution":[1,4,2,0,3],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":10,"giantShare":0.4,"onesCount":1,"miniCount":2}},{"id":"L04","index":4,"size":5,"difficulty":"easy","regions":[[0,0,0,0,0],[1,2,2,0,0],[2,2,2,4,4],[4,4,4,4,3],[4,4,4,4,3]],"solution":[3,0,2,4,1],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":10,"giantShare":0.4,"onesCount":1,"miniCount":2}},{"id":"L05","index":5,"size":5,"difficulty":"easy","regions":[[0,0,0,0,0],[1,1,0,0,2],[4,4,2,2,2],[4,4,2,2,3],[4,4,4,4,4]],"solution":[3,0,2,4,1],"metrics":{"tier":0,"steps":5,"firstPlace":0,"depth":0,"minRegion":1,"maxRegion":9,"giantShare":0.36,"onesCount":1,"miniCount":2}},{"id":"L06","index":6,"size":6,"difficulty":"normal","regions":[[2,0,0,0,0,0],[2,2,0,1,0,4],[2,0,0,0,0,4],[2,0,3,4,4,4],[5,0,5,5,4,4],[5,5,5,4,4,4]],"solution":[5,3,0,2,4,1],"metrics":{"tier":1,"steps":7,"firstPlace":0,"depth":9,"minRegion":1,"maxRegion":13,"giantShare":0.361,"onesCount":2,"miniCount":2}},{"id":"L07","index":7,"size":6,"difficulty":"normal","regions":[[0,1,1,1,1,1],[2,2,1,1,1,1],[3,2,2,2,1,1],[3,3,3,2,2,1],[3,5,5,5,4,5],[3,5,5,5,5,5]],"solution":[0,5,3,1,4,2],"metrics":{"tier":1,"steps":7,"firstPlace":0,"depth":9,"minRegion":1,"maxRegion":12,"giantShare":0.333,"onesCount":2,"miniCount":2}},{"id":"L08","index":8,"size":6,"difficulty":"normal","regions":[[1,1,1,1,0,2],[1,1,1,1,2,2],[1,1,1,1,2,2],[3,3,1,1,2,2],[3,3,3,4,4,4],[5,3,4,4,4,4]],"solution":[4,2,5,1,3,0],"metrics":{"tier":1,"steps":7,"firstPlace":0,"depth":9,"minRegion":1,"maxRegion":14,"giantShare":0.389,"onesCount":2,"miniCount":2}},{"id":"L09","index":9,"size":7,"difficulty":"normal","regions":[[0,0,1,1,1,2,2],[0,1,1,1,1,1,2],[0,2,2,1,2,1,2],[3,2,2,2,2,1,2],[3,4,4,6,2,2,2],[3,6,6,6,5,5,2],[6,6,6,6,5,5,2]],"solution":[1,4,6,0,2,5,3],"metrics":{"tier":1,"steps":9,"firstPlace":2,"depth":12,"minRegion":2,"maxRegion":17,"giantShare":0.347,"onesCount":0,"miniCount":1}},{"id":"L10","index":10,"size":7,"difficulty":"normal","regions":[[4,2,2,0,1,1,1],[4,2,2,1,1,1,1],[4,2,2,2,1,1,1],[4,4,2,3,3,1,1],[4,3,3,3,1,1,1],[4,5,5,3,3,1,1],[4,4,4,3,3,1,6]],"solution":[3,5,1,4,0,2,6],"metrics":{"tier":1,"steps":11,"firstPlace":0,"depth":12,"minRegion":1,"maxRegion":18,"giantShare":0.367,"onesCount":2,"miniCount":3}},{"id":"L11","index":11,"size":7,"difficulty":"normal","regions":[[0,2,2,1,1,3,3],[0,0,2,2,1,1,3],[0,0,2,2,3,3,3],[0,0,0,3,3,3,3],[0,4,0,3,3,3,3],[0,4,3,3,5,3,3],[0,6,6,5,5,3,3]],"solution":[0,5,3,6,1,4,2],"metrics":{"tier":1,"steps":10,"firstPlace":2,"depth":13,"minRegion":2,"maxRegion":20,"giantShare":0.408,"onesCount":0,"miniCount":2}},{"id":"L12","index":12,"size":8,"difficulty":"normal","regions":[[0,0,0,0,0,0,0,0],[5,5,0,1,0,0,0,0],[5,5,6,6,0,2,0,0],[5,3,3,6,0,4,4,0],[5,5,6,6,4,4,4,0],[5,5,5,6,6,4,0,0],[5,5,6,6,4,4,0,0],[5,5,5,6,6,7,7,0]],"solution":[7,3,5,1,4,0,2,6],"metrics":{"tier":1,"steps":10,"firstPlace":0,"depth":10,"minRegion":1,"maxRegion":24,"giantShare":0.375,"onesCount":2,"miniCount":4}},{"id":"L13","index":13,"size":8,"difficulty":"normal","regions":[[2,0,2,2,2,3,3,3],[2,2,2,3,3,1,3,3],[2,5,3,3,3,3,3,3],[2,5,3,3,3,3,3,3],[2,5,5,4,4,3,3,3],[5,5,5,4,6,3,6,6],[5,7,7,6,6,3,3,6],[7,7,7,7,6,6,6,6]],"solution":[1,5,0,6,4,2,7,3],"metrics":{"tier":1,"steps":10,"firstPlace":0,"depth":10,"minRegion":1,"maxRegion":25,"giantShare":0.391,"onesCount":2,"miniCount":2}},{"id":"L14","index":14,"size":8,"difficulty":"normal","regions":[[0,0,0,0,0,0,0,0],[0,0,1,1,0,0,0,0],[0,2,0,1,1,1,1,1],[0,2,0,0,0,1,3,1],[0,0,0,4,4,3,3,3],[5,5,0,4,6,6,6,3],[6,6,6,6,6,6,3,3],[6,6,7,7,3,3,3,3]],"solution":[7,3,1,6,4,0,5,2],"metrics":{"tier":1,"steps":10,"firstPlace":2,"depth":12,"minRegion":2,"maxRegion":24,"giantShare":0.375,"onesCount":0,"miniCount":3}},{"id":"L15","index":15,"size":9,"difficulty":"normal","regions":[[0,0,0,0,2,2,1,1,1],[3,3,3,3,3,2,2,2,1],[3,8,3,3,3,2,8,8,4],[3,8,8,8,8,8,8,8,4],[8,8,5,5,8,8,8,4,4],[5,8,5,5,8,8,6,6,6],[5,5,5,7,8,8,6,8,6],[5,5,7,7,8,8,8,8,6],[5,8,8,8,8,8,8,8,6]],"solution":[1,8,5,0,7,3,6,2,4],"metrics":{"tier":1,"steps":11,"firstPlace":1,"depth":11,"minRegion":3,"maxRegion":32,"giantShare":0.395,"onesCount":0,"miniCount":0}},{"id":"L16","index":16,"size":9,"difficulty":"normal","regions":[[5,5,5,5,5,5,5,0,6],[5,1,5,2,2,5,0,0,6],[5,1,5,2,2,0,0,0,6],[3,5,5,2,5,5,5,6,6],[7,5,5,2,5,4,4,4,6],[7,5,5,5,5,5,6,6,6],[7,5,5,5,5,5,6,6,6],[7,7,5,7,5,7,6,8,6],[7,7,7,7,7,7,6,8,8]],"solution":[7,1,4,0,5,2,6,3,8],"metrics":{"tier":1,"steps":12,"firstPlace":0,"depth":11,"minRegion":1,"maxRegion":32,"giantShare":0.395,"onesCount":1,"miniCount":2}},{"id":"L17","index":17,"size":9,"difficulty":"normal","regions":[[0,0,0,0,0,0,0,0,0],[1,1,0,0,0,0,0,0,0],[1,1,2,0,0,0,0,0,0],[4,1,2,0,3,0,0,0,5],[4,4,2,0,3,3,3,5,5],[4,2,2,0,3,5,5,5,5],[4,8,2,6,6,6,7,5,5],[4,8,8,6,6,7,7,7,5],[8,8,8,8,6,6,7,7,7]],"solution":[6,0,2,4,1,8,5,7,3],"metrics":{"tier":1,"steps":12,"firstPlace":2,"depth":13,"minRegion":5,"maxRegion":28,"giantShare":0.346,"onesCount":0,"miniCount":0}},{"id":"L18","index":18,"size":10,"difficulty":"normal","regions":[[2,2,3,3,3,0,0,4,4,4],[2,2,2,1,3,3,3,8,4,4],[2,2,2,3,3,8,8,8,8,4],[2,2,6,6,3,8,8,8,8,4],[6,6,6,6,8,8,8,5,5,4],[6,6,8,8,8,5,5,5,5,5],[7,6,6,8,8,8,8,8,8,5],[7,8,8,8,9,9,9,9,5,5],[7,8,8,8,9,8,9,9,5,9],[7,8,8,8,8,8,8,9,9,9]],"solution":[6,3,1,4,9,7,2,0,5,8],"metrics":{"tier":1,"steps":14,"firstPlace":0,"depth":12,"minRegion":1,"maxRegion":34,"giantShare":0.34,"onesCount":1,"miniCount":2}},{"id":"L19","index":19,"size":10,"difficulty":"hard","regions":[[8,8,8,0,0,4,9,9,9,9],[8,2,2,2,2,4,4,9,1,9],[8,2,2,3,2,2,4,1,1,9],[8,2,2,3,9,9,4,1,9,9],[8,8,8,5,5,9,4,1,1,9],[8,5,5,5,9,9,9,9,9,9],[8,5,9,9,9,9,9,6,9,6],[8,8,7,7,9,9,6,6,6,6],[8,9,9,7,7,9,9,6,9,6],[8,8,9,9,9,9,9,9,9,6]],"solution":[4,8,5,3,6,1,9,2,0,7],"metrics":{"tier":1,"steps":13,"firstPlace":3,"depth":14,"minRegion":2,"maxRegion":39,"giantShare":0.39,"onesCount":0,"miniCount":2}},{"id":"L20","index":20,"size":10,"difficulty":"hard","regions":[[0,0,1,1,1,1,1,1,1,2],[0,1,1,1,1,1,1,1,1,2],[3,1,1,1,1,1,1,5,1,2],[3,1,1,1,5,5,5,5,1,1],[4,1,4,1,5,7,7,7,1,1],[4,4,4,1,5,5,7,7,1,7],[4,6,6,6,5,8,7,7,7,7],[4,6,6,9,5,8,7,8,8,7],[9,9,6,9,5,8,8,8,8,7],[9,9,9,9,9,8,8,8,8,8]],"solution":[1,7,9,0,2,5,3,6,8,4],"metrics":{"tier":1,"steps":14,"firstPlace":2,"depth":14,"minRegion":2,"maxRegion":33,"giantShare":0.33,"onesCount":0,"miniCount":1}}]}</script>
 
 <script>
 "use strict";
@@ -1390,6 +1390,7 @@ function freshSave() {
     cleared: {}, lastLevel: null, inProgress: null, tutorialDone: false, sound: true,
     wallet: { hints: WALLET_START.hints, boosts: WALLET_START.boosts },
     endless: { level: 0, cleared: 0, bestScore: 0, puzzle: null, fail: null },
+    endlessOpen: false,
   };
 }
 const Store = {
@@ -1422,6 +1423,15 @@ function countOr(value, max, fallback) {
 }
 
 /**
+ * 스테이지에서 뺀 레벨의 id. (판 자체는 puzzles-retired.json 에 남아 있다)
+ *
+ * migrateSave 는 PUZZLES 가 아직 로드되기 전에 돌기 때문에 현재 레벨 목록을
+ * 볼 수 없다. 그래서 "예전에 21판 이상 진행했는가"는 이 고정 목록으로 판단한다.
+ * 지나간 세대의 사실이라 앞으로 늘어날 일이 없는 목록이다.
+ */
+const RETIRED_LEVEL_IDS = ['L21', 'L22', 'L23', 'L24', 'L25', 'L26'];
+
+/**
  * 구버전 저장분을 현행 스키마로 끌어올린다.
  *
  * 세대별로 무엇이 없는가:
@@ -1446,6 +1456,11 @@ function migrateSave(data) {
     sound: d.sound !== false,
     wallet: { hints: WALLET_START.hints, boosts: WALLET_START.boosts },
     endless: { level: 0, cleared: 0, bestScore: 0, puzzle: null, fail: null },
+    // 스테이지가 26판이던 시절에 21판 이상 진행했다면 무한 마당은 이미 열린 것으로 본다.
+    // 실제로는 레벨이 순서대로만 열리므로 그런 사람은 지금의 20판도 전부 깨 놓은
+    // 상태다 — 그래도 개방 여부를 진행 기록의 해석에 맡기지 않고 못박아 둔다.
+    endlessOpen: !!d.endlessOpen
+      || RETIRED_LEVEL_IDS.some((id) => d.cleared && d.cleared[id]),
   };
 
   for (const [id, rec] of Object.entries(out.cleared)) {
@@ -1489,6 +1504,16 @@ function migrateSave(data) {
       elapsed: countOr(ip.elapsed, Infinity, 0),
     };
   }
+
+  // 무한 판의 "이어서 하기"는 그 판(endless.puzzle)이 함께 저장돼 있을 때만 뜻이 있다.
+  // 판본이 안 맞아 캐시를 버렸으면 격자만 남는데, 그건 두 가지로 어긋난다 —
+  // 다른 판 위에 얹히거나, 지금 진행 위치와 다른 번호로 데려간다. (스테이지가
+  // 20판이 되면서 무한 번호가 27 -> 21 로 내려갔으니 옛 E27 은 더 이상 첫 판이 아니다)
+  // 그럴 바엔 없던 일로 하고 제자리에서 새로 시작하는 게 낫다.
+  const ipE = /^E(\d+)$/.exec(out.inProgress ? out.inProgress.levelId : '');
+  if (ipE && (!out.endless.puzzle || out.endless.puzzle.level !== Number(ipE[1]))) {
+    out.inProgress = null;
+  }
   return out;
 }
 
@@ -1496,11 +1521,16 @@ function migrateSave(data) {
  * 저장해 두는 무한 판 캐시의 판본.
  *
  * 이 캐시는 "이어서 하기"가 그때 그 판을 그대로 되살리라고 있는 것이라, 커브가
- * 바뀌면 통째로 버려야 한다. 예전 커브에서는 27번이 12x12 였고 지금은 11x11 이니
- * 구버전 캐시를 그냥 받으면 이어서 하기가 커브에 없는 판을 띄운다.
- * 판본이 다른 캐시는 validPuzzle 이 버리고, 그러면 그 레벨을 새로 만든다.
+ * 바뀌면 통째로 버려야 한다. 판본이 다른 캐시는 validPuzzle 이 버리고,
+ * 그러면 그 레벨을 새로 만든다.
+ *
+ *   v2  크기 커브를 11~13 으로 내리고 구조 단계를 도입 (27번이 12x12 -> 11x11)
+ *   v3  스테이지가 20판이 되면서 무한 시작 번호가 27 -> 21 로 내려갔다.
+ *       판 모양은 그대로지만 "27번"이 가리키는 난이도가 달라졌다 — 예전 27번은
+ *       커브의 첫 판이었고 지금 27번은 일곱 번째 판이다. 번호만 보고 캐시를
+ *       재사용하면 그 자리에 엉뚱한 난이도의 판이 뜬다.
  */
-const ENDLESS_CACHE_V = 2;
+const ENDLESS_CACHE_V = 3;
 
 /** 저장된 무한 판이 실제로 쓸 수 있는 모양인지 — 손상된 저장분에 게임이 끌려가지 않게 */
 function validPuzzle(p) {
@@ -2283,14 +2313,14 @@ function finishEndlessPuzzle(got, asked) {
  * 동안 다음 판을 미리 만들어 둔다. 워커를 못 쓰는 환경(file:// 등)에서는
  * 메인 스레드에서 만들되 "준비 중" 화면을 띄운다.
  * ========================================================================== */
-const ENDLESS_START = 27;          // 스테이지 26판 다음 번호
+const ENDLESS_START = 21;          // 스테이지 20판 다음 번호
 
 /**
- * 무한 마당 커브 — t = 레벨 - 27 이 이 구간에 들어가면 그 { size, step } 을 쓴다.
+ * 무한 마당 커브 — t = 레벨 - ENDLESS_START 가 이 구간에 들어가면 그 { size, step } 을 쓴다.
  *
- * 크기는 11 에서 시작해 13 까지만 오르고 거기서 멈춘다. 11 에서 시작하는 건
- * 스테이지 26번(13x13, T1)과 무한 27번 사이의 난이도 절벽을 없애기 위해서다 —
- * 예전에는 27번이 곧장 12x12 T2/T3 로 뛰었다.
+ * 크기는 11 에서 시작해 13 까지만 오르고 거기서 멈춘다. 스테이지 마지막판이
+ * 10x10 T1(첫 확정 2수)이므로, 무한 첫 판은 크기가 한 칸만 오르고 구조는
+ * 가장 무른 0단계에서 시작한다 — 이어지는 자리에 턱을 두지 않기 위해서다.
  *
  * 크기가 한 칸 오르는 구간에서는 구조 요구를 한 눈금 내려 숨을 틔운다
  * (크기 업 = 구조 다운). 두 축을 동시에 올리면 그 한 판이 벽이 된다.
@@ -2300,17 +2330,17 @@ const ENDLESS_START = 27;          // 스테이지 26판 다음 번호
  * 10판마다 오는 도전 판이 담당한다.
  */
 const ENDLESS_CURVE = [
-  { t: 0,  size: 11, step: 0 },   // 27~30  스테이지에서 이어받는 구간
-  { t: 4,  size: 11, step: 1 },   // 31~34  미니 영역이 하나로 줄어든다
-  { t: 8,  size: 12, step: 1 },   // 35~38  크기 업 -> 구조는 그대로
-  { t: 12, size: 12, step: 2 },   // 39~42  k-집합 추론이 필요해진다
-  { t: 16, size: 12, step: 3 },   // 43~46  1칸 영역이 사라진다
-  { t: 20, size: 13, step: 2 },   // 47~50  크기 업 -> 구조 한 눈금 아래로
-  { t: 24, size: 13, step: 3 },   // 51~54  다시 1칸 영역 없음, 이번엔 13x13 에서
-  { t: 28, size: 13, step: 4 },   // 55~    모든 영역 3칸 이상 + 귀류 — 커브의 끝
+  { t: 0,  size: 11, step: 0 },   // 21~24  스테이지에서 이어받는 구간
+  { t: 4,  size: 11, step: 1 },   // 25~28  미니 영역이 하나로 줄어든다
+  { t: 8,  size: 12, step: 1 },   // 29~32  크기 업 -> 구조는 그대로
+  { t: 12, size: 12, step: 2 },   // 33~36  k-집합 추론이 필요해진다
+  { t: 16, size: 12, step: 3 },   // 37~40  1칸 영역이 사라진다
+  { t: 20, size: 13, step: 2 },   // 41~44  크기 업 -> 구조 한 눈금 아래로
+  { t: 24, size: 13, step: 3 },   // 45~48  다시 1칸 영역 없음, 이번엔 13x13 에서
+  { t: 28, size: 13, step: 4 },   // 49~    모든 영역 3칸 이상 + 귀류 — 커브의 끝
 ];
 
-/** 무한 마당은 10판마다(30, 40, 50…) 도전 판이 온다 */
+/** 무한 마당은 10판마다(30, 40, 50…) 도전 판이 온다 (21~29 구간엔 없다) */
 function isChallengeLevel(level) {
   return level >= ENDLESS_START && level % 10 === 0;
 }
@@ -2329,6 +2359,7 @@ function endlessSpec(level) {
   if (challenge) {
     // 한 단계 위(70%) 또는 두 단계 위(30%). 어느 쪽인지는 레벨 번호에서 뽑으므로
     // 30번은 언제 만들어도 같은 도전 판이다.
+    // (도전 판이 처음 오는 건 30번 — 21~29 는 새 모드에 익숙해지는 구간이다)
     const bump = mulberry32(endlessSeed(level) ^ 0x2545F491)() < 0.7 ? 1 : 2;
     step = Math.min(STRUCT_TOP, step + bump);
   }
@@ -2634,7 +2665,7 @@ function renderLevels() {
     : `${clearedN} / ${PUZZLES.levels.length} 레벨 완성`;
 }
 
-/** 목록 맨 위의 무한 마당 카드. 26판을 다 깨기 전에는 잠긴 모습으로 보여 준다. */
+/** 목록 맨 위의 무한 마당 카드. 스테이지를 다 깨기 전에는 잠긴 모습으로 보여 준다. */
 function buildEndlessCard() {
   const el = document.createElement('button');
   el.id = 'endlessCard';
@@ -2717,8 +2748,12 @@ function startLevel(index, restore) {
   }, restore);
 }
 
-/** 스테이지 26판을 다 깼는가 — 무한 마당이 열리는 조건 */
+/**
+ * 스테이지를 다 깼는가 — 무한 마당이 열리는 조건.
+ * 26판 시절에 21판 이상 진행한 저장분은 endlessOpen 으로 이미 열려 있다.
+ */
 function endlessUnlocked() {
+  if (Store.data.endlessOpen) return true;
   return !!PUZZLES && PUZZLES.levels.every((lv) => Store.data.cleared[lv.id]);
 }
 

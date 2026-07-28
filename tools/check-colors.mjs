@@ -13,7 +13,7 @@
  * 사용: node tools/check-colors.mjs
  * 하나라도 걸리면 종료 코드 1.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 
 const src = readFileSync('index.html', 'utf8');
 const from = src.indexOf('const PALETTE = [');
@@ -37,9 +37,12 @@ console.log(`팔레트 ${PALETTE.length}색 · 가장 가까운 쌍 ${closest[1]
 console.log('(팔레트 안에 가까운 쌍이 있는 건 괜찮다 — 배색이 그 둘을 이웃으로 두지만 않으면 된다)\n');
 
 const data = JSON.parse(readFileSync('puzzles.json', 'utf8'));
+// 보관해 둔 판(puzzles-retired.json)도 같이 본다 — 되돌릴 때 배색이 깨져 있으면 안 된다
+const RETIRED = 'puzzles-retired.json';
+const retired = existsSync(RETIRED) ? JSON.parse(readFileSync(RETIRED, 'utf8')).levels : [];
 let fails = 0, worstAll = Infinity;
 
-for (const lv of data.levels) {
+for (const lv of [...data.levels, ...retired]) {
   const n = lv.size, regions = lv.regions;
   const color = assignRegionColors(n, regions);
   const problems = [];
@@ -97,4 +100,5 @@ if (fails) {
   console.error(`${fails}개 레벨에서 문제가 있습니다.`);
   process.exit(1);
 }
-console.log(`${data.levels.length}개 레벨 모두 통과.`);
+console.log(`${data.levels.length}개 레벨 모두 통과.`
+  + (retired.length ? ` (+ 보관 ${retired.length}개)` : ''));

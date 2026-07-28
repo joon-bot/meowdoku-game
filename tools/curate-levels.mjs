@@ -41,8 +41,13 @@ const difficultyOf = (depth) => DIFF_BANDS.find((b) => depth <= b.max).name;
 const hardness = (p) => p.metrics.depth + p.metrics.steps * 0.2;
 
 const OPENING = 5;          // 첫 5레벨: 가장 쉬운 5x5
+/*
+ * 스테이지는 5x5 ~ 10x10 스무 판까지다. 11x11 부터는 뽑지 않는다 —
+ * 그 위는 무한 마당이 맡고, 스테이지는 규칙을 익히는 구간으로 끝낸다.
+ * (예전에 스테이지였던 11~13 크기 여섯 판은 puzzles-retired.json 에 남아 있다)
+ */
 const PER_SIZE = {
-  5: OPENING, 6: 3, 7: 3, 8: 3, 9: 3, 10: 3, 11: 2, 12: 2, 13: 2,
+  5: OPENING, 6: 3, 7: 3, 8: 3, 9: 3, 10: 3,
 };
 
 const bySize = new Map();

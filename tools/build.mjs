@@ -6,11 +6,18 @@
  * 2) puzzles.json 을 index.html 의 <script id="puzzles-embedded"> 안에 넣는다.
  *    -> 로컬 파일(file://)로 열어도 fetch 없이 바로 플레이 가능
  *
+ * puzzles-retired.json (스테이지에서 뺀 판)도 같이 검사한다. 게임은 그 파일을
+ * 읽지 않지만, 검사에서 빠지면 보관해 둔 데이터가 조용히 썩는다 — 되돌리려고
+ * 남겨 둔 것이니 되돌릴 수 있는 상태로 남아 있어야 한다. 내장 사본에는 넣지
+ * 않는다 (안 쓰는 판 여섯 개가 index.html 을 11KB 불린다).
+ *
  * 사용: node tools/build.mjs
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
 const data = JSON.parse(readFileSync('puzzles.json', 'utf8'));
+const RETIRED = 'puzzles-retired.json';
+const retired = existsSync(RETIRED) ? JSON.parse(readFileSync(RETIRED, 'utf8')) : { levels: [] };
 
 function findSolutions(n, regions, limit = 2) {
   const colUsed = new Array(n).fill(false);
@@ -59,7 +66,7 @@ function regionsConnected(n, regions) {
 }
 
 let bad = 0;
-for (const lv of data.levels) {
+for (const lv of [...data.levels, ...retired.levels]) {
   const n = lv.size;
   const problems = [];
   if (lv.regions.length !== n || lv.regions.some((row) => row.length !== n)) problems.push('영역 격자 크기 불일치');
@@ -80,7 +87,8 @@ for (const lv of data.levels) {
 }
 
 if (bad) { console.error(`\n검증 실패: ${bad}개 레벨에 문제가 있습니다.`); process.exit(1); }
-console.log(`✓ ${data.levels.length}개 레벨 검증 통과`);
+console.log(`✓ ${data.levels.length}개 레벨 검증 통과`
+  + (retired.levels.length ? ` (+ 보관 ${retired.levels.length}개)` : ''));
 
 // ---------------------------------------------------------------- 난이도 등급 검사
 // 난이도는 오직 추론 깊이(metrics.depth)로만 매겨진다.
@@ -88,7 +96,7 @@ console.log(`✓ ${data.levels.length}개 레벨 검증 통과`);
 {
   const BANDS = [{ max: 6, name: 'easy' }, { max: 13, name: 'normal' }, { max: Infinity, name: 'hard' }];
   const problems = [];
-  for (const lv of data.levels) {
+  for (const lv of [...data.levels, ...retired.levels]) {
     if (!lv.metrics || typeof lv.metrics.depth !== 'number') { problems.push(`${lv.id}: depth 없음`); continue; }
     const want = BANDS.find((b) => lv.metrics.depth <= b.max).name;
     if (lv.difficulty !== want) {
