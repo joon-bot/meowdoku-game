@@ -54,6 +54,7 @@ jobs:
         run: |
           for f in index.html puzzles.json manifest.json sw.js \
                    assets/rabbit.png assets/rabbit_jump.png assets/rabbit_sad.png \
+                   assets/rabbit_sleep.png assets/rabbit_think.png \
                    assets/icon-192.png assets/icon-512.png \
                    assets/fonts/jua.woff2 assets/fonts/gowun.woff2; do
             [ -s "_site/$f" ] || { echo "::error::배포 묶음에 $f 가 없습니다"; exit 1; }

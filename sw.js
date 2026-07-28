@@ -22,6 +22,8 @@ const SHELL = [
   './assets/rabbit.png',
   './assets/rabbit_jump.png',
   './assets/rabbit_sad.png',
+  './assets/rabbit_sleep.png',
+  './assets/rabbit_think.png',
   './assets/icon-192.png',
   './assets/icon-512.png',
   './assets/fonts/jua.woff2',

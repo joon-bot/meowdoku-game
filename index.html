@@ -1260,6 +1260,7 @@ const Store = {
       const raw = localStorage.getItem(STORE_KEY);
       if (raw) this.data = Object.assign(this.data, JSON.parse(raw));
     } catch (e) { /* 저장소 접근 불가 — 세션 한정으로 진행 */ }
+    this.data = migrateSave(this.data);
     return this.data;
   },
   save() {
@@ -1270,6 +1271,55 @@ const Store = {
     this.save();
   },
 };
+
+/**
+ * 저장된 개수 값 하나를 믿을 수 있는 숫자로 만든다.
+ * 없으면(undefined/null) 기본값, 숫자가 아니면(NaN·문자열·Infinity) 기본값,
+ * 범위를 벗어나면 0~max 로 자른다.
+ */
+function countOr(value, max, fallback) {
+  const n = value ?? fallback;
+  return Number.isFinite(n) ? Math.min(max, Math.max(0, Math.round(n))) : fallback;
+}
+
+/**
+ * 구버전 저장분을 현행 스키마로 끌어올린다.
+ *
+ * 초기 v1 저장분의 inProgress 에는 lives/hints/boosts 가 없다. 그대로 복원하면
+ * G.lives 가 undefined 가 되어 ①점수가 NaN 이 되고 ②당근이 전부 사라진 것처럼
+ * 그려지며 ③오답 때 Math.max(0, undefined - 1) = NaN 이라 lives === 0 이
+ * 영영 성립하지 않아 게임오버가 뜨지 않는다. 읽어들이는 시점에 한 번 메워 둔다.
+ */
+function migrateSave(data) {
+  const d = (data && typeof data === 'object') ? data : {};
+  const out = {
+    cleared: (d.cleared && typeof d.cleared === 'object') ? d.cleared : {},
+    lastLevel: typeof d.lastLevel === 'string' ? d.lastLevel : null,
+    inProgress: null,
+    tutorialDone: !!d.tutorialDone,
+    sound: d.sound !== false,
+  };
+
+  for (const [id, rec] of Object.entries(out.cleared)) {
+    if (!rec || typeof rec !== 'object') { delete out.cleared[id]; continue; }
+    rec.time = countOr(rec.time, Infinity, 0);
+    rec.lives = countOr(rec.lives, MAX_LIVES, MAX_LIVES);
+    rec.score = countOr(rec.score, Infinity, 0);
+  }
+
+  const ip = d.inProgress;
+  if (ip && typeof ip === 'object' && typeof ip.levelId === 'string' && Array.isArray(ip.grid)) {
+    out.inProgress = {
+      levelId: ip.levelId,
+      grid: ip.grid.map((row) => (Array.isArray(row) ? row.slice() : [])),
+      lives: countOr(ip.lives, MAX_LIVES, MAX_LIVES),
+      hints: countOr(ip.hints, HINTS_PER_LEVEL, HINTS_PER_LEVEL),
+      boosts: countOr(ip.boosts, BOOSTS_PER_LEVEL, BOOSTS_PER_LEVEL),
+      elapsed: countOr(ip.elapsed, Infinity, 0),
+    };
+  }
+  return out;
+}
 
 /* ==========================================================================
  * 4. 논리 솔버 (힌트 엔진)
@@ -1665,12 +1715,14 @@ function startLevel(index, restore) {
   G.level = lv; G.index = index;
   G.n = lv.size; G.regions = lv.regions; G.solution = lv.solution;
   G.colors = assignRegionColors(lv.size, lv.regions);   // 맞닿은 영역끼리 색이 겹치지 않게
-  G.grid = restore ? restore.grid.map((r) => r.slice())
-                   : Array.from({ length: G.n }, () => new Array(G.n).fill(0));
-  G.lives = restore ? restore.lives : MAX_LIVES;
-  G.hints = restore ? restore.hints : HINTS_PER_LEVEL;
-  G.boosts = restore ? restore.boosts : BOOSTS_PER_LEVEL;
-  G.elapsed = restore ? (restore.elapsed || 0) : 0;
+  G.grid = (restore && Array.isArray(restore.grid))
+    ? restore.grid.map((r) => r.slice())
+    : Array.from({ length: G.n }, () => new Array(G.n).fill(0));
+  // 필드별로 채운다 — 구버전 저장분엔 lives/hints/boosts 자체가 없다
+  G.lives = countOr(restore?.lives, MAX_LIVES, MAX_LIVES);
+  G.hints = countOr(restore?.hints, HINTS_PER_LEVEL, HINTS_PER_LEVEL);
+  G.boosts = countOr(restore?.boosts, BOOSTS_PER_LEVEL, BOOSTS_PER_LEVEL);
+  G.elapsed = countOr(restore?.elapsed, Infinity, 0);
   G.history = []; G.finished = false; G.hintCells = [];
 
   $('gmName').textContent = `레벨 ${index + 1}`;
