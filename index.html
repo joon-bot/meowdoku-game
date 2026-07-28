@@ -332,14 +332,40 @@ h1.game-title{
 .cell .glyph{width:80%;height:80%;display:grid;place-items:center;pointer-events:none;}
 .cell .glyph svg{width:100%;height:100%;display:block;}
 /* ---- 배치 감각 (전부 transform/opacity 만 건드린다) ---- */
-/* 토끼: 살짝 커졌다 제자리로. 0.46초짜리 낙하 연출을 0.2초 팝으로 바꿨다 —
-   토끼를 여러 마리 연달아 놓을 때 앞 연출이 끝나기를 기다리는 느낌이 없어야 한다.
-   오버슈트는 키프레임이 아니라 가속곡선이 만든다(0.34,1.56 이 1 을 10% 넘어간다). */
-.cell[data-glyph="rabbit"] .glyph{animation:rabbitPop .2s cubic-bezier(.34,1.56,.64,1) both;}
-@keyframes rabbitPop{
-  from{transform:scale(.52);opacity:0}
-  to  {transform:scale(1);opacity:1}
+/* 방석 — 놓인 토끼 뒤에 상시 깔리는 반투명 흰 원.
+   크림색 토끼는 연두·분홍 같은 밝은 타일 위에서 윤곽이 묻힌다. 색을 어둡게
+   바꾸는 대신 토끼와 타일 사이에 흰 판을 한 장 끼워 어떤 배색에서도 같은
+   대비를 보장한다. 판정과 무관한 순수 배경이므로 ✕ 메모에는 깔지 않는다 —
+   ✕ 까지 방석을 받으면 "앉았다"는 신호가 흐려진다. */
+.cell .pad{
+  position:absolute;inset:10%;border-radius:50%;pointer-events:none;
+  background:rgba(255,255,255,.88);
+  box-shadow:0 2px 6px rgba(120,95,75,.22), inset 0 0 0 1px rgba(255,255,255,.65);
 }
+/* 토끼: 작게 시작해 크게 튀었다 제자리로.
+   오버슈트를 이징에 맡기지 않고 키프레임에 못박았다 — 이징이 만드는 10% 는
+   밝은 타일 위에서 "놓였다"는 신호로 읽히지 않는다. 정점은 25%(=60ms) 지점에
+   두고 소리·진동을 거기에 맞춘다(PLACE_HIT_MS). 정점을 뒤로 밀면 그만큼
+   소리도 밀려 탭이 굼떠 보이므로, 커지는 구간은 짧고 가라앉는 구간은 길게.
+   방석은 같은 길이로 조금 덜 튀게 — 토끼가 방석 위에 앉는 것으로 읽힌다. */
+.cell[data-glyph="rabbit"] .glyph{animation:rabbitPop .24s linear both;}
+.cell[data-glyph="rabbit"] .pad{animation:padPop .24s linear both;}
+@keyframes rabbitPop{
+  0%  {transform:scale(.40);opacity:0;animation-timing-function:cubic-bezier(.22,.9,.3,1)}
+  25% {transform:scale(1.20);opacity:1;animation-timing-function:cubic-bezier(.4,0,.5,1)}
+  55% {transform:scale(.95)}
+  78% {transform:scale(1.03)}
+  100%{transform:scale(1);opacity:1}
+}
+@keyframes padPop{
+  0%  {transform:scale(.30);opacity:0;animation-timing-function:cubic-bezier(.22,.9,.3,1)}
+  25% {transform:scale(1.12);opacity:1;animation-timing-function:cubic-bezier(.4,0,.5,1)}
+  60% {transform:scale(.97)}
+  100%{transform:scale(1);opacity:1}
+}
+/* 토끼를 치울 때는 방석도 같이 쪼그라든다 */
+.cell .pad.out{animation:padOut .16s ease-in both;}
+@keyframes padOut{from{transform:scale(1);opacity:1}to{transform:scale(.35);opacity:0}}
 /* ✕ 메모: 살짝 커졌다 제자리 */
 .cell[data-glyph="mark"] .glyph{animation:markPop .19s cubic-bezier(.2,1.6,.4,1) both;}
 @keyframes markPop{
@@ -464,6 +490,50 @@ body.tutorial-mode #coachLine{display:block;}
 }
 @keyframes targetPulse{0%,100%{opacity:.5;transform:scale(.96)}50%{opacity:1;transform:scale(1.02)}}
 .cell.urge::after{animation:targetPulse .28s ease-in-out 4;}
+
+/* ---- 배치 순간의 링·반짝임 -------------------------------------------------
+   보드 위에 깔린 얇은 판 하나에 몇 벌을 미리 만들어 두고 돌려 쓴다. 노드를
+   그때그때 만들고 버리면 연타할 때 그 자체가 프레임을 잡아먹는다.
+   한 벌 = 링 1개 + 반짝임 몇 개(FX_SPARKS). 좌표는 슬롯의 transform 하나로만
+   옮기고, 자식들은 그 자리에서 transform/opacity 만 움직인다 — 레이아웃이 없다.
+   자르지 않는다: 가장자리 칸에서 튄 반짝임이 보드 카드 밖으로 조금 나가는 건
+   자연스럽지만, 둥근 모서리에서 뚝 잘리는 건 눈에 띈다. 바깥은 #viewport 가 자른다. */
+#fxLayer{position:absolute;inset:0;pointer-events:none;z-index:4;}
+.fx{position:absolute;left:0;top:0;width:0;height:0;}
+/* 링은 흰색이지만 연한 타일 위에서는 흰색끼리 묻는다 — 옅은 그림자로 테두리를
+   세워 어떤 타일 색에서도 같은 굵기로 읽히게 한다. */
+.fx-ring{
+  position:absolute;left:0;top:0;
+  width:var(--fx-size);height:var(--fx-size);
+  margin-left:calc(var(--fx-size) / -2);margin-top:calc(var(--fx-size) / -2);
+  border-radius:50%;border:3px solid rgba(255,255,255,.95);
+  box-shadow:0 1px 3px rgba(120,95,75,.18);
+  opacity:0;
+}
+/* 반짝임은 방석(흰 원) 위를 지나므로 흰 점만으로는 안 보인다.
+   흰 알맹이에 따뜻한 테두리·번짐을 둘러 흰 방석 위에서도, 파스텔 타일 위에서도 뜬다. */
+.fx-spark{
+  position:absolute;left:0;top:0;width:7px;height:7px;
+  margin:-3.5px 0 0 -3.5px;border-radius:50%;
+  background:#FFFCF0;
+  box-shadow:0 0 0 1.5px rgba(255,190,90,.95), 0 0 7px 1px rgba(255,190,90,.7);
+  opacity:0;
+}
+/* run 클래스를 뗐다 붙이면 같은 노드에서 연출이 처음부터 다시 돈다 */
+.fx.run .fx-ring{animation:fxRing .3s cubic-bezier(.15,.7,.3,1) both;}
+.fx.run .fx-spark{animation:fxSpark .38s cubic-bezier(.2,.7,.3,1) both;}
+@keyframes fxRing{
+  0%  {transform:scale(.34);opacity:.95}
+  45% {opacity:.85}
+  100%{transform:scale(1.6);opacity:0}
+}
+/* 방석 언저리에서 시작해(--dx 의 55%) 부채꼴로 튀어 오른 뒤 살짝 떨어지며 사라진다 */
+@keyframes fxSpark{
+  0%  {transform:translate(calc(var(--dx) * .55), calc(var(--dy) * .55)) scale(.2);opacity:0}
+  20% {opacity:1}
+  70% {transform:translate(var(--dx), var(--dy)) scale(.62);opacity:.85}
+  100%{transform:translate(var(--dx), calc(var(--dy) + 6px)) scale(.4);opacity:0}
+}
 
 /* 두드리는 손가락 */
 #tapFinger{
@@ -779,6 +849,7 @@ body.tutorial-mode #hintBar{display:none;}
       <div id="stage">
         <div id="boardWrap">
           <div id="board"></div>
+          <div id="fxLayer" aria-hidden="true"></div>
           <div id="tapFinger">
             <svg viewBox="0 0 48 56" aria-hidden="true">
               <ellipse cx="24" cy="9" rx="11" ry="8" fill="rgba(255,255,255,.5)"/>
@@ -1116,10 +1187,16 @@ const Sfx = {
     osc.start(t0); osc.stop(t0 + o.dur + 0.02);
   },
 
-  /** 토끼 배치 — 낮고 포근한 두 음 (근음 + 5도) */
-  place() {
-    this.tone({ type: 'sine', from: 196, to: 262, dur: 0.26, gain: 0.5 });
-    this.tone({ type: 'triangle', from: 392, to: 523, dur: 0.2, gain: 0.16, delay: 0.02 });
+  /**
+   * 토끼 배치 — 낮고 포근한 두 음 (근음 + 5도).
+   * @param delay 초 단위 지연. 팝이 가장 커지는 순간에 소리를 때리려고 쓴다.
+   *   setTimeout 이 아니라 오디오 그래프에 맡기는 이유: setTimeout 은 프레임에
+   *   묶여 수십 ms 씩 밀리는데, 여기 지연은 60ms 라 그 오차가 그대로 어긋남이 된다.
+   */
+  place(delay) {
+    const d = delay || 0;
+    this.tone({ type: 'sine', from: 196, to: 262, dur: 0.26, gain: 0.5, delay: d });
+    this.tone({ type: 'triangle', from: 392, to: 523, dur: 0.2, gain: 0.16, delay: d + 0.02 });
   },
   /** ✕ 메모 — 아주 짧은 틱 */
   mark() { this.tone({ type: 'triangle', from: 900, to: 700, dur: 0.05, gain: 0.2 }); },
@@ -1529,8 +1606,13 @@ function migrateSave(data) {
  *       판 모양은 그대로지만 "27번"이 가리키는 난이도가 달라졌다 — 예전 27번은
  *       커브의 첫 판이었고 지금 27번은 일곱 번째 판이다. 번호만 보고 캐시를
  *       재사용하면 그 자리에 엉뚱한 난이도의 판이 뜬다.
+ *   v4  커브 구간이 4판에서 20~50판으로 길어졌다. 단계의 순서는 그대로지만
+ *       같은 번호가 가리키는 크기·단계가 통째로 달라졌다 — 예전 49번은
+ *       13x13/4단계(커브의 끝)였고 지금 49번은 11x11/1단계다. 판 데이터는
+ *       멀쩡하니 validPuzzle 의 다른 검사는 다 통과해 버리므로, 판본을
+ *       올리지 않으면 이어서 하기가 그 자리에 훨씬 어려운 판을 되살린다.
  */
-const ENDLESS_CACHE_V = 3;
+const ENDLESS_CACHE_V = 4;
 
 /** 저장된 무한 판이 실제로 쓸 수 있는 모양인지 — 손상된 저장분에 게임이 끌려가지 않게 */
 function validPuzzle(p) {
@@ -2223,7 +2305,7 @@ function makeEndlessPuzzle(spec, seed, budgetMs) {
    * 한 크기·한 단계에서 deadline 까지 후보를 뽑아 본다. 요구를 만족하면 즉시 반환.
    * any 를 주면 요구를 보지 않고 나온 것을 그대로 쓴다 (마지막 안전망 전용).
    */
-  const attempt = (size, step, deadline, any) => {
+  const attempt = (size, step, deadline, any, cap) => {
     const st = structStep(step);
     for (let i = 0; i < 64; i++) {
       const left = deadline - Date.now();
@@ -2231,7 +2313,7 @@ function makeEndlessPuzzle(spec, seed, budgetMs) {
       // 후보마다 시드를 달리하되 전부 레벨 시드에서 유도한다 —
       // 그래서 같은 레벨은 언제 어디서 다시 만들어도 같은 판이 나온다.
       const rnd = mulberry32((seed ^ (size * 0x9E3779B1) ^ (step * 0x27D4EB2F) ^ (i * 0x85EBCA6B)) | 0);
-      const p = makePuzzle(size, rnd, Date.now() + Math.min(left, capFor(size)), st);
+      const p = makePuzzle(size, rnd, Date.now() + Math.min(left, cap || capFor(size)), st);
       // 후보 하나가 시간 안에 안 나와도 바로 물러서지 않는다 — 후보마다 걸리는
       // 시간 편차가 커서, 다음 후보가 훨씬 빨리 나오는 경우가 흔하다.
       if (!p) continue;
@@ -2256,7 +2338,11 @@ function makeEndlessPuzzle(spec, seed, budgetMs) {
   //    예산의 전부를 여기 쓰지는 않는다. 마지막 안전망(3)이 돌 시간이 남지 않으면
   //    아주 느린 기기에서 빈손으로 끝나고, 그건 "새 마당을 만드는 중"이 영영 안
   //    끝나는 것으로 보인다. 그래서 꼬리를 미리 떼어 둔다.
-  const tail = Math.min(5000, Math.round(budgetMs * 0.25));
+  //
+  //    꼬리는 예산의 30%(최대 8초, 최소 2초)다. 예전엔 25%·최대 5초였는데,
+  //    13x13 5단계(도전 판)를 40초 예산으로 재 보니 그 5초로는 안전망이 한 크기를
+  //    한 번 두드려 보고 끝나서 빈손으로 돌아오는 일이 있었다.
+  const tail = Math.min(8000, Math.max(2000, Math.round(budgetMs * 0.3)));
   const mainUntil = until - tail;
   const floorStep = Math.max(0, asked - 1);
   for (let step = asked; step >= floorStep; step--) {
@@ -2274,10 +2360,21 @@ function makeEndlessPuzzle(spec, seed, budgetMs) {
   // 3) 최후의 수단 — 판을 줄인다 (아주 느린 기기에서만 여기까지 온다).
   //    여기서는 요구를 아예 보지 않는다. 이 지점의 목표는 좋은 판이 아니라
   //    "빈손으로 끝나지 않는 것" 하나뿐이다.
-  for (let size = spec.size - 1; size >= 9; size--) {
+  //
+  //    한 크기에 남은 시간을 통째로 주면 안 된다 — 그 크기가 안 나오는 순간
+  //    다음 크기를 아예 못 보고 끝난다. 크기마다 남은 시간의 절반만 떼어 주고
+  //    후보 하나의 상한도 짧게 끊는다. 작은 판일수록 금방 나오므로 아래로
+  //    내려갈수록 같은 시간에 시도 횟수가 늘어난다.
+  for (let size = spec.size - 1; size >= 8; size--) {
     const left = until - Date.now();
     if (left <= 0) break;
-    const got = attempt(size, 0, Date.now() + left, true);
+    // 남은 게 정말 얼마 없으면 중간 크기는 건너뛰고 곧장 제일 작은 판으로 간다.
+    // 이 지점에서 목표는 예쁜 판이 아니라 판이 나오는 것 하나뿐이고, 9칸 판은
+    // 12칸 판이 후보 하나 뽑는 시간에 여러 개가 나온다.
+    if (left < 1500 && size > 9) { size = 10; continue; }
+    const slice = size > 8 ? Math.max(600, Math.round(left * 0.5)) : left;
+    const cap = size >= 12 ? 2500 : size >= 10 ? 1200 : 600;
+    const got = attempt(size, 0, Date.now() + Math.min(left, slice), true, cap);
     if (got) { const out = finishEndlessPuzzle(got, asked); if (out) return out; }
   }
   return rescue ? finishEndlessPuzzle(rescue, asked) : null;
@@ -2328,16 +2425,23 @@ const ENDLESS_START = 21;          // 스테이지 20판 다음 번호
  * 끝(13x13 + 4단계)에 닿은 뒤로는 더 조이지 않는다. 무한히 어려워지는 커브는
  * 결국 모두를 같은 벽 앞에 세운다. 그 뒤의 변화는 시드가 만드는 판 다양성과
  * 10판마다 오는 도전 판이 담당한다.
+ *
+ * 단계의 순서는 그대로 두고 구간 길이만 늘렸다. 예전에는 네 판마다 한 눈금씩
+ * 올라가서 49번이면 벌써 커브의 끝이었다 — 스물아홉 판 만에 더 오를 데가 없다.
+ * 지금은 20판에서 시작해 구간마다 5판씩 길어지고, 커브의 끝은 266번이다.
+ * 초반이 짧은 건 새 요구를 빨리 만나 배우게 하려는 것이고, 뒤로 갈수록 긴 건
+ * 그 무렵이면 판 하나에 드는 시간 자체가 길어져 같은 판 수라도 훨씬 오래
+ * 머무르기 때문이다.
  */
 const ENDLESS_CURVE = [
-  { t: 0,  size: 11, step: 0 },   // 21~24  스테이지에서 이어받는 구간
-  { t: 4,  size: 11, step: 1 },   // 25~28  미니 영역이 하나로 줄어든다
-  { t: 8,  size: 12, step: 1 },   // 29~32  크기 업 -> 구조는 그대로
-  { t: 12, size: 12, step: 2 },   // 33~36  k-집합 추론이 필요해진다
-  { t: 16, size: 12, step: 3 },   // 37~40  1칸 영역이 사라진다
-  { t: 20, size: 13, step: 2 },   // 41~44  크기 업 -> 구조 한 눈금 아래로
-  { t: 24, size: 13, step: 3 },   // 45~48  다시 1칸 영역 없음, 이번엔 13x13 에서
-  { t: 28, size: 13, step: 4 },   // 49~    모든 영역 3칸 이상 + 귀류 — 커브의 끝
+  { t: 0,   size: 11, step: 0 },   // 21~40   (20판) 스테이지에서 이어받는 구간
+  { t: 20,  size: 11, step: 1 },   // 41~65   (25판) 미니 영역이 하나로 줄어든다
+  { t: 45,  size: 12, step: 1 },   // 66~95   (30판) 크기 업 -> 구조는 그대로
+  { t: 75,  size: 12, step: 2 },   // 96~130  (35판) k-집합 추론이 필요해진다
+  { t: 110, size: 12, step: 3 },   // 131~170 (40판) 1칸 영역이 사라진다
+  { t: 150, size: 13, step: 2 },   // 171~215 (45판) 크기 업 -> 구조 한 눈금 아래로
+  { t: 195, size: 13, step: 3 },   // 216~265 (50판) 다시 1칸 영역 없음, 이번엔 13x13 에서
+  { t: 245, size: 13, step: 4 },   // 266~    모든 영역 3칸 이상 + 귀류 — 커브의 끝
 ];
 
 /** 무한 마당은 10판마다(30, 40, 50…) 도전 판이 온다 (21~29 구간엔 없다) */
@@ -2822,9 +2926,81 @@ const BOARD_PAD = Math.round(CELL_BASE * 0.16);
 /** 칸 하나가 차지하는 간격 포함 크기 — 손가락 아이콘·빛줄기 위치 계산에 쓴다 */
 const TILE_STEP = CELL_BASE + TILE_GAP;
 
+/* ---- 배치 순간의 링·반짝임 ------------------------------------------------
+ * DOM 을 미리 만들어 두고 돌려 쓴다. 슬롯이 넉넉하면 연타해도 앞 연출을 뺏지
+ * 않고, 다 쓰면 가장 오래된 것부터 다시 쓴다 — 그 시점이면 그 연출은 이미
+ * 끝나 있다(슬롯 4개 x 최소 간격 > 연출 길이 0.38초).
+ * 한 벌 안의 반짝임 방향은 고정이고, 벌마다 슬롯 전체를 조금씩 돌려서
+ * 같은 그림이 반복되는 걸 피한다 — 매번 각도를 새로 계산하지 않아도 된다.
+ * -------------------------------------------------------------------------- */
+const FX_SLOTS = 4;                     // 동시에 살아 있을 수 있는 연출 수
+const FX_SPARKS = 4;                    // 한 벌의 반짝임 개수
+const FX_FLY = Math.round(CELL_BASE * 0.75);   // 반짝임이 튀어 나가는 거리 (칸 하나를 넘지 않는다)
+const Fx = {
+  slots: null,
+  next: 0,
+
+  build() {
+    const layer = $('fxLayer');
+    this.slots = [];
+    for (let i = 0; i < FX_SLOTS; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'fx';
+      slot.style.setProperty('--fx-size', `${CELL_BASE}px`);
+      slot.innerHTML = '<i class="fx-ring"></i>';
+      for (let s = 0; s < FX_SPARKS; s++) {
+        // 위쪽으로 치우친 부채꼴로 흩어진다 — 아래로 떨어지면 반짝임이 아니라 파편으로 보인다
+        const a = (-Math.PI / 2) + (s - (FX_SPARKS - 1) / 2) * 0.72;
+        const d = FX_FLY * (0.74 + 0.26 * (s % 2));
+        const sp = document.createElement('i');
+        sp.className = 'fx-spark';
+        sp.style.setProperty('--dx', `${Math.round(Math.cos(a) * d)}px`);
+        sp.style.setProperty('--dy', `${Math.round(Math.sin(a) * d)}px`);
+        slot.appendChild(sp);
+      }
+      layer.appendChild(slot);
+      this.slots.push(slot);
+    }
+  },
+
+  /** (r, c) 칸 한가운데에서 링 한 번 + 반짝임 몇 개 */
+  burst(r, c) {
+    if (isCalm()) return;               // 동작 최소화를 켠 사람에게는 아예 띄우지 않는다
+    if (!this.slots) this.build();
+    const slot = this.slots[this.next];
+    this.next = (this.next + 1) % FX_SLOTS;
+    const x = BOARD_PAD + c * TILE_STEP + CELL_BASE / 2;
+    const y = BOARD_PAD + r * TILE_STEP + CELL_BASE / 2;
+    slot.style.transform = `translate(${x}px, ${y}px) rotate(${(r * 47 + c * 83) % 60 - 30}deg)`;
+    slot.classList.remove('run');
+    void slot.offsetWidth;              // 되감기 — 이게 없으면 같은 슬롯이 다시 안 돈다
+    slot.classList.add('run');
+  },
+
+  /** 판이 바뀌면 돌던 연출을 끊는다 — 새 판의 엉뚱한 자리에서 마저 터지지 않게 */
+  clear() {
+    if (this.slots) for (const s of this.slots) s.classList.remove('run');
+  },
+};
+
+/* 배치 팝의 타임라인. CSS 의 rabbitPop/padPop 과 한 몸이라 같이 고쳐야 한다. */
+const PLACE_HIT_MS = 60;                // 팝이 가장 커지는 순간 (0.24s 의 25%)
+
+/**
+ * 토끼가 놓인 순간의 피드백 한 벌 — 링·반짝임은 즉시, 소리·진동은 팝 정점에.
+ * 팝 자체는 renderAll() 이 글리프를 새로 그리면서 CSS 가 건다.
+ */
+function placeFeedback(r, c) {
+  Fx.burst(r, c);
+  if (isCalm()) { Sfx.place(); buzz(18); return; }
+  Sfx.place(PLACE_HIT_MS / 1000);
+  setTimeout(() => buzz(18), PLACE_HIT_MS);
+}
+
 function buildBoard() {
   const n = G.n;
   choreoToken++;                    // 판이 바뀌면 돌던 클리어 안무는 여기서 끊긴다
+  Fx.clear();
   board.style.setProperty('--tile-gap', `${TILE_GAP}px`);
   board.style.setProperty('--tile-radius', `${TILE_RADIUS}px`);
   $('boardWrap').style.setProperty('--board-pad', `${BOARD_PAD}px`);
@@ -2856,13 +3032,19 @@ function renderAll() {
       if (had !== want) {
         el.dataset.glyph = want;
         if (want) {
-          el.innerHTML = `<div class="glyph">${RabbitArt.html(want)}</div>`;
+          // 방석은 토끼에게만. ✕ 메모·잠긴 칸은 배경 없이 타일 위에 그대로 얹힌다.
+          el.innerHTML = (want === 'rabbit' ? '<div class="pad"></div>' : '')
+            + `<div class="glyph">${RabbitArt.html(want)}</div>`;
         } else if (had) {
           // 빈칸으로 돌아갈 때는 쪼그라들며 사라지는 걸 보여준 뒤 지운다
           const old = el.querySelector('.glyph');
+          const pad = el.querySelector('.pad');
+          if (pad) pad.classList.add('out');
           if (old) {
             old.style.animationDelay = '';      // 끌기 팝이 남긴 지연을 지우기까지 끌고 가지 않는다
             old.classList.add('out');
+            setTimeout(() => { if (el.dataset.glyph === '') el.innerHTML = ''; }, 170);
+          } else if (pad) {
             setTimeout(() => { if (el.dataset.glyph === '') el.innerHTML = ''; }, 170);
           }
         }
@@ -3117,7 +3299,7 @@ function tutorialTap(r, c) {
   G.grid[r][c] = 2;
   renderAll();
 
-  Sfx.place(); buzz(18);
+  placeFeedback(r, c);
   t.busy = true;
   hideFinger();
   cellAt(r, c).classList.remove('tut-target', 'urge');
@@ -3281,8 +3463,8 @@ function placeRabbit(r, c) {
   if (G.solution[r] === c) {
     G.grid[r][c] = 2;
     G.history.push({ r, c, from });
-    Sfx.place(); buzz(18);
-    renderAll();
+    renderAll();                     // 팝은 여기서 걸린다 — 피드백은 그 뒤에 맞춰 때린다
+    placeFeedback(r, c);
     saveProgress();
     checkWin();
     return;
@@ -4004,7 +4186,7 @@ $('btnBoost').onclick = () => {
   G.grid[r][c] = 2;
   Wallet.spend('boosts'); G.usedBoosts++;
   hideHint(); renderAll(); renderBoosters();
-  Sfx.place(); buzz(18);
+  placeFeedback(r, c);
   scrollCellIntoView(r, c);
   saveProgress();
   checkWin();
