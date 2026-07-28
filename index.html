@@ -299,15 +299,13 @@ h1.game-title{
 .cell .glyph{width:80%;height:80%;display:grid;place-items:center;pointer-events:none;}
 .cell .glyph svg{width:100%;height:100%;display:block;}
 /* ---- 배치 감각 (전부 transform/opacity 만 건드린다) ---- */
-/* 토끼: 위에서 툭 떨어져 눌렸다가 통통 튀며 자리를 잡는다 */
-.cell[data-glyph="rabbit"] .glyph{animation:rabbitDrop .46s cubic-bezier(.22,1,.3,1) both;}
-@keyframes rabbitDrop{
-  0%  {transform:translateY(-55%) scale(.72,1.3);opacity:0}
-  35% {transform:translateY(0)    scale(1.28,.72);opacity:1}
-  55% {transform:translateY(-14%) scale(.9,1.14)}
-  72% {transform:translateY(0)    scale(1.1,.92)}
-  86% {transform:translateY(-4%)  scale(.97,1.04)}
-  100%{transform:translateY(0)    scale(1,1)}
+/* 토끼: 살짝 커졌다 제자리로. 0.46초짜리 낙하 연출을 0.2초 팝으로 바꿨다 —
+   토끼를 여러 마리 연달아 놓을 때 앞 연출이 끝나기를 기다리는 느낌이 없어야 한다.
+   오버슈트는 키프레임이 아니라 가속곡선이 만든다(0.34,1.56 이 1 을 10% 넘어간다). */
+.cell[data-glyph="rabbit"] .glyph{animation:rabbitPop .2s cubic-bezier(.34,1.56,.64,1) both;}
+@keyframes rabbitPop{
+  from{transform:scale(.52);opacity:0}
+  to  {transform:scale(1);opacity:1}
 }
 /* ✕ 메모: 살짝 커졌다 제자리 */
 .cell[data-glyph="mark"] .glyph{animation:markPop .19s cubic-bezier(.2,1.6,.4,1) both;}
@@ -349,8 +347,16 @@ h1.game-title{
 .cell.hint-group::before{
   content:"";position:absolute;inset:0;border-radius:inherit;background:rgba(255,255,255,.28);
 }
-/* 클리어: 토끼들이 차례로 귀를 흔들며 폴짝 (delay 는 JS 가 순번대로 넣는다) */
-.cell.win .glyph{animation:hopCheer .78s cubic-bezier(.3,.9,.4,1) both;}
+/* 클리어 1막: 왼쪽 위 칸부터 (행+열) 순서로 판 전체가 물결처럼 솟았다 가라앉는다.
+   delay 는 JS 가 넣는다. 솟은 칸이 옆 칸에 살짝 겹쳐 올라타야 물결로 읽힌다. */
+.cell.wave{animation:cellWave .34s both;z-index:1;}
+@keyframes cellWave{
+  0%  {transform:none;animation-timing-function:cubic-bezier(.22,1,.3,1)}
+  42% {transform:translateY(-14%) scale(1.08)}
+  100%{transform:none}
+}
+/* 클리어 2막: 토끼들이 차례로 귀를 흔들며 폴짝 (delay 는 JS 가 순번대로 넣는다) */
+.cell.win .glyph{animation:hopCheer .64s cubic-bezier(.3,.9,.4,1) both;}
 @keyframes hopCheer{
   0%  {transform:translateY(0) rotate(0) scale(1,1)}
   12% {transform:translateY(0) rotate(-9deg) scale(1.06,.94)}
@@ -537,7 +543,16 @@ body.tutorial-mode #hintBar{display:none;}
 .score-box{margin:0 0 18px;padding:12px;border-radius:18px;background:var(--cream);}
 .score-main{display:flex;flex-direction:column;gap:2px;}
 .score-main span{font-size:12px;font-weight:700;color:var(--ink-soft);}
-.score-main b{font-size:32px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+.score-main b{
+  font-size:32px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;
+  display:inline-block;transform-origin:left center;   /* 카운트업이 끝날 때 톡 */
+}
+/* 클리어 3막: 0 에서 굴러 올라온 숫자가 최종 점수에 닿는 순간 */
+#clearScore.land{animation:scoreLand .26s cubic-bezier(.34,1.56,.64,1) both;}
+@keyframes scoreLand{
+  from{transform:scale(1.22)}
+  to  {transform:scale(1)}
+}
 .score-sub{display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--ink-soft);font-weight:700;}
 .score-sub b{color:var(--ink);}
 
@@ -612,6 +627,7 @@ body.tutorial-mode #hintBar{display:none;}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{
     animation-duration:.01ms !important;animation-iteration-count:1 !important;
+    animation-delay:0ms !important;                /* 순차 팝·물결의 지연도 같이 걷어낸다 */
     transition-duration:.01ms !important;
   }
   .sky-deco{display:none;}
@@ -1030,12 +1046,20 @@ const Sfx = {
     this.tone({ type: 'sine', from: 220, to: 110, dur: 0.34, gain: 0.42 });
     this.tone({ type: 'sine', from: 146, to: 98, dur: 0.3, gain: 0.24, delay: 0.03 });
   },
-  /** 클리어 — 올라가는 아르페지오 (C-E-G-C) */
+  /** 클리어 1막 — 판을 훑고 지나가는 물결. 길이를 물결 연출에 맞춰 받는다. */
+  wave(ms) {
+    const dur = Math.max(0.2, ms / 1000);
+    this.tone({ type: 'sine', from: 174.6, to: 392, dur, gain: 0.14 });
+    this.tone({ type: 'triangle', from: 349.2, to: 784, dur, gain: 0.05, delay: 0.03 });
+  },
+  /** 클리어 2막 — 올라가는 아르페지오 (C-E-G-C) */
   clear() {
     [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
       this.tone({ type: 'sine', from: f, to: f, dur: 0.34, gain: 0.4, delay: i * 0.09 });
     });
   },
+  /** 클리어 3막 — 점수가 굴러 올라가는 틱. 수십 번 겹치므로 아주 작게. */
+  count() { this.tone({ type: 'triangle', from: 1180, to: 1180, dur: 0.03, gain: 0.08 }); },
   /** 튜토리얼 단계 통과 */
   ding() { this.tone({ type: 'sine', from: 659.25, to: 987.77, dur: 0.22, gain: 0.32 }); },
 };
@@ -1055,11 +1079,18 @@ function buzz(ms) {
  * 명도 차이가 항상 보조 단서로 남도록 L(밝기) 값을 넓게 벌려 두었다.
  */
 const PALETTE = [
-  // "토끼네 마당" — 봄 텃밭의 자연색 10가지.
+  // "토끼네 마당" — 봄 텃밭의 자연색 14가지.
   // 채도는 부드럽게 누르되 명도는 확실히 벌려 놓았다: 적록색약이 있으면
   // 초록·노랑·주황·빨강이 모두 노란 계열로 뭉개지므로, 그 색들이 밝기 사다리 위에
   // 흩어져 있어야 층으로라도 갈린다. 하늘·라일락은 파랑 계열이라 색상 자체가 남는다.
+  //
+  // 색 수는 가장 큰 판의 영역 수(13)보다 많아야 한다. 색이 모자라면 서로 다른
+  // 두 영역이 같은 색을 쓰게 되는데, 이 게임은 "한 영역에 토끼 하나"가 규칙이라
+  // 영역을 못 가르는 건 보기 나쁜 정도가 아니라 풀 수 없게 되는 문제다.
+  // 팔레트에 여유를 만들 수 있는 방향은 차가운 쪽뿐이었다 — 따뜻한 파스텔 구역은
+  // 색약 시야에서 이미 빽빽해서, 여기에 색을 더 넣으면 서로 뭉갠다.
   { hex: '#D4EC96', name: '새싹',   hue: 79 },      // 새싹 연두 — 가장 밝음
+  { hex: '#D9E8F0', name: '서리',   hue: 201 },     // 서리 낀 연하늘
   { hex: '#E6C96B', name: '볏짚',   hue: 45 },      // 볏짚 노랑
   { hex: '#F3AFC3', name: '진달래', hue: 342 },     // 진달래 핑크
   { hex: '#79B7E4', name: '하늘',   hue: 203 },     // 맑은 하늘
@@ -1067,8 +1098,11 @@ const PALETTE = [
   { hex: '#E5904B', name: '호박',   hue: 28 },      // 호박 주황
   { hex: '#97B27B', name: '이끼',   hue: 92 },      // 이끼 세이지
   { hex: '#BC5A64', name: '감',     hue: 355 },     // 감 로즈
+  { hex: '#2E7C86', name: '물총새', hue: 187 },     // 물총새 청록
   { hex: '#8A5B33', name: '흙',     hue: 28 },      // 흙 브라운
-  { hex: '#37704A', name: '잎',     hue: 140 },     // 진한 잎초록 — 가장 어두움
+  { hex: '#6B4E8E', name: '자두',   hue: 267 },     // 자두 보라
+  { hex: '#37704A', name: '잎',     hue: 140 },     // 진한 잎초록
+  { hex: '#2F5480', name: '밤바다', hue: 213 },     // 밤바다 남색 — 가장 어두움
 ];
 
 /* ---- 색 거리 계산 ----------------------------------------------------------
@@ -1135,110 +1169,116 @@ const SAFE_DE = 20;
 
 /**
  * 그래프 컬러링: 맞닿은 영역끼리 비슷한 색이 배정되지 않도록 팔레트를 재배치한다.
- * 차수가 큰(이웃이 많은) 영역부터 색을 정하고, 매번 "이미 색이 정해진 이웃들과의
- * 최소 색 거리"가 가장 큰 후보를 고른다. 동점이면 명도 차가 큰 쪽을 택한다.
+ *
+ * 규칙은 세 겹이다.
+ *  1) 색은 영역마다 하나씩, 겹치지 않게 (영역 수 ≤ 팔레트 크기인 동안은 항상).
+ *     떨어져 있는 두 영역이 같은 색이면 한 영역이 끊긴 것처럼 읽혀서
+ *     "이 영역에 토끼를 이미 놨나?"를 판단할 수 없게 된다.
+ *  2) 변을 맞댄 영역끼리는 색약 시야를 포함해 ΔE 가 확실히 벌어져야 한다.
+ *  3) 모서리만 스친 영역끼리도 같은 색은 금지 — 대각으로 이어진 한 덩어리로 보인다.
+ *
+ * 판이 팔레트보다 커지면 1)만 양보한다. 그때도 같은 색끼리는 최대한 멀리 떼어 놓는다.
  */
 function assignRegionColors(n, regions) {
-  const adj = Array.from({ length: n }, () => new Set());
+  const adj = Array.from({ length: n }, () => new Set());     // 변을 맞댄 영역
+  const corner = Array.from({ length: n }, () => new Set());  // 모서리만 스친 영역
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
       const g = regions[r][c];
       if (r + 1 < n && regions[r + 1][c] !== g) { adj[g].add(regions[r + 1][c]); adj[regions[r + 1][c]].add(g); }
       if (c + 1 < n && regions[r][c + 1] !== g) { adj[g].add(regions[r][c + 1]); adj[regions[r][c + 1]].add(g); }
+      for (const dc of [-1, 1]) {
+        if (r + 1 >= n || c + dc < 0 || c + dc >= n) continue;
+        const h = regions[r + 1][c + dc];
+        if (h !== g) { corner[g].add(h); corner[h].add(g); }
+      }
     }
   }
+  for (let g = 0; g < n; g++) for (const h of adj[g]) corner[g].delete(h);
+
+  // 영역별 무게중심 — 같은 색을 어쩔 수 없이 겹쳐 쓸 때 얼마나 떨어졌는지 재는 데 쓴다
+  const cx = new Array(n).fill(0), cy = new Array(n).fill(0), cn = new Array(n).fill(0);
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    const g = regions[r][c]; cx[g] += c; cy[g] += r; cn[g]++;
+  }
+  for (let g = 0; g < n; g++) { cx[g] /= cn[g]; cy[g] /= cn[g]; }
+  const spanOf = (g, h) => Math.hypot(cx[g] - cx[h], cy[g] - cy[h]);
+
+  // 한 색을 몇 영역까지 쓸 수 있는가. 팔레트가 넉넉하면 1 = 전부 다른 색.
+  const cap = Math.max(1, Math.ceil(n / PALETTE.length));
+
+  const pairs = [];
+  for (let g = 0; g < n; g++) for (const h of adj[g]) if (g < h) pairs.push([g, h]);
+
+  /* 배색 점수 — 앞자리부터 사전순으로 비교한다.
+     [같은 색 사고 수(적을수록 좋다), 가장 약한 인접 쌍의 ΔE, 전체 여유의 합] */
+  const score = (color) => {
+    let faults = 0;
+    for (let g = 0; g < n; g++) {
+      for (const h of corner[g]) if (g < h && color[g] === color[h]) faults++;
+      for (let h = g + 1; h < n; h++) if (color[g] === color[h] && spanOf(g, h) < 4) faults++;
+    }
+    let worst = Infinity, sum = 0;
+    for (const [g, h] of pairs) {
+      const d = labDist(color[g], color[h]);
+      if (d < worst) worst = d;
+      sum += Math.min(d, 45) + hueGapAt(color[g], color[h]) * 0.2;
+    }
+    return [-faults, pairs.length ? worst : 0, sum];
+  };
+  const better = (a, b) => {
+    for (let i = 0; i < a.length; i++) if (Math.abs(a[i] - b[i]) > 1e-6) return a[i] > b[i];
+    return false;
+  };
+
+  // --- 배정: 이웃이 많은 영역부터, 남은 색 중 가장 멀리 떨어진 것을 집는다
   const order = [...Array(n).keys()].sort((a, b) => adj[b].size - adj[a].size);
   const color = new Array(n).fill(-1);
   const used = new Array(PALETTE.length).fill(0);
-
   for (const g of order) {
-    const neighbors = [...adj[g]].filter((h) => color[h] >= 0).map((h) => color[h]);
-    // 색 거리 + 색상환 거리. 인접 영역은 둘 다 멀어야 한다.
+    const near = [...adj[g]].filter((h) => color[h] >= 0).map((h) => color[h]);
+    const taken = [...corner[g]].filter((h) => color[h] >= 0).map((h) => color[h]);
     const distOf = (p) => {
       let d = Infinity;
-      for (const nc of neighbors) d = Math.min(d, labDist(p, nc) + hueGapAt(p, nc) * 0.35);
-      return neighbors.length ? d : Infinity;
+      for (const nc of near) d = Math.min(d, labDist(p, nc) + hueGapAt(p, nc) * 0.35);
+      return near.length ? d : Infinity;
     };
-    const dists = PALETTE.map((_, p) => distOf(p));
-
-    // 1) 먼저 "확실히 구분되는" 색만 남긴다. 이 문턱은 절대 양보하지 않는다.
-    //    (영역이 팔레트보다 많은 큰 보드에서는 통과하는 색이 없을 수 있는데,
-    //     그때는 가장 멀리 떨어진 색으로 차선책을 쓴다)
-    let pool = PALETTE.map((_, p) => p).filter((p) => dists[p] >= SAFE_DE);
-    if (!pool.length) {
-      const maxD = Math.max(...dists);
-      pool = PALETTE.map((_, p) => p).filter((p) => dists[p] === maxD);
-    }
-    // 통과한 색 중에서는 아직 안 쓴 색을 먼저 — 같은 색이 여러 영역에 반복되면
-    // 인접하지 않더라도 판을 읽기 어려워진다.
+    let pool = PALETTE.map((_, p) => p).filter((p) => used[p] < cap && !taken.includes(p));
+    if (!pool.length) pool = PALETTE.map((_, p) => p).filter((p) => used[p] < cap);
+    const dists = Object.fromEntries(pool.map((p) => [p, distOf(p)]));
+    const safe = pool.filter((p) => dists[p] >= SAFE_DE);
+    if (safe.length) pool = safe;
     pool.sort((a, b) => (used[a] - used[b]) || (dists[b] - dists[a]));
     color[g] = pool[0];
     used[pool[0]]++;
   }
 
-  // 다듬기 (2단계)
-  // 접근성 기준은 "색약 포함 순수 ΔE" 하나뿐이다. 색상환 거리는 같은 ΔE 안에서
-  // 더 보기 좋은 쪽을 고르는 보조 지표로만 쓴다 — 둘을 섞으면 하한이 부풀려진다.
-  const safeDist = (g, p) => {
-    let d = Infinity;
-    for (const h of adj[g]) d = Math.min(d, labDist(p, color[h]));
-    return adj[g].size ? d : Infinity;
-  };
-  const hueDist = (g, p) => {
-    let d = Infinity;
-    for (const h of adj[g]) d = Math.min(d, hueGapAt(p, color[h]));
-    return adj[g].size ? d : Infinity;
-  };
-  const worstNow = () => Math.min(...[...Array(n).keys()].map((g) => safeDist(g, color[g])));
-
-  // 1단계: "가장 약한 이웃 쌍"의 거리를 최대화한다. 탐욕 배정이 순서 때문에
-  //        남긴 약한 쌍을 여기서 걷어낸다.
-  for (let pass = 0; pass < 8; pass++) {
+  // --- 다듬기: 색 하나를 바꿔 보거나(자리가 남을 때) 두 영역의 색을 맞바꿔 본다.
+  //     정원(cap)은 어느 쪽으로도 깨지 않으므로 "겹치지 않는다"는 성질이 유지된다.
+  let now = score(color);
+  for (let pass = 0; pass < 12; pass++) {
     let improved = false;
-    const weakest = [...Array(n).keys()].sort((a, b) => safeDist(a, color[a]) - safeDist(b, color[b]));
-    for (const g of weakest) {
-      let best = color[g];
-      let bestD = safeDist(g, color[g]), bestH = hueDist(g, color[g]);
+    for (let g = 0; g < n; g++) {
       for (let p = 0; p < PALETTE.length; p++) {
-        const d = safeDist(g, p);
-        if (d > bestD + 0.001 || (Math.abs(d - bestD) <= 0.001 && hueDist(g, p) > bestH + 0.001)) {
-          bestD = d; bestH = hueDist(g, p); best = p;
+        if (p === color[g]) continue;
+        const prev = color[g];
+        if (used[p] < cap) {                      // 빈 색으로 옮기기
+          color[g] = p;
+          const s = score(color);
+          if (better(s, now)) { used[prev]--; used[p]++; now = s; improved = true; }
+          else color[g] = prev;
+        } else {                                  // 그 색을 쓰는 영역과 맞바꾸기
+          for (let h = 0; h < n; h++) {
+            if (color[h] !== p) continue;
+            color[g] = p; color[h] = prev;
+            const s = score(color);
+            if (better(s, now)) { now = s; improved = true; break; }
+            color[g] = prev; color[h] = p;
+          }
         }
       }
-      if (best !== color[g]) { color[g] = best; improved = true; }
     }
     if (!improved) break;
-  }
-
-  // 2단계: 색이 몇 개로 쏠리지 않게 고루 펼친다.
-  //        단, 1단계에서 확보한 거리 하한(또는 안전 기준) 아래로는 절대 내려가지 않는다.
-  const floor = Math.min(worstNow(), SAFE_DE);
-  const canSwap = (g, p) => {
-    if (safeDist(g, p) < floor) return false;
-    const prev = color[g];
-    color[g] = p;
-    let ok = true;
-    for (const h of adj[g]) if (safeDist(h, color[h]) < floor) { ok = false; break; }
-    color[g] = prev;
-    return ok;
-  };
-  for (let pass = 0; pass < 6; pass++) {
-    let changed = false;
-    const tally = new Array(PALETTE.length).fill(0);
-    for (const p of color) tally[p]++;
-    // 많이 쓰인 색을 가진 영역부터 다른 색으로 옮겨 본다
-    const order2 = [...Array(n).keys()].sort((a, b) => tally[color[b]] - tally[color[a]]);
-    for (const g of order2) {
-      if (tally[color[g]] <= 1) continue;
-      let best = -1;
-      for (let p = 0; p < PALETTE.length; p++) {
-        if (p === color[g] || tally[p] >= tally[color[g]] - 1) continue;
-        if (!canSwap(g, p)) continue;
-        if (best < 0 || tally[p] < tally[best]) best = p;
-      }
-      if (best >= 0) { tally[color[g]]--; tally[best]++; color[g] = best; changed = true; }
-    }
-    if (!changed) break;
   }
   return color;
 }
@@ -1748,6 +1788,7 @@ const TILE_STEP = CELL_BASE + TILE_GAP;
 
 function buildBoard() {
   const n = G.n;
+  choreoToken++;                    // 판이 바뀌면 돌던 클리어 안무는 여기서 끊긴다
   board.style.setProperty('--tile-gap', `${TILE_GAP}px`);
   board.style.setProperty('--tile-radius', `${TILE_RADIUS}px`);
   $('boardWrap').style.setProperty('--board-pad', `${BOARD_PAD}px`);
@@ -1784,6 +1825,7 @@ function renderAll() {
           // 빈칸으로 돌아갈 때는 쪼그라들며 사라지는 걸 보여준 뒤 지운다
           const old = el.querySelector('.glyph');
           if (old) {
+            old.style.animationDelay = '';      // 끌기 팝이 남긴 지연을 지우기까지 끌고 가지 않는다
             old.classList.add('out');
             setTimeout(() => { if (el.dataset.glyph === '') el.innerHTML = ''; }, 170);
           }
@@ -2046,18 +2088,10 @@ function finishTutorial() {
   hideFinger();
   for (let r = 0; r < G.n; r++) for (let c = 0; c < G.n; c++) cellAt(r, c).classList.remove('tut-dim', 'tut-target');
   setCoach('이제 진짜 시작!');
-  rabbitList().forEach(([r, c], i) => {
-    const el = cellAt(r, c);
-    const glyph = el.querySelector('.glyph');
-    glyph.innerHTML = RabbitArt.html('rabbit', 'happy');
-    glyph.style.animationDelay = `${i * 90}ms`;
-    el.classList.add('win');
-  });
-  Sfx.clear(); buzz([12, 60, 12, 60, 24]);
   Store.data.tutorialDone = true;
   Store.save();
-  fireConfetti();
-  setTimeout(() => {
+  // 본편 클리어와 같은 안무를 탄다 — 점수 카드만 없다
+  celebrate(() => {
     $('clearArt').innerHTML = RabbitArt.html('rabbit', 'happy');
     $('clearTitle').textContent = '이제 진짜 시작!';
     $('clearMsg').innerHTML = '규칙은 다 배웠어요.<br>막히면 언제든 <b>힌트</b>를 누르세요.';
@@ -2065,7 +2099,7 @@ function finishTutorial() {
     $('clearToLevels').textContent = '레벨 목록';
     $('clearNext').textContent = '레벨 1 시작';
     openModal('modalClear');
-  }, 1500);
+  });
 }
 
 function endTutorial() {
@@ -2217,33 +2251,21 @@ function checkWin() {
   G.finished = true;
   stopTimer();
   hideHint();
-  // 왼쪽 위부터 차례로 귀를 흔들며 폴짝
-  rabbitList().forEach(([r, c], i) => {
-    const el = cellAt(r, c);
-    const glyph = el.querySelector('.glyph');
-    glyph.innerHTML = RabbitArt.html('rabbit', 'happy');
-    glyph.style.animation = 'none';
-    void glyph.offsetWidth;
-    glyph.style.animation = '';
-    glyph.style.animationDelay = `${i * 90}ms`;
-    el.classList.add('win');
-  });
-  Sfx.clear(); buzz([12, 60, 12, 60, 24]);
   renderBoosters();
   const score = computeScore();
   const id = G.level.id;
   const prev = Store.data.cleared[id];
+  const best = prev && prev.score > score ? prev.score : 0;   // 카드에 쓸 값은 갱신 전에 집어 둔다
   if (!prev || score > (prev.score || 0)) {
     Store.data.cleared[id] = { time: G.elapsed, lives: G.lives, score };
   }
   Store.data.inProgress = null;
   Store.save();
-  setTimeout(() => {
-    $('clearScore').textContent = score.toLocaleString();
+
+  celebrate(() => {
     $('clearDetail').innerHTML = `당근 ${G.lives}/${MAX_LIVES} · 힌트 ${G.hints}/${HINTS_PER_LEVEL} 남김`;
-    const best = Store.data.cleared[id];
-    $('clearBest').textContent = best && best.score > score
-      ? `최고 ${best.score.toLocaleString()}`
+    $('clearBest').textContent = best
+      ? `최고 ${best.toLocaleString()}`
       : (score >= maxScore() ? '만점!' : '최고 기록!');
     const last = G.index >= PUZZLES.levels.length - 1;
     $('clearTitle').textContent = last ? '토끼 마을 완성!' : '축하해요!';
@@ -2252,9 +2274,10 @@ function checkWin() {
       : '토끼들이 모두 제자리를 찾았어요.';
     $('clearNext').textContent = last ? '레벨 목록' : '다음 레벨';
     $('clearArt').innerHTML = RabbitArt.html('rabbit', 'happy');
+    $('clearScore').textContent = '0';
     openModal('modalClear');
-    fireConfetti();
-  }, 700);
+    countUpScore(score);
+  });
 }
 
 /**
@@ -2446,6 +2469,12 @@ function cellFromPoint(x, y) {
   return cell && board.contains(cell) ? cell : null;
 }
 
+/* 끌기로 ✕ 를 여러 칸 채울 때 칸 사이를 벌리는 간격.
+   손가락이 느리면 이미 시간이 벌어져 있으니 0, 빠르게 훑으면 이 간격으로 줄을 세운다.
+   밀린 팝이 손가락을 너무 멀리 따라오지 않도록 상한을 둔다. */
+const PAINT_STEP = 30;
+const PAINT_LAG_MAX = 300;
+
 /**
  * 끌기로 칸 칠하기 / 지우기.
  * 방향은 "끌기를 시작한 칸"이 정한다 — ✕ 에서 시작하면 지우기, 그 외엔 ✕ 그리기.
@@ -2463,9 +2492,26 @@ function paintCell(cell) {
   G.grid[r][c] = paint.mode === 'erase' ? 0 : 1;
   G.history.push({ r, c, from });
   if (G.history.length > 400) G.history.shift();
-  if (paint.mode === 'erase') Sfx.erase(); else Sfx.mark();
-  buzz(6);
+
+  if (paint.mode === 'erase') {                     // 지우기는 밀지 않는다 — 손가락을 바로 따라와야 한다
+    Sfx.erase(); buzz(6);
+    renderAll();
+    return;
+  }
+
+  // 한 프레임에 여러 칸이 들어와도 PAINT_STEP 간격으로 차례차례 팝 시킨다.
+  const now = performance.now();
+  const lag = isCalm() ? 0 : Math.min(PAINT_LAG_MAX, Math.max(0, (paint.nextAt || 0) - now));
+  paint.nextAt = now + lag + PAINT_STEP;
   renderAll();
+  if (lag > 0) {
+    // 팝이 밀린 만큼 소리·진동도 같이 민다. 소리만 먼저 나면 줄이 어긋나 보인다.
+    const glyph = cellAt(r, c).querySelector('.glyph');
+    if (glyph) glyph.style.animationDelay = `${Math.round(lag)}ms`;
+    setTimeout(() => { Sfx.mark(); buzz(6); }, lag);
+  } else {
+    Sfx.mark(); buzz(6);
+  }
 }
 
 viewport.addEventListener('pointerdown', (e) => {
@@ -2581,6 +2627,125 @@ function saveProgress() {
 /* ==========================================================================
  * 14. 축하 연출
  * ========================================================================== */
+/**
+ * 클리어 안무 타임라인 (ms). 소리·진동도 같은 지점에 얹는다 —
+ * 이 값들만 보면 무엇이 언제 울리는지 다 읽히도록 한곳에 모아 둔다.
+ *
+ *   t=0            보드 물결. (행+열) 순서로 waveStep 씩 밀린다        + 상승음, 진동 12
+ *   t=물결끝-80    토끼 점프 + 색종이                                  + 아르페지오, 진동 12·12·24
+ *   t=점프+520     점수 카드 등장, 0 부터 카운트업                     + 카운트 틱, 끝에 딩
+ *   (다음 레벨)    보드 밀어내기 200 -> 새 판 들여오기 340
+ */
+const CHOREO = {
+  waveDur: 340,        // cellWave 키프레임 길이와 같은 값
+  waveStep: 26,        // 칸 사이 간격 상한 (판이 크면 waveSpan 에 맞춰 줄어든다)
+  waveSpan: 560,       // 물결이 판을 다 건너는 데 쓸 시간 상한
+  hopDur: 640,         // hopCheer 키프레임 길이와 같은 값
+  hopLead: 80,         // 물결이 끝나기 조금 전에 점프를 걸어 사이가 비지 않게
+  hopSpan: 560,        // 토끼 전부가 뛰기 시작할 때까지의 시간 상한
+  cardAfter: 520,      // 첫 토끼가 뛴 뒤 점수 카드까지
+  countUp: 900,        // 0 -> 최종 점수
+  slideOut: 200,       // 다 푼 판을 왼쪽으로 밀어내기
+  slideIn: 340,        // 다음 판을 오른쪽에서 들여오기
+};
+
+/** 칸 수에 맞춰 간격을 줄인다 — 큰 판에서 연출만 길어지지 않게 */
+function stepFor(count, span, max) {
+  return Math.max(12, Math.min(max, Math.round(span / Math.max(1, count - 1))));
+}
+
+/* 동작 최소화를 켠 사용자. CSS 는 미디어 쿼리로 걷어내지만, 순서를 세우는 건
+   JS 타임라인이라 여기서도 봐야 한다 — 안 보면 정지 화면을 1.3초 쳐다보게 된다. */
+const calmMedia = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+const isCalm = () => !!(calmMedia && calmMedia.matches);
+
+/** 1막: 왼쪽 위부터 판 전체가 물결처럼 솟는다. 마지막 칸이 끝나는 시각을 돌려준다. */
+function waveBoard() {
+  const n = G.n;
+  const step = stepFor(2 * n - 1, CHOREO.waveSpan, CHOREO.waveStep);
+  const cells = [];
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      const el = cellAt(r, c);
+      el.style.animationDelay = `${(r + c) * step}ms`;
+      el.classList.add('wave');
+      cells.push(el);
+    }
+  }
+  const end = step * 2 * (n - 1) + CHOREO.waveDur;
+  setTimeout(() => {
+    // 판이 그새 새로 그려졌으면 여기 잡아 둔 칸들은 이미 떨어져 나간 것들이다
+    for (const el of cells) {
+      el.classList.remove('wave');
+      el.style.animationDelay = '';    // 남겨 두면 흔들림(shake) 연출까지 밀린다
+    }
+  }, end + 60);
+  return end;
+}
+
+/**
+ * 클리어 안무를 한 타임라인으로 돌린다.
+ * 중간에 판이 바뀌면(레벨 목록으로 나가는 등) 남은 순서는 그대로 버린다.
+ * @param onCard 점수 카드를 띄울 시점에 부를 콜백
+ */
+let choreoToken = 0;
+function celebrate(onCard) {
+  const token = ++choreoToken;
+  const calm = isCalm();
+  const waveEnd = calm ? 0 : waveBoard();
+  if (!calm) Sfx.wave(waveEnd);
+  buzz(12);
+
+  const hopAt = calm ? 0 : Math.max(0, waveEnd - CHOREO.hopLead);
+  const rabbits = rabbitList().map(([r, c]) => cellAt(r, c));
+  const hopStep = stepFor(rabbits.length, CHOREO.hopSpan, 90);
+  setTimeout(() => {
+    if (token !== choreoToken) return;
+    rabbits.forEach((el, i) => {
+      const glyph = el.querySelector('.glyph');
+      if (!glyph) return;
+      glyph.innerHTML = RabbitArt.html('rabbit', 'happy');
+      glyph.style.animation = 'none';        // 배치 팝이 돌던 중이면 끊고 다시 건다
+      void glyph.offsetWidth;
+      glyph.style.animation = '';
+      glyph.style.animationDelay = `${i * hopStep}ms`;
+      el.classList.add('win');
+    });
+    Sfx.clear(); buzz([12, 60, 12, 60, 24]);
+    fireConfetti();
+  }, hopAt);
+
+  setTimeout(() => { if (token === choreoToken) onCard(); }, hopAt + (calm ? 200 : CHOREO.cardAfter));
+}
+
+/** 3막: 점수가 0 에서 최종 점수까지 굴러 올라간다 */
+let countRaf = null;
+function countUpScore(score) {
+  const el = $('clearScore');
+  if (countRaf) cancelAnimationFrame(countRaf);
+  el.classList.remove('land');
+  if (isCalm()) { el.textContent = score.toLocaleString(); Sfx.ding(); buzz(14); return; }
+  el.textContent = '0';
+  const t0 = performance.now();
+  let lastTick = 0;
+  const step = (t) => {
+    const k = Math.min(1, (t - t0) / CHOREO.countUp);
+    const eased = 1 - Math.pow(1 - k, 3);         // 끝에서 부드럽게 멈춘다
+    el.textContent = Math.round(score * eased).toLocaleString();
+    if (k < 1) {
+      if (t - lastTick > 90) { Sfx.count(); lastTick = t; }
+      countRaf = requestAnimationFrame(step);
+    } else {
+      countRaf = null;
+      el.textContent = score.toLocaleString();
+      void el.offsetWidth;
+      el.classList.add('land');
+      Sfx.ding(); buzz(14);
+    }
+  };
+  countRaf = requestAnimationFrame(step);
+}
+
 function fireConfetti() {
   const box = $('confetti');
   box.innerHTML = ''; box.classList.add('on');
@@ -2676,7 +2841,7 @@ $('btnBoost').onclick = () => {
 };
 
 /* ---- 레벨 전환 ---- */
-/** 보드를 왼쪽으로 밀어내고 다음 판을 오른쪽에서 들여온다 */
+/** 안무의 마지막 막: 다 푼 판을 왼쪽으로 밀어내고 다음 판을 오른쪽에서 들여온다 */
 function slideToLevel(index) {
   const wrap = $('boardWrap');
   wrap.classList.remove('slide-in');
@@ -2685,8 +2850,8 @@ function slideToLevel(index) {
     wrap.classList.remove('slide-out');
     startLevel(index);
     wrap.classList.add('slide-in');
-    setTimeout(() => wrap.classList.remove('slide-in'), 360);
-  }, 200);
+    setTimeout(() => wrap.classList.remove('slide-in'), CHOREO.slideIn + 20);
+  }, CHOREO.slideOut);
 }
 
 $('clearNext').onclick = () => {
