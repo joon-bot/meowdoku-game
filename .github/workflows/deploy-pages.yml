@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - claude/rabbit-puzzle-game-ui-pcrfmq
   workflow_dispatch:
 
 permissions:
@@ -32,28 +31,35 @@ jobs:
       - name: 퍼즐 검증 및 내장 사본 갱신
         run: node tools/build.mjs
 
+      # 게임이 돌아가는 데 필요한 것 전부. 하나라도 빠지면 PWA 가 조용히 반쪽이 된다:
+      #   manifest.json  없으면 "홈 화면에 추가" 가 앱이 아니라 북마크가 된다
+      #   sw.js          없으면 오프라인이 안 된다
+      #   assets/        없으면 토끼 그림과 둥근 한글 폰트가 통째로 사라진다
       - name: 배포할 파일 모으기
         run: |
           mkdir -p _site
-          cp index.html puzzles.json _site/
+          cp index.html puzzles.json manifest.json sw.js _site/
+          cp -r assets _site/
           touch _site/.nojekyll
 
-      # Pages 활성화는 워크플로가 대신 해줄 수 없다.
-      # GITHUB_TOKEN 에는 Pages 사이트 "생성" 권한이 없어서(저장소 관리자 권한 필요)
-      # 최초 1회는 사람이 Settings > Pages 에서 켜야 한다.
-      - name: Pages 활성화 여부 확인
-        env:
-          GH_TOKEN: ${{ github.token }}
+      # 서비스워커 캐시 키에 커밋 해시를 박는다.
+      # 파일 이름이 그대로라(rabbit.png, jua.woff2 …) 키가 고정이면
+      # 한 번 캐시된 이미지·폰트가 새 배포 뒤에도 계속 옛것으로 남는다.
+      - name: 서비스워커 캐시 버전 스탬프
         run: |
-          if gh api "repos/${{ github.repository }}/pages" >/dev/null 2>&1; then
-            echo "Pages 활성화 확인됨"
-          else
-            echo "::error title=GitHub Pages 가 꺼져 있습니다::최초 1회 수동 설정이 필요합니다"
-            echo "레포 Settings > Pages 로 가서 Source 를 'GitHub Actions' 로 설정해 주세요."
-            echo "이 레포는 비공개(private)입니다. 비공개 레포의 Pages 는 GitHub Pro 이상에서만 됩니다."
-            echo "무료 플랜이라면 레포를 공개로 바꾸거나, Pro 로 업그레이드해야 합니다."
-            exit 1
-          fi
+          sed -i "s/__BUILD__/${GITHUB_SHA::12}/" _site/sw.js
+          grep -n "^const VERSION" _site/sw.js
+
+      - name: 빠진 파일 없는지 확인
+        run: |
+          for f in index.html puzzles.json manifest.json sw.js \
+                   assets/rabbit.png assets/rabbit_jump.png assets/rabbit_sad.png \
+                   assets/icon-192.png assets/icon-512.png \
+                   assets/fonts/jua.woff2 assets/fonts/gowun.woff2; do
+            [ -s "_site/$f" ] || { echo "::error::배포 묶음에 $f 가 없습니다"; exit 1; }
+          done
+          echo "필수 파일 전부 확인"
+          find _site -type f | sort
 
       - uses: actions/configure-pages@v5
 

@@ -4,11 +4,12 @@
   "description": "각 자리·가로줄·세로줄에 토끼를 한 마리씩 놓는 아늑한 논리 퍼즐",
   "lang": "ko",
   "dir": "ltr",
-  "start_url": ".",
-  "scope": ".",
-  "id": "tokkine-jari",
+
+  "_주의": "start_url·scope 는 manifest 위치 기준 상대경로라 프로젝트 페이지(/meowdoku-game/) 에서도 그대로 맞는다. id 는 규격상 '오리진' 기준으로 풀려서 './' 로 쓰면 사이트 루트가 되어 버린다 — 적지 않으면 start_url 이 그대로 id 가 되므로 비워 둔다.",
+  "start_url": "./",
+  "scope": "./",
+
   "display": "standalone",
-  "display_override": ["standalone", "fullscreen"],
   "orientation": "portrait",
   "background_color": "#F6F2E6",
   "theme_color": "#F6F2E6",

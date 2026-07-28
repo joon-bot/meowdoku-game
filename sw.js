@@ -11,7 +11,10 @@
  *   - activate : 옛 버전 캐시를 지운다.
  * ========================================================================== */
 
-const VERSION = 'tokkine-jari-v1';
+// __BUILD__ 는 배포 워크플로가 커밋 해시로 바꿔 넣는다.
+// 에셋 파일 이름이 고정이라(rabbit.png, jua.woff2 …) 캐시 키가 그대로면
+// 새로 배포해도 옛 그림·폰트가 계속 나온다. 로컬에서는 치환 없이 그냥 쓴다.
+const VERSION = 'tokkine-jari-__BUILD__';
 const SHELL = [
   './',
   './index.html',
