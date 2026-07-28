@@ -407,11 +407,15 @@ export function logicSolve(n, regions, maxTier = 3) {
       if (progress) continue;
     }
 
+    // progress 를 세우지 않으면 continue 가 while(progress) 를 false 로 만나 루프가
+    // 그대로 끝난다 — T2·T3 로 한 수 두고 곧장 포기하던 버그였다. 그래서 이 생성기는
+    // T2 이상이 필요한 판을 전부 "논리로 안 풀림"으로 버렸고, puzzles.json 의 26판이
+    // 모두 tier 1 인 것도 그 때문이다. (게임 안 힌트 엔진 runLogic 은 원래 정상이다)
     if (maxTier >= 2 && kSetRule(n, regions, state, groups, cands, done)) {
-      tier = Math.max(tier, 2); steps++; continue;
+      tier = Math.max(tier, 2); steps++; progress = true; continue;
     }
     if (maxTier >= 3 && trialRule(n, regions, state, groups, cands, done)) {
-      tier = Math.max(tier, 3); steps++; continue;
+      tier = Math.max(tier, 3); steps++; progress = true; continue;
     }
   }
 

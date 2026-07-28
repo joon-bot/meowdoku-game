@@ -163,6 +163,8 @@ h1.game-title{
 }
 .btn.primary:active{box-shadow:0 2px 0 rgba(200,120,124,.45);}
 .btn.ghost{background:rgba(255,255,255,.62);}
+.btn:disabled{opacity:.42;box-shadow:none;}
+.btn:disabled:active{transform:none;}
 .btn .sub{font-weight:600;font-size:12.5px;color:var(--ink-soft);}
 .credit{margin-top:22px;font-size:11.5px;color:var(--ink-faint);}
 
@@ -205,6 +207,24 @@ h1.game-title{
 .lv.locked .size,.lv.locked .diff{opacity:.7;}
 .lv.cleared{border-color:rgba(143,203,179,.75);box-shadow:0 0 0 2px rgba(143,203,179,.22),var(--shadow-sm);}
 .lv-hint{text-align:center;font-size:12px;color:var(--ink-faint);padding-bottom:6px;}
+/* 무한 마당 — 26판을 다 깨야 열린다. 목록 맨 위에 한 줄로 눕는다. */
+#endlessCard{
+  grid-column:1/-1;display:none;align-items:center;gap:12px;
+  padding:14px 16px;border-radius:21px;text-align:left;
+  background:linear-gradient(135deg,#FFF3D9,#F4E3FA);
+  border:1.5px solid rgba(190,160,220,.5);box-shadow:var(--shadow-sm);
+  transition:transform .12s ease;
+}
+#endlessCard.on{display:flex;}
+#endlessCard:active{transform:scale(.98);}
+#endlessCard .art{width:44px;height:44px;flex:0 0 auto;}
+#endlessCard .txt{display:flex;flex-direction:column;gap:2px;min-width:0;}
+#endlessCard .ttl{font-size:15px;font-weight:800;color:var(--ink);}
+#endlessCard .sub{font-size:11.5px;font-weight:700;color:var(--ink-soft);}
+#endlessCard.locked{
+  background:rgba(255,255,255,.5);border-style:dashed;box-shadow:none;
+}
+#endlessCard.locked .ttl,#endlessCard.locked .sub{color:var(--ink-faint);}
 
 /* ============================================================ 게임 화면 */
 #screen-game{padding-left:10px;padding-right:10px;}
@@ -259,6 +279,11 @@ h1.game-title{
 }
 .fab:active{transform:translateY(3px) scale(.96);}
 .fab:disabled{opacity:.45;}
+/* 재화가 떨어진 버튼 — 잠그지 않고 "충전하면 쓸 수 있다"로 바꿔 보여 준다 */
+.fab.empty{filter:grayscale(.55);}
+.fab.empty .fab-count{background:var(--danger);}
+.fab.empty .fab-label{color:var(--danger);}
+.fab .fab-count.ad{padding:0 4px;font-size:11px;}
 .fab svg{width:27px;height:27px;}
 .fab-hint{color:#B8860B;background:linear-gradient(180deg,#FFF6DF,#FCE9B8);border-color:rgba(230,190,120,.6);}
 .fab-boost{background:linear-gradient(180deg,#F3EDFF,#E2D8FA);border-color:rgba(160,140,220,.5);}
@@ -556,6 +581,31 @@ body.tutorial-mode #hintBar{display:none;}
 .score-sub{display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--ink-soft);font-weight:700;}
 .score-sub b{color:var(--ink);}
 
+/* 무한 마당 판을 만드는 동안. 워커가 없는 기기에서는 이 화면이 떠 있는 동안
+   메인 스레드가 멈추므로, 애니메이션은 CSS 로만 돈다 (JS 타이머에 기대지 않는다) */
+#endlessWait{
+  position:fixed;inset:0;z-index:70;display:none;place-items:center;
+  background:rgba(253,248,240,.86);backdrop-filter:blur(3px);
+}
+#endlessWait.on{display:grid;}
+.wait-card{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:26px 30px;border-radius:24px;background:var(--white);
+  box-shadow:var(--shadow-lg);text-align:center;
+}
+.wait-card b{font-size:16px;color:var(--ink);}
+.wait-card span{font-size:12px;color:var(--ink-soft);font-weight:700;}
+.wait-art{width:78px;height:78px;animation:bob 1.6s ease-in-out infinite;}
+
+/* 광고 카운트다운 */
+.ad-timer{
+  margin:0 0 18px;display:grid;place-items:center;
+  width:74px;height:74px;border-radius:50%;margin-inline:auto;
+  background:var(--cream);font-size:30px;font-weight:800;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.ad-timer.done{background:#DFF3E6;color:#2F7A4F;font-size:26px;}
+
 /* 규칙 안내 */
 .set-list{display:flex;flex-direction:column;gap:7px;margin:0 0 16px;}
 .set-item{
@@ -766,6 +816,29 @@ body.tutorial-mode #hintBar{display:none;}
   </div>
 </div>
 
+<!-- 무한 마당 판을 만드는 동안 -->
+<div id="endlessWait">
+  <div class="wait-card">
+    <div class="wait-art" id="waitArt"></div>
+    <b>새 마당을 만드는 중</b>
+    <span>세상에 하나뿐인 판이에요</span>
+  </div>
+</div>
+
+<!-- 보상형 광고 자리. 지금은 3초 카운트다운으로 대신한다 (showRewardedAd 주석 참고) -->
+<div class="modal" id="modalAd">
+  <div class="sheet">
+    <div class="bigart" id="adArt"></div>
+    <h3 id="adTitle">광고 보고 충전</h3>
+    <p id="adMsg"></p>
+    <div class="ad-timer"><span id="adCount">3</span></div>
+    <div class="row">
+      <button class="btn ghost" id="adCancel">그만두기</button>
+      <button class="btn primary" id="adDone" disabled>받기</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="modalOver">
   <div class="sheet">
     <div class="bigart" id="overArt"></div>
@@ -860,13 +933,13 @@ const ASSETS = {
   rabbit: 'assets/rabbit.png',        // 기본 — 보드 타일에 놓이는 포즈
   happy:  'assets/rabbit_jump.png',   // 클리어 연출 (점프)
   tired:  'assets/rabbit_sad.png',    // 실수·게임 오버 (시무룩)
+  think:  'assets/rabbit_think.png',  // 갸웃 — 광고 충전 안내
   mark:   null,                       // ✕ 메모        (null = 내장 SVG)
   locked: null,                       // 잠긴 칸
   face:   null,                       // 배치 카운터 아이콘
   paw:    null,                       // 자동배치 부스터 아이콘
   carrot: null,                       // 난이도·목숨 아이콘
   // 예비 — 필요해지면 위 항목에 연결하면 된다
-  //   assets/rabbit_think.png  (갸웃 — 힌트/튜토리얼용)
   //   assets/rabbit_sleep.png  (자는 포즈 — 로딩 화면용)
 };
 
@@ -1292,9 +1365,24 @@ function hueGapAt(a, b) {
 /* ==========================================================================
  * 3. 저장소
  * ========================================================================== */
+/* 힌트·자동배치는 판마다 리셋되지 않는 "전역 재화"다. 처음 한 번 지급하고,
+   쓰면 줄고, 떨어지면 광고를 보고 충전한다. 보유량은 Store.data.wallet 에 있다.
+   (저장 기본형이 이 값을 쓰므로 저장소보다 먼저 있어야 한다) */
+const WALLET_START = { hints: 3, boosts: 2 };
+const WALLET_REWARD = { hints: 3, boosts: 2 };   // 광고 한 번의 보상
+const MAX_LIVES = 3;                             // 목숨(당근 3개) — 이건 판마다 리셋된다
+
 const STORE_KEY = 'tokkine-jari/v1';
+/** 새 저장분의 기본형. 마이그레이션의 목표 스키마이기도 하다. */
+function freshSave() {
+  return {
+    cleared: {}, lastLevel: null, inProgress: null, tutorialDone: false, sound: true,
+    wallet: { hints: WALLET_START.hints, boosts: WALLET_START.boosts },
+    endless: { level: 0, cleared: 0, bestScore: 0, puzzle: null },
+  };
+}
 const Store = {
-  data: { cleared: {}, lastLevel: null, inProgress: null, tutorialDone: false, sound: true },
+  data: freshSave(),
   load() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
@@ -1307,7 +1395,7 @@ const Store = {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(this.data)); } catch (e) {}
   },
   clearAll() {
-    this.data = { cleared: {}, lastLevel: null, inProgress: null, tutorialDone: false, sound: true };
+    this.data = freshSave();
     this.save();
   },
 };
@@ -1325,10 +1413,17 @@ function countOr(value, max, fallback) {
 /**
  * 구버전 저장분을 현행 스키마로 끌어올린다.
  *
- * 초기 v1 저장분의 inProgress 에는 lives/hints/boosts 가 없다. 그대로 복원하면
- * G.lives 가 undefined 가 되어 ①점수가 NaN 이 되고 ②당근이 전부 사라진 것처럼
- * 그려지며 ③오답 때 Math.max(0, undefined - 1) = NaN 이라 lives === 0 이
- * 영영 성립하지 않아 게임오버가 뜨지 않는다. 읽어들이는 시점에 한 번 메워 둔다.
+ * 세대별로 무엇이 없는가:
+ *   v1 최초  — inProgress 에 lives/hints/boosts 자체가 없다. 그대로 복원하면
+ *              G.lives 가 undefined 가 되어 ①점수가 NaN 이 되고 ②당근이 전부
+ *              사라진 것처럼 그려지며 ③오답 때 Math.max(0, undefined - 1) = NaN
+ *              이라 lives === 0 이 영영 성립하지 않아 게임오버가 뜨지 않는다.
+ *   v1 재화  — wallet / endless 가 없다. 힌트·자동배치가 판마다 3/2 로 리셋되던
+ *              시절의 저장분이라, 판에 남아 있던 개수를 그대로 지갑으로 옮기면
+ *              사람마다 시작 보유량이 달라진다. 그래서 옮기지 않고 모두에게
+ *              최초 지급량(3/2)을 준다 — 여기서만 한 번 일어나는 일이다.
+ *              대신 진행 중이던 판에서 이미 쓴 개수(used*)는 3/2 에서 역산해
+ *              점수에 반영한다.
  */
 function migrateSave(data) {
   const d = (data && typeof data === 'object') ? data : {};
@@ -1338,6 +1433,8 @@ function migrateSave(data) {
     inProgress: null,
     tutorialDone: !!d.tutorialDone,
     sound: d.sound !== false,
+    wallet: { hints: WALLET_START.hints, boosts: WALLET_START.boosts },
+    endless: { level: 0, cleared: 0, bestScore: 0, puzzle: null },
   };
 
   for (const [id, rec] of Object.entries(out.cleared)) {
@@ -1347,18 +1444,50 @@ function migrateSave(data) {
     rec.score = countOr(rec.score, Infinity, 0);
   }
 
+  // 지갑 — 있으면 그대로, 없으면(구버전) 최초 지급량. 상한은 두지 않는다.
+  const w = d.wallet;
+  if (w && typeof w === 'object') {
+    out.wallet.hints = countOr(w.hints, Infinity, WALLET_START.hints);
+    out.wallet.boosts = countOr(w.boosts, Infinity, WALLET_START.boosts);
+  }
+
+  // 무한 마당 진행 상황
+  const e = d.endless;
+  if (e && typeof e === 'object') {
+    out.endless.level = countOr(e.level, Infinity, 0);
+    out.endless.cleared = countOr(e.cleared, Infinity, 0);
+    out.endless.bestScore = countOr(e.bestScore, Infinity, 0);
+    if (validPuzzle(e.puzzle)) out.endless.puzzle = e.puzzle;
+  }
+
   const ip = d.inProgress;
   if (ip && typeof ip === 'object' && typeof ip.levelId === 'string' && Array.isArray(ip.grid)) {
     out.inProgress = {
       levelId: ip.levelId,
       grid: ip.grid.map((row) => (Array.isArray(row) ? row.slice() : [])),
       lives: countOr(ip.lives, MAX_LIVES, MAX_LIVES),
-      hints: countOr(ip.hints, HINTS_PER_LEVEL, HINTS_PER_LEVEL),
-      boosts: countOr(ip.boosts, BOOSTS_PER_LEVEL, BOOSTS_PER_LEVEL),
+      // 구버전엔 "남은 개수"만 있다 -> 쓴 개수로 뒤집어 준다
+      usedHints: countOr(ip.usedHints ?? (3 - countOr(ip.hints, 3, 3)), Infinity, 0),
+      usedBoosts: countOr(ip.usedBoosts ?? (2 - countOr(ip.boosts, 2, 2)), Infinity, 0),
       elapsed: countOr(ip.elapsed, Infinity, 0),
     };
   }
   return out;
+}
+
+/** 저장된 무한 판이 실제로 쓸 수 있는 모양인지 — 손상된 저장분에 게임이 끌려가지 않게 */
+function validPuzzle(p) {
+  if (!p || typeof p !== 'object') return false;
+  const n = p.size;
+  if (!Number.isInteger(n) || n < 4 || n > 20) return false;
+  if (!Array.isArray(p.regions) || p.regions.length !== n) return false;
+  for (const row of p.regions) {
+    if (!Array.isArray(row) || row.length !== n) return false;
+    for (const g of row) if (!Number.isInteger(g) || g < 0 || g >= n) return false;
+  }
+  if (!Array.isArray(p.solution) || p.solution.length !== n) return false;
+  for (const c of p.solution) if (!Number.isInteger(c) || c < 0 || c >= n) return false;
+  return true;
 }
 
 /* ==========================================================================
@@ -1411,10 +1540,18 @@ function combinations(arr, k) {
 
 /**
  * 논리 추론을 순서대로 실행하며 각 "한 수"를 기록한다.
+ *
+ * 이 함수는 두 곳에서 쓰인다.
+ *   · 힌트 — onStep 을 주고 첫 수에서 멈춘다
+ *   · 퍼즐 생성 — onStep 없이 끝까지 돌려 "찍기 없이 풀리는가"를 판정한다
+ * 생성기가 자기 솔버를 따로 갖지 않는 게 중요하다. 그래야 "생성된 판은 반드시
+ * 게임의 힌트로 끝까지 풀린다"가 구조적으로 보장된다.
+ *
  * @param seeds 이미 확정된 토끼 좌표 [[r,c],...]
  * @param onStep 각 추론마다 호출. true 를 돌려주면 즉시 중단(힌트용).
+ * @param stats  주면 { tier, steps, firstPlace } 를 채워 준다 (생성기 난이도 측정용)
  */
-function runLogic(n, regions, seeds, onStep) {
+function runLogic(n, regions, seeds, onStep, stats) {
   const state = Array.from({ length: n }, () => new Array(n).fill(EMPTY));
   const groups = buildGroups(n, regions);
   let stopped = false;
@@ -1437,7 +1574,9 @@ function runLogic(n, regions, seeds, onStep) {
       }
   };
 
-  const emit = (step) => { if (onStep && onStep(step) === true) stopped = true; };
+  // 설명 문구는 필요할 때만 만든다. 퍼즐 생성기가 이 솔버를 수천 번 돌리는데,
+  // 그때는 onStep 이 없어서 문자열을 한 줄도 만들지 않는다.
+  const emit = (make) => { if (!onStep) return; if (onStep(make()) === true) stopped = true; };
   const cands = (g) => g.cells.filter(([r, c]) => state[r][c] === EMPTY);
   const done = (g) => g.cells.some(([r, c]) => state[r][c] === RABBIT);
 
@@ -1455,12 +1594,13 @@ function runLogic(n, regions, seeds, onStep) {
       if (cs.length === 0) return { state, stopped, dead: true };
       if (cs.length === 1) {
         const [r, c] = cs[0];
-        emit({
+        if (stats) { if (stats.firstPlace < 0) stats.firstPlace = stats.steps; stats.steps++; }
+        emit(() => ({
           type: 'place', r, c, group: g, highlight: g.cells,
           text: g.kind === 'region'
             ? `<b>${groupLabel(g)}</b>에서 토끼가 앉을 수 있는 칸이 여기 하나뿐이에요.`
             : `<b>${groupLabel(g)}</b>에 남은 자리가 여기뿐이에요.`,
-        });
+        }));
         if (stopped) return { state, stopped };
         propagate(r, c); progress = true; break;
       }
@@ -1479,19 +1619,19 @@ function runLogic(n, regions, seeds, onStep) {
           const r = [...rows][0];
           for (let c = 0; c < n; c++) if (state[r][c] === EMPTY && regions[r][c] !== g.index) hits.push([r, c]);
           if (hits.length) {
-            emit({
+            emit(() => ({
               type: 'block', r: hits[0][0], c: hits[0][1], group: g, highlight: cs, extra: hits,
               text: `<b>${groupLabel(g)}</b>의 토끼는 ${r + 1}번째 가로줄 안에 있어야 해요. 그래서 그 줄의 다른 칸은 비워요.`,
-            });
+            }));
           }
         } else if (cols.size === 1) {
           const c = [...cols][0];
           for (let r = 0; r < n; r++) if (state[r][c] === EMPTY && regions[r][c] !== g.index) hits.push([r, c]);
           if (hits.length) {
-            emit({
+            emit(() => ({
               type: 'block', r: hits[0][0], c: hits[0][1], group: g, highlight: cs, extra: hits,
               text: `<b>${groupLabel(g)}</b>의 토끼는 ${c + 1}번째 세로줄 안에 있어야 해요. 그래서 그 줄의 다른 칸은 비워요.`,
-            });
+            }));
           }
         }
       } else {
@@ -1504,27 +1644,31 @@ function runLogic(n, regions, seeds, onStep) {
               if (g.kind === 'row' ? r !== g.index : c !== g.index) hits.push([r, c]);
             }
           if (hits.length) {
-            emit({
+            emit(() => ({
               type: 'block', r: hits[0][0], c: hits[0][1], group: g, highlight: cs, extra: hits,
               text: `<b>${groupLabel(g)}</b>의 토끼는 <b>${regionName(gi)} 자리</b> 안에 있어야 해요. 그래서 그 자리의 다른 칸은 비워요.`,
-            });
+            }));
           }
         }
       }
       if (stopped) return { state, stopped };
-      if (hits.length) { for (const [r, c] of hits) state[r][c] = BLOCKED; progress = true; break; }
+      if (hits.length) {
+        for (const [r, c] of hits) state[r][c] = BLOCKED;
+        if (stats) { stats.tier = Math.max(stats.tier, 1); stats.steps++; }
+        progress = true; break;
+      }
     }
     if (progress) continue;
 
     // ---- T2: k개 줄 ↔ k개 영역
     const t2 = kSetRule(n, regions, state, groups, cands, done, emit);
     if (stopped) return { state, stopped };
-    if (t2) { progress = true; continue; }
+    if (t2) { if (stats) { stats.tier = Math.max(stats.tier, 2); stats.steps++; } progress = true; continue; }
 
     // ---- T3: 놓아보기(모순) 제거
     const t3 = trialRule(n, regions, state, groups, cands, done, emit);
     if (stopped) return { state, stopped };
-    if (t3) { progress = true; continue; }
+    if (t3) { if (stats) { stats.tier = Math.max(stats.tier, 3); stats.steps++; } progress = true; continue; }
   }
 
   return { state, stopped };
@@ -1550,12 +1694,12 @@ function kSetRule(n, regions, state, groups, cands, done, emit) {
             }
           }
           if (!hits.length) continue;
-          const names = [...set].map((i) => regionName(i)).join('·');
-          const lineNums = combo.map((g) => g.index + 1).join('·');
-          emit({
+          emit(() => ({
             type: 'block', r: hits[0][0], c: hits[0][1], highlight: combo.flatMap((g) => cands(g)), extra: hits,
-            text: `${lineNums}번째 ${kindLabel} ${k}개가 <b>${names}</b> 자리 ${k}곳을 나눠 가져야 해요. 그래서 그 자리들의 남은 칸은 비워요.`,
-          });
+            text: `${combo.map((g) => g.index + 1).join('·')}번째 ${kindLabel} ${k}개가 `
+              + `<b>${[...set].map((i) => regionName(i)).join('·')}</b> 자리 ${k}곳을 나눠 가져야 해요. `
+              + '그래서 그 자리들의 남은 칸은 비워요.',
+          }));
           for (const [r, c] of hits) state[r][c] = BLOCKED;
           return true;
         }
@@ -1571,12 +1715,12 @@ function kSetRule(n, regions, state, groups, cands, done, emit) {
             for (const [r, c] of cands(ln)) if (!combo.some((g) => g.index === regions[r][c])) hits.push([r, c]);
           }
           if (!hits.length) continue;
-          const names = combo.map((g) => regionName(g.index)).join('·');
-          const lineNums = [...set].map((i) => i + 1).join('·');
-          emit({
+          emit(() => ({
             type: 'block', r: hits[0][0], c: hits[0][1], highlight: combo.flatMap((g) => cands(g)), extra: hits,
-            text: `<b>${names}</b> 자리 ${k}곳이 ${lineNums}번째 ${kindLabel} ${k}개만 쓸 수 있어요. 그래서 그 줄들의 남은 칸은 비워요.`,
-          });
+            text: `<b>${combo.map((g) => regionName(g.index)).join('·')}</b> 자리 ${k}곳이 `
+              + `${[...set].map((i) => i + 1).join('·')}번째 ${kindLabel} ${k}개만 쓸 수 있어요. `
+              + '그래서 그 줄들의 남은 칸은 비워요.',
+          }));
           for (const [r, c] of hits) state[r][c] = BLOCKED;
           return true;
         }
@@ -1605,10 +1749,10 @@ function trialRule(n, regions, state, groups, cands, done, emit) {
         if (g.cells.some((p) => p[0] === r && p[1] === c)) continue;
         const left = cands(g).filter((p) => !killed.has(p[0] * n + p[1]));
         if (left.length === 0) {
-          emit({
+          emit(() => ({
             type: 'block', r, c, group: g, highlight: cands(g), extra: [[r, c]],
             text: `여기에 토끼를 두면 <b>${groupLabel(g)}</b>가 앉을 자리를 모두 잃어요. 그러니 이 칸은 비워요.`,
-          });
+          }));
           state[r][c] = BLOCKED;
           return true;
         }
@@ -1617,6 +1761,520 @@ function trialRule(n, regions, state, groups, cands, done, emit) {
   }
   return false;
 }
+
+/* ==========================================================================
+ * 4-c. 퍼즐 생성기 — 무한 마당의 판을 만든다
+ * --------------------------------------------------------------------------
+ * tools/generate-puzzles.mjs 의 알고리즘을 그대로 옮긴 것이다. 다만 논리 솔버는
+ * 옮기지 않고 위의 runLogic 을 그대로 쓴다 — 생성기가 자기 솔버를 따로 가지면
+ * 두 솔버가 언젠가 갈라지고, 그러면 "힌트로 끝까지 풀리는 판"이라는 보장이 깨진다.
+ *
+ * 만드는 순서
+ *   1) 무작위 정답 배치 (행·열 유일 + 인접 행끼리 열 차이 >= 2)
+ *   2) 정답 칸을 씨앗으로 영역을 키운다 (크기 프로필을 지키면서)
+ *   3) 해가 여럿이면 칸 하나의 소속을 바꿔 가짜 해를 깨뜨린다 —
+ *      정답 칸은 절대 건드리지 않으므로 원래 정답은 항상 살아 있다
+ *   4) 해가 하나가 되면 논리만으로 풀리는지 본다. 풀리면 채택.
+ *
+ * 유일해 보장: 논리 솔버의 모든 규칙은 "확정된 수"만 만든다. 따라서 논리만으로
+ * 완주했다는 것은 곧 해가 유일하다는 뜻이다. 그래도 채택 직전에 findSolutions 로
+ * 한 번 더 못을 박는다 (offline 빌드의 tools/build.mjs 가 하던 역할).
+ * ========================================================================== */
+const D4 = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+/** 재현 가능한 난수 — 같은 시드는 언제 어디서나 같은 판을 만든다 */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shuffle(arr, rnd) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function randomSolution(n, rnd) {
+  const cols = new Array(n).fill(-1);
+  const used = new Array(n).fill(false);
+  function rec(r) {
+    if (r === n) return true;
+    for (const c of shuffle([...Array(n).keys()], rnd)) {
+      if (used[c]) continue;
+      if (r > 0 && Math.abs(cols[r - 1] - c) <= 1) continue;
+      used[c] = true; cols[r] = c;
+      if (rec(r + 1)) return true;
+      used[c] = false; cols[r] = -1;
+    }
+    return false;
+  }
+  return rec(0) ? cols : null;
+}
+
+/** 영역 크기 목표 — 거대 영역 1개 + 미니 영역 0~3개 + 나머지 */
+function makeProfile(n, rnd) {
+  const cells = n * n;
+  const profile = new Array(n);
+  const order = shuffle([...Array(n).keys()], rnd);
+
+  const giantMin = Math.max(4, Math.round(cells * 0.30));
+  const giantMax = Math.max(giantMin + 1, Math.round(cells * 0.40));
+  profile[order[0]] = { min: giantMin, max: giantMax };
+
+  const miniCount = Math.min(Math.floor(rnd() * 4), Math.max(0, n - 3));
+  for (let i = 1; i <= miniCount; i++) profile[order[i]] = { min: 1, max: 2 };
+
+  const rest = order.slice(1 + miniCount);
+  const restMax = Math.max(3, Math.ceil(((cells - giantMin - miniCount) / Math.max(1, rest.length)) * 2));
+  for (const i of rest) profile[i] = { min: 2, max: restMax };
+
+  let lo = 0, hi = 0;
+  for (const pr of profile) { lo += pr.min; hi += pr.max; }
+  if (lo > cells || hi < cells) return null;
+  return profile;
+}
+
+function growRegions(n, cols, profile, rnd) {
+  const regions = Array.from({ length: n }, () => new Array(n).fill(-1));
+  const sizes = new Array(n).fill(1);
+  for (let r = 0; r < n; r++) regions[r][cols[r]] = r;
+
+  const frontierOf = (g) => {
+    const out = [];
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        if (regions[r][c] !== g) continue;
+        for (const [dr, dc] of D4) {
+          const nr = r + dr, nc = c + dc;
+          if (nr < 0 || nc < 0 || nr >= n || nc >= n) continue;
+          if (regions[nr][nc] === -1) out.push([nr, nc]);
+        }
+      }
+    }
+    return out;
+  };
+
+  let remaining = n * n - n;
+  for (let pass = 0; pass < 4 && remaining > 0; pass++) {
+    for (const g of shuffle([...Array(n).keys()], rnd)) {
+      while (sizes[g] < profile[g].min && remaining > 0) {
+        const f = frontierOf(g);
+        if (!f.length) break;
+        const [fr, fc] = f[Math.floor(rnd() * f.length)];
+        regions[fr][fc] = g; sizes[g]++; remaining--;
+      }
+    }
+  }
+  for (let g = 0; g < n; g++) if (sizes[g] < profile[g].min) return null;
+
+  const targets = new Array(n).fill(0).map(() => 1 + rnd() * 1.2);
+  let guard = 0;
+  while (remaining > 0 && guard++ < n * n * 60) {
+    const weights = [];
+    let total = 0;
+    for (let i = 0; i < n; i++) {
+      const w = sizes[i] >= profile[i].max ? 0 : targets[i] / (sizes[i] * sizes[i]);
+      weights.push(w); total += w;
+    }
+    if (total <= 0) return null;
+    let pick = rnd() * total, g = 0;
+    for (; g < n; g++) { pick -= weights[g]; if (pick <= 0 && weights[g] > 0) break; }
+    if (g >= n) g = weights.findIndex((w) => w > 0);
+
+    const frontier = frontierOf(g);
+    if (!frontier.length) { targets[g] = 0; continue; }
+    const [fr, fc] = frontier[Math.floor(rnd() * frontier.length)];
+    regions[fr][fc] = g; sizes[g]++; remaining--;
+  }
+  return remaining > 0 ? null : regions;
+}
+
+/** 행 단위 백트래킹 + 비트마스크 가지치기. limit 개까지만 찾고 멈춘다. */
+function findSolutions(n, regions, limit = 2) {
+  const regRowMask = new Array(n).fill(0);
+  const regColMask = new Array(n).fill(0);
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      const g = regions[r][c];
+      regRowMask[g] |= 1 << r;
+      regColMask[g] |= 1 << c;
+    }
+  }
+  const full = (1 << n) - 1;
+  const cols = new Array(n).fill(-1);
+  const found = [];
+  let colUsedMask = 0, regUsedMask = 0;
+
+  function feasible(r) {
+    const rowsLeft = full & ~((1 << r) - 1);
+    const colsLeft = full & ~colUsedMask;
+    for (let g = 0; g < n; g++) {
+      if (regUsedMask & (1 << g)) continue;
+      if (!(regRowMask[g] & rowsLeft)) return false;
+      if (!(regColMask[g] & colsLeft)) return false;
+    }
+    return true;
+  }
+  function rec(r) {
+    if (found.length >= limit) return;
+    if (r === n) { found.push(cols.slice()); return; }
+    if (!feasible(r)) return;
+    for (let c = 0; c < n; c++) {
+      if (colUsedMask & (1 << c)) continue;
+      const g = regions[r][c];
+      if (regUsedMask & (1 << g)) continue;
+      if (r > 0 && Math.abs(cols[r - 1] - c) <= 1) continue;
+      colUsedMask |= 1 << c; regUsedMask |= 1 << g; cols[r] = c;
+      rec(r + 1);
+      colUsedMask &= ~(1 << c); regUsedMask &= ~(1 << g); cols[r] = -1;
+      if (found.length >= limit) return;
+    }
+  }
+  rec(0);
+  return found;
+}
+
+function regionSizes(n, regions) {
+  const s = new Array(n).fill(0);
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) s[regions[r][c]]++;
+  return s;
+}
+
+function regionStaysConnected(n, regions, cell, gid) {
+  const [er, ec] = cell;
+  const cells = [];
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < n; c++)
+      if (regions[r][c] === gid && !(r === er && c === ec)) cells.push([r, c]);
+  if (!cells.length) return false;
+  const seen = new Set([cells[0][0] * n + cells[0][1]]);
+  const stack = [cells[0]];
+  while (stack.length) {
+    const [r, c] = stack.pop();
+    for (const [dr, dc] of D4) {
+      const nr = r + dr, nc = c + dc;
+      if (nr < 0 || nc < 0 || nr >= n || nc >= n) continue;
+      if (nr === er && nc === ec) continue;
+      if (regions[nr][nc] !== gid) continue;
+      const key = nr * n + nc;
+      if (seen.has(key)) continue;
+      seen.add(key); stack.push([nr, nc]);
+    }
+  }
+  return seen.size === cells.length;
+}
+
+function touchesRegion(n, regions, r, c, gid) {
+  for (const [dr, dc] of D4) {
+    const nr = r + dr, nc = c + dc;
+    if (nr < 0 || nc < 0 || nr >= n || nc >= n) continue;
+    if (regions[nr][nc] === gid) return true;
+  }
+  return false;
+}
+
+function canRecolor(n, regions, sol, r, c, gid, sizes, profile) {
+  const src = regions[r][c];
+  if (src === gid) return false;
+  if (sol[r] === c) return false;
+  if (sizes[src] - 1 < profile[src].min) return false;
+  if (sizes[gid] + 1 > profile[gid].max) return false;
+  if (!touchesRegion(n, regions, r, c, gid)) return false;
+  return regionStaysConnected(n, regions, [r, c], src);
+}
+
+function breakingMoves(n, regions, sol, alt, sizes, profile) {
+  const moves = [];
+  for (let r1 = 0; r1 < n; r1++) {
+    for (let r2 = 0; r2 < n; r2++) {
+      if (r1 === r2) continue;
+      const a = [r1, alt[r1]];
+      const gb = regions[r2][alt[r2]];
+      if (regions[a[0]][a[1]] === gb) continue;
+      if (canRecolor(n, regions, sol, a[0], a[1], gb, sizes, profile)) moves.push([a[0], a[1], gb]);
+    }
+  }
+  return moves;
+}
+
+function pickBalanced(n, regions, moves, sizes, profile, rnd) {
+  const slack = (g) => sizes[g] - profile[g].min;
+  const scored = moves.map((m) => ({ m, v: slack(regions[m[0]][m[1]]) - slack(m[2]) }));
+  scored.sort((a, b) => b.v - a.v);
+  const top = scored.slice(0, Math.max(1, Math.ceil(scored.length / 2)));
+  return top[Math.floor(rnd() * top.length)].m;
+}
+
+function randomNudge(n, regions, sol, profile, rnd) {
+  const sizes = regionSizes(n, regions);
+  for (const k of shuffle([...Array(n * n).keys()], rnd)) {
+    const r = Math.floor(k / n), c = k % n;
+    for (const [dr, dc] of shuffle([...D4], rnd)) {
+      const nr = r + dr, nc = c + dc;
+      if (nr < 0 || nc < 0 || nr >= n || nc >= n) continue;
+      const gid = regions[nr][nc];
+      if (canRecolor(n, regions, sol, r, c, gid, sizes, profile)) { regions[r][c] = gid; return true; }
+    }
+  }
+  return false;
+}
+
+/** 논리만으로 끝까지 풀리는가 + 얼마나 깊은 추론이 필요한가 */
+function logicSolve(n, regions) {
+  const stats = { tier: 0, steps: 0, firstPlace: -1 };
+  const res = runLogic(n, regions, [], null, stats);
+  let placed = 0;
+  for (const row of res.state) for (const v of row) if (v === RABBIT) placed++;
+  return {
+    ok: placed === n,
+    tier: stats.tier,
+    steps: stats.steps,
+    firstPlace: stats.firstPlace < 0 ? Infinity : stats.firstPlace,
+  };
+}
+
+/** 추론 깊이 — 숫자가 클수록 어렵다 (생성기 metrics 와 같은 식) */
+function inferenceDepth(n, lg) {
+  return lg.tier * 8 + Math.max(0, lg.steps - n) + Math.min(lg.firstPlace, 12);
+}
+
+/**
+ * 퍼즐 하나. deadline(밀리초 시각)을 넘기면 포기하고 null 을 돌려준다 —
+ * 부르는 쪽이 더 작은 판으로 물러설 수 있게 하기 위해서다.
+ */
+function makePuzzle(n, rnd, deadline, outerTries = 400, repairSteps = 3000) {
+  for (let t = 0; t < outerTries; t++) {
+    if (Date.now() > deadline) return null;
+    const cols = randomSolution(n, rnd);
+    if (!cols) continue;
+    const profile = makeProfile(n, rnd);
+    if (!profile) continue;
+    const regions = growRegions(n, cols, profile, rnd);
+    if (!regions) continue;
+
+    for (let step = 0; step < repairSteps; step++) {
+      if ((step & 15) === 0 && Date.now() > deadline) return null;
+
+      // 유일성부터 본다. 해가 여럿인 판은 논리로 풀릴 수 없으므로
+      // 비싼 논리 솔버를 돌릴 이유가 없다 (이 순서가 큰 판에서 10배 넘게 빠르다).
+      const sols = findSolutions(n, regions, 2);
+      if (sols.length === 0) break;
+      if (sols.length === 1) {
+        const lg = logicSolve(n, regions);
+        if (lg.ok) return { regions, cols, sizes: regionSizes(n, regions), lg };
+        if (!randomNudge(n, regions, cols, profile, rnd)) break;
+        continue;
+      }
+      const alt = sols.find((s) => s.some((c, r) => c !== cols[r])) || sols[1];
+      const sizes = regionSizes(n, regions);
+      const moves = breakingMoves(n, regions, cols, alt, sizes, profile);
+      if (moves.length) {
+        const [r, c, g] = pickBalanced(n, regions, moves, sizes, profile, rnd);
+        regions[r][c] = g;
+      } else if (!randomNudge(n, regions, cols, profile, rnd)) break;
+    }
+  }
+  return null;
+}
+
+/**
+ * 무한 마당 한 판.
+ *
+ * 후보를 tries 개 뽑아 그중 "노리는 깊이(spec.depth)에 가장 가까운" 것을 고른다.
+ * 가장 깊은 것을 고르지 않는 이유: 생성기가 내놓는 깊이는 들쭉날쭉해서(같은 크기에서
+ * 10 도 40 도 나온다) 무조건 깊은 쪽을 집으면 27번이 60번보다 어려운 일이 생긴다.
+ *
+ * 다만 이 고르기는 어디까지나 보정이다. 12x12 는 후보 하나가 1초 안쪽이라 여러 개를
+ * 놓고 고를 수 있지만, 14x14 는 하나 뽑는 데만 15초씩 걸려서 예산 안에 후보가
+ * 한둘뿐이고 그때는 사실상 나온 대로 쓴다. 그래서 난이도를 실제로 끌어올리는 축은
+ * 판 크기이고, 깊이는 "가능할 때 다듬는" 정도로만 본다.
+ *
+ * 시간이 모자라면 지금까지 뽑은 것 중 최선을 쓰고, 그 크기가 아예 안 나오면
+ * 한 단계 작은 판으로 물러선다. 빈손으로 끝나는 경우는 없어야 한다.
+ */
+function makeEndlessPuzzle(spec, seed, budgetMs) {
+  const until = Date.now() + budgetMs;
+  const want = spec.depth || 12;
+  let best = null, bestGap = Infinity;
+  for (let size = spec.size; size >= 9; size--) {
+    for (let i = 0; i < spec.tries; i++) {
+      const left = until - Date.now();
+      if (left <= 0) break;
+      // 후보 하나에 줄 시간. 판이 커지면 생성이 급격히 느려지므로 크기에 맞춰 늘린다.
+      // 넉넉히 잡아야 하는 이유: 여기가 짧으면 느린 기기에서 큰 판이 매번 시간 안에
+      // 안 나와서, 레벨을 올려도 판이 커지지 않는 일이 조용히 벌어진다.
+      const capMs = size >= 14 ? 24000 : size >= 13 ? 15000 : 10000;
+      // 후보마다 시드를 달리해서, 같은 레벨은 언제 다시 만들어도 같은 판이 나온다
+      const rnd = mulberry32((seed ^ (size * 0x9E3779B1) ^ (i * 0x85EBCA6B)) | 0);
+      const p = makePuzzle(size, rnd, Date.now() + Math.min(left, capMs));
+      // 후보 하나가 시간 안에 안 나와도 크기를 바로 낮추지 않는다 — 후보마다 걸리는
+      // 시간 편차가 커서, 같은 크기의 다음 후보가 훨씬 빨리 나오는 경우가 흔하다.
+      if (!p) continue;
+      const depth = inferenceDepth(size, p.lg);
+      const gap = Math.abs(depth - want);
+      if (gap < bestGap) { best = { p, size, depth }; bestGap = gap; }
+    }
+    if (best) break;                       // 이 크기로 하나라도 나왔으면 더 작게 가지 않는다
+  }
+  if (!best) return null;
+
+  // 마지막 확인 — 해가 정말 하나뿐인가. (논리 완주가 이미 보장하지만 못을 박는다)
+  if (findSolutions(best.size, best.p.regions, 2).length !== 1) return null;
+  return {
+    size: best.size,
+    regions: best.p.regions,
+    solution: best.p.cols,
+    depth: best.depth,
+    tier: best.p.lg.tier,
+  };
+}
+
+/* ==========================================================================
+ * 4-d. 무한 마당 공급 — 언제 만들어도 같은 판이 나오게
+ * --------------------------------------------------------------------------
+ * 레벨 번호 하나에 시드 하나를 못박아 둔다. 그래서
+ *   · 저장에는 "몇 번째 판인지"만 넣으면 되고 (판 자체를 안 들고 다녀도 된다)
+ *   · 지웠다 다시 깔아도 27번 판은 여전히 27번 판이며
+ *   · 무엇보다 판이 무한히 이어지는데도 같은 판이 두 번 나오지 않는다.
+ *
+ * 만드는 데 큰 판은 몇 초씩 걸린다. 그래서 웹 워커에 맡기고, 지금 판을 푸는
+ * 동안 다음 판을 미리 만들어 둔다. 워커를 못 쓰는 환경(file:// 등)에서는
+ * 메인 스레드에서 만들되 "준비 중" 화면을 띄운다.
+ * ========================================================================== */
+const ENDLESS_START = 27;          // 스테이지 26판 다음 번호
+
+/**
+ * 레벨 번호 -> 판 크기와 후보 수.
+ * 크기는 스테이지 마지막(13x13)에서 이어받아 천천히 오르고, 그 위로는 크기 대신
+ * "후보를 여러 개 뽑아 가장 깊은 것을 고르는" 방식으로 복잡도만 올린다.
+ * 크기를 계속 키우지 않는 건 취향이 아니라 두 가지 벽 때문이다 —
+ * 세로 화면에서 읽을 수 있는 한계, 그리고 생성 시간(14x14 부터 급격히 는다).
+ */
+function endlessSpec(level) {
+  const t = Math.max(0, level - ENDLESS_START);
+  const size = t < 8 ? 12 : t < 24 ? 13 : 14;
+  const tries = 3 + Math.min(2, Math.floor(t / 12));      // 후보 3~5개
+  // 노리는 추론 깊이. 12x12~13x13 에서 생성기가 실제로 내놓는 분포를 재서 잡았다
+  // (최소 10 · p25 17 · 중앙 26 · p75 33 · 최대 46). 시작을 p25 근처에 두어
+  // 27번이 스테이지 마지막보다 갑자기 어려워지지 않게 하고, 60판쯤에 p75 에 닿는다.
+  const depth = 14 + Math.min(20, Math.floor(t / 3));     // 14 -> 34
+  return { size, tries, depth };
+}
+
+/** 레벨 번호 -> 시드. 이웃한 번호가 비슷한 판이 되지 않도록 섞는다. */
+function endlessSeed(level) {
+  let h = (level * 0x9E3779B1) ^ 0x5F356495;
+  h = Math.imul(h ^ (h >>> 16), 0x85EBCA6B);
+  h = Math.imul(h ^ (h >>> 13), 0xC2B2AE35);
+  return (h ^ (h >>> 16)) | 0;
+}
+
+/* ---- 워커 ----------------------------------------------------------------
+ * 단일 파일을 유지하려고 워커 소스를 함수들의 toString() 으로 조립한다.
+ * 여기 나열된 함수 바깥의 것을 참조하면 워커 안에서 터지므로, 목록에 빠진 게
+ * 없는지가 이 방식의 유일한 주의점이다. (regionName/groupLabel 은 설명 문구를
+ * 만들 때만 쓰이는데 생성 중에는 그 경로가 아예 실행되지 않아 대역만 둔다) */
+const GEN_FNS = [
+  mulberry32, shuffle, randomSolution, makeProfile, growRegions, findSolutions,
+  regionSizes, regionStaysConnected, touchesRegion, canRecolor, breakingMoves,
+  pickBalanced, randomNudge, buildGroups, combinations, runLogic, kSetRule,
+  trialRule, logicSolve, inferenceDepth, makePuzzle, makeEndlessPuzzle,
+];
+
+function genWorkerSource() {
+  return 'const EMPTY=0,RABBIT=1,BLOCKED=-1;\n'
+    + 'const D4=[[-1,0],[1,0],[0,-1],[0,1]];\n'
+    + 'const regionName=(i)=>String(i+1), groupLabel=()=>"";\n'
+    + GEN_FNS.map((f) => f.toString()).join('\n')
+    + '\nonmessage=(e)=>{const{level,spec,seed,budget}=e.data;'
+    + 'let out=null;try{out=makeEndlessPuzzle(spec,seed,budget);}catch(err){out=null;}'
+    + 'postMessage({level,puzzle:out});};';
+}
+
+const Endless = {
+  worker: null,
+  workerBroken: false,
+  pending: new Map(),        // level -> Promise
+  ready: new Map(),          // level -> puzzle (미리 만들어 둔 것)
+
+  /** 워커를 띄운다. 못 띄우면 이후로는 메인 스레드에서 만든다. */
+  boot() {
+    if (this.worker || this.workerBroken) return this.worker;
+    try {
+      const url = URL.createObjectURL(new Blob([genWorkerSource()], { type: 'text/javascript' }));
+      this.worker = new Worker(url);
+      URL.revokeObjectURL(url);
+      this.worker.onerror = () => { this.workerBroken = true; this.worker = null; };
+    } catch (e) {
+      this.workerBroken = true;
+      this.worker = null;
+    }
+    return this.worker;
+  },
+
+  /**
+   * level 번 판을 얻는다. 이미 만들어 뒀으면 즉시, 아니면 만드는 동안 기다린다.
+   * 워커가 없으면 메인 스레드에서 만든다 (그동안 화면은 멈춘다 — 부르는 쪽이
+   * "준비 중"을 띄워 두어야 한다).
+   */
+  get(level, budget = 18000) {
+    if (this.ready.has(level)) return Promise.resolve(this.ready.get(level));
+    if (this.pending.has(level)) return this.pending.get(level);
+
+    const spec = endlessSpec(level), seed = endlessSeed(level);
+    const w = this.boot();
+    let job;
+    if (w) {
+      job = new Promise((resolve) => {
+        const onMsg = (e) => {
+          if (!e.data || e.data.level !== level) return;
+          w.removeEventListener('message', onMsg);
+          resolve(e.data.puzzle);
+        };
+        w.addEventListener('message', onMsg);
+        w.postMessage({ level, spec, seed, budget });
+      });
+    } else {
+      job = new Promise((resolve) => {
+        // 메인 스레드 대체 경로. 한 프레임 뒤에 돌려서 "준비 중"이 먼저 그려지게 한다.
+        setTimeout(() => {
+          let out = null;
+          try { out = makeEndlessPuzzle(spec, seed, budget); } catch (e) { out = null; }
+          resolve(out);
+        }, 60);
+      });
+    }
+    job = job.then((puzzle) => {
+      this.pending.delete(level);
+      if (puzzle) { this.ready.set(level, puzzle); this.trim(); }
+      return puzzle;
+    });
+    this.pending.set(level, job);
+    return job;
+  },
+
+  /**
+   * 다음 판을 미리 만들어 둔다. 실패해도 조용히 넘어간다 — 그때 가서 만들면 된다.
+   * 아무도 안 기다리는 시간이라 예산을 넉넉히 준다 (그만큼 좋은 판이 나온다).
+   */
+  prefetch(level) {
+    if (level < ENDLESS_START) return;
+    if (this.ready.has(level) || this.pending.has(level)) return;
+    this.get(level, 40000).catch(() => {});
+  },
+
+  /** 앞질러 만들어 둔 판이 쌓이지 않게 — 최근 4개만 들고 있는다 */
+  trim() {
+    const keys = [...this.ready.keys()].sort((a, b) => a - b);
+    while (keys.length > 4) this.ready.delete(keys.shift());
+  },
+};
 
 /* ==========================================================================
  * 4-b. 튜토리얼 — 고정 5x5 예제
@@ -1657,26 +2315,38 @@ const TUTORIAL = {
  * ========================================================================== */
 const CELL_BASE = 56;          // 논리 픽셀 기준 한 칸 크기 (화면에는 scale 로 맞춤)
 const LOCKED = 3;              // grid 값: 0 빈칸 / 1 ✕메모 / 2 토끼 / 3 규칙 위반으로 잠김
-const MAX_LIVES = 3;          // 목숨(당근 3개)
-const HINTS_PER_LEVEL = 3;
-const BOOSTS_PER_LEVEL = 2;
-const HINT_CONFIG = {
-  free: true,   // TODO: 추후 광고 연동 — free=false 로 두고 showRewardedAd() 를 붙이면 됨
-  onConsume() { /* 광고 연동 지점 */ },
-};
+/* MAX_LIVES · WALLET_* 는 저장 기본형이 쓰기 때문에 3장(저장소)에 있다 */
 
 let PUZZLES = null;
 const G = {
   level: null, n: 0, regions: null, solution: null,
   grid: null,          // 0 = 빈칸, 1 = X, 2 = 토끼
   lives: MAX_LIVES,
-  hints: HINTS_PER_LEVEL,
-  boosts: BOOSTS_PER_LEVEL,
+  usedHints: 0,        // 이 판에서 쓴 개수 — 점수 감점에 쓴다 (보유량은 지갑에 있다)
+  usedBoosts: 0,
   history: [],
   elapsed: 0, tickAt: 0, timer: null,
   finished: false,
   hintCells: [],
   tutorial: null,      // 튜토리얼 진행 중이면 { step }
+  endless: 0,          // 무한 마당이면 레벨 번호(27~), 스테이지면 0
+};
+
+/** 전역 재화 지갑 — 어디서든 이 한 곳만 본다 */
+const Wallet = {
+  get hints() { return Store.data.wallet.hints; },
+  get boosts() { return Store.data.wallet.boosts; },
+  spend(kind) {
+    const w = Store.data.wallet;
+    if (w[kind] <= 0) return false;
+    w[kind]--;
+    Store.save();
+    return true;
+  },
+  grant(kind, amount) {
+    Store.data.wallet[kind] += amount;
+    Store.save();
+  },
 };
 
 const $ = (id) => document.getElementById(id);
@@ -1722,6 +2392,7 @@ function unlockedCount() {
 function renderLevels() {
   const grid = $('levelGrid');
   grid.innerHTML = '';
+  grid.appendChild(buildEndlessCard());
   const open = unlockedCount();
   PUZZLES.levels.forEach((lv, i) => {
     const locked = i + 1 > open;
@@ -1740,7 +2411,43 @@ function renderLevels() {
     grid.appendChild(el);
   });
   const clearedN = PUZZLES.levels.filter((l) => Store.data.cleared[l.id]).length;
-  $('lvProgress').textContent = `${clearedN} / ${PUZZLES.levels.length} 레벨 완성`;
+  const ed = Store.data.endless;
+  $('lvProgress').textContent = ed.cleared > 0
+    ? `${clearedN} / ${PUZZLES.levels.length} 레벨 완성 · 무한 마당 ${ed.cleared}판`
+    : `${clearedN} / ${PUZZLES.levels.length} 레벨 완성`;
+}
+
+/** 목록 맨 위의 무한 마당 카드. 26판을 다 깨기 전에는 잠긴 모습으로 보여 준다. */
+function buildEndlessCard() {
+  const el = document.createElement('button');
+  el.id = 'endlessCard';
+  const open = endlessUnlocked();
+  const ed = Store.data.endless;
+  const next = nextEndlessLevel();
+  el.className = 'on' + (open ? '' : ' locked');
+  const sub = open
+    ? (ed.cleared > 0
+      ? `${ed.cleared}판 완성 · 최고 ${ed.bestScore.toLocaleString()}점 · 다음 ${next}번`
+      : '끝이 없는 마당이 열렸어요')
+    : `레벨 ${PUZZLES.levels.length}까지 모두 완성하면 열려요`;
+  el.innerHTML = `
+    <span class="art">${RabbitArt.html(open ? 'rabbit' : 'think')}</span>
+    <span class="txt">
+      <span class="ttl">${open ? '무한 마당' : '무한 마당 🔒'}</span>
+      <span class="sub">${sub}</span>
+    </span>`;
+  el.onclick = () => {
+    if (!open) { toast('스테이지를 모두 끝내면 열려요 🐾'); return; }
+    startEndless(nextEndlessLevel());
+  };
+  // 목록을 열어 둔 동안 다음 판을 만들어 둔다 — 카드를 눌렀을 때 기다리지 않게
+  if (open) Endless.prefetch(next);
+  return el;
+}
+
+/** 다음에 플레이할 무한 레벨 번호 */
+function nextEndlessLevel() {
+  return ENDLESS_START + Store.data.endless.cleared;
 }
 
 /* ==========================================================================
@@ -1748,34 +2455,99 @@ function renderLevels() {
  * ========================================================================== */
 function levelIndexById(id) { return PUZZLES.levels.findIndex((l) => l.id === id); }
 
-function startLevel(index, restore) {
-  const lv = PUZZLES.levels[index];
-  if (!lv) return;
+/**
+ * 판 하나를 화면에 올린다. 스테이지판과 무한 마당판이 공유하는 유일한 진입점.
+ * @param spec   { id, size, regions, solution, difficulty, title, endless }
+ * @param restore 이어서 하기 저장분 (없으면 새 판)
+ */
+function beginBoard(spec, restore) {
   if (G.tutorial) endTutorial();
-  G.level = lv; G.index = index;
-  G.n = lv.size; G.regions = lv.regions; G.solution = lv.solution;
-  G.colors = assignRegionColors(lv.size, lv.regions);   // 맞닿은 영역끼리 색이 겹치지 않게
-  G.grid = (restore && Array.isArray(restore.grid))
+  G.level = spec;
+  G.endless = spec.endless || 0;
+  G.n = spec.size; G.regions = spec.regions; G.solution = spec.solution;
+  G.colors = assignRegionColors(spec.size, spec.regions);   // 맞닿은 영역끼리 색이 겹치지 않게
+  G.grid = (restore && Array.isArray(restore.grid) && restore.grid.length === spec.size)
     ? restore.grid.map((r) => r.slice())
     : Array.from({ length: G.n }, () => new Array(G.n).fill(0));
-  // 필드별로 채운다 — 구버전 저장분엔 lives/hints/boosts 자체가 없다
+  // 필드별로 채운다 — 구버전 저장분엔 lives 자체가 없다
   G.lives = countOr(restore?.lives, MAX_LIVES, MAX_LIVES);
-  G.hints = countOr(restore?.hints, HINTS_PER_LEVEL, HINTS_PER_LEVEL);
-  G.boosts = countOr(restore?.boosts, BOOSTS_PER_LEVEL, BOOSTS_PER_LEVEL);
+  G.usedHints = countOr(restore?.usedHints, Infinity, 0);
+  G.usedBoosts = countOr(restore?.usedBoosts, Infinity, 0);
   G.elapsed = countOr(restore?.elapsed, Infinity, 0);
   G.history = []; G.finished = false; G.hintCells = [];
 
-  $('gmName').textContent = `레벨 ${index + 1}`;
-  renderDifficulty(lv.difficulty);
+  $('gmName').textContent = spec.title;
+  renderDifficulty(spec.difficulty);
   renderBoosters();
   hideHint();
   buildBoard();
   renderAll();
   startTimer();
-  Store.data.lastLevel = lv.id;
+  Store.data.lastLevel = spec.id;
   saveProgress();
   show('screen-game');
   requestAnimationFrame(fitBoard);
+}
+
+function startLevel(index, restore) {
+  const lv = PUZZLES.levels[index];
+  if (!lv) return;
+  G.index = index;
+  beginBoard({
+    id: lv.id, size: lv.size, regions: lv.regions, solution: lv.solution,
+    difficulty: lv.difficulty, title: `레벨 ${index + 1}`, endless: 0,
+  }, restore);
+}
+
+/** 스테이지 26판을 다 깼는가 — 무한 마당이 열리는 조건 */
+function endlessUnlocked() {
+  return !!PUZZLES && PUZZLES.levels.every((lv) => Store.data.cleared[lv.id]);
+}
+
+/** 무한 마당 레벨 번호 -> 난이도 라벨 (당근 개수는 판 크기로 매긴다) */
+function endlessDifficulty(size) {
+  return size >= 14 ? 'hard' : size >= 13 ? 'normal' : 'easy';
+}
+
+/**
+ * 무한 마당 한 판 시작. 판을 만드는 동안 "준비 중"을 띄우고, 만들어지면 올린다.
+ * 만들기에 실패하면(아주 느린 기기에서 예산 초과) 사용자에게 알리고 되돌아간다.
+ */
+let endlessBusy = false;
+async function startEndless(level, restore) {
+  if (endlessBusy) return;
+  endlessBusy = true;
+  const cached = Store.data.endless.puzzle;
+  const useCache = restore && cached && cached.level === level && validPuzzle(cached);
+  try {
+    let puzzle = useCache ? cached : Endless.ready.get(level);
+    if (!puzzle) {
+      showEndlessLoading(true);
+      puzzle = await Endless.get(level);
+      showEndlessLoading(false);
+    }
+    if (!puzzle) { toast('마당을 준비하지 못했어요. 잠시 뒤 다시 눌러 주세요'); return; }
+
+    Store.data.endless.level = Math.max(Store.data.endless.level, level);
+    Store.data.endless.puzzle = { level, size: puzzle.size, regions: puzzle.regions, solution: puzzle.solution };
+    Store.save();
+
+    G.index = PUZZLES.levels.length + (level - ENDLESS_START);   // 목록 화면과 무관한 순번
+    beginBoard({
+      id: `E${level}`, size: puzzle.size, regions: puzzle.regions, solution: puzzle.solution,
+      difficulty: endlessDifficulty(puzzle.size), title: `무한 ${level}`, endless: level,
+    }, useCache ? restore : null);
+
+    Endless.prefetch(level + 1);          // 다음 판은 이 판을 푸는 동안 만들어 둔다
+  } finally {
+    endlessBusy = false;
+    showEndlessLoading(false);
+  }
+}
+
+/** 판을 만드는 동안의 대기 표시 */
+function showEndlessLoading(on) {
+  $('endlessWait').classList.toggle('on', !!on);
 }
 
 /* 타일 치수 — 모두 칸 크기에 비례한다.
@@ -1867,12 +2639,92 @@ function renderDifficulty(difficulty) {
   $('gmDiff').innerHTML = [0, 1, 2].map((i) => RabbitArt.carrot(i < level)).join('');
 }
 
+/**
+ * 힌트·자동배치 버튼. 재화가 0 이어도 버튼을 잠그지 않는다 —
+ * 눌렀을 때 "광고 보고 충전"으로 이어지는 게 이 버튼의 다음 할 일이기 때문이다.
+ * (판이 끝났을 때만 진짜로 잠근다)
+ */
 function renderBoosters() {
   renderScore();
-  $('hintCount').textContent = G.hints;
-  $('boostCount').textContent = G.boosts;
-  $('btnHint').disabled = G.hints <= 0 || G.finished;
-  $('btnBoost').disabled = G.boosts <= 0 || G.finished;
+  const paint = (btnId, countId, count, label) => {
+    const btn = $(btnId), badge = $(countId);
+    const empty = count <= 0;
+    badge.textContent = empty ? '충전' : count;
+    badge.classList.toggle('ad', empty);
+    btn.classList.toggle('empty', empty);
+    btn.querySelector('.fab-label').textContent = empty ? '광고 보고 충전' : label;
+    btn.disabled = G.finished;
+  };
+  paint('btnHint', 'hintCount', Wallet.hints, '힌트');
+  paint('btnBoost', 'boostCount', Wallet.boosts, '자동배치');
+}
+
+/* --------------------------------------------------------------------------
+ * 보상형 광고 어댑터
+ *
+ * 앱인토스에 올릴 때 이 함수 하나만 SDK 호출로 갈아끼우면 된다. 게임 쪽은
+ * "Promise<boolean> 을 돌려주는 함수"라는 것 외에는 아무것도 알지 못한다.
+ *   true  = 끝까지 봤다 -> 보상 지급
+ *   false = 중간에 닫았거나 광고를 못 띄웠다 -> 지급 없음
+ *
+ * ※ 지금 구현은 임시다. 실제 광고가 아니라 3초 카운트다운 모달로 대신한다.
+ *   웹 단계에서 충전 흐름 자체를 만들어 두려는 목적이고, 탑재 시점에
+ *   교체될 코드다. 아래 본문을 SDK 호출로 바꾸는 것 외에 손댈 곳은 없다.
+ * -------------------------------------------------------------------------- */
+const AD_SECONDS = 3;
+function showRewardedAd(kind) {
+  return new Promise((resolve) => {
+    const label = kind === 'hints' ? `힌트 ${WALLET_REWARD.hints}개` : `자동배치 ${WALLET_REWARD.boosts}개`;
+    $('adArt').innerHTML = RabbitArt.html('rabbit', 'think');
+    $('adMsg').innerHTML = `잠깐 광고를 보면 <b>${label}</b>를 채워 드려요.`;
+    const timer = $('adCount');
+    const box = timer.parentElement;
+    box.classList.remove('done');
+    let left = AD_SECONDS;
+    timer.textContent = left;
+    $('adDone').disabled = true;
+    openModal('modalAd');
+
+    let tick = null;
+    const finish = (ok) => {
+      clearInterval(tick);
+      $('adCancel').onclick = null;
+      $('adDone').onclick = null;
+      closeModal('modalAd');
+      resolve(ok);
+    };
+    tick = setInterval(() => {
+      left--;
+      if (left > 0) { timer.textContent = left; return; }
+      clearInterval(tick);
+      timer.textContent = '✓';
+      box.classList.add('done');
+      $('adDone').disabled = false;
+      Sfx.ding();
+    }, 1000);
+
+    $('adCancel').onclick = () => finish(false);
+    $('adDone').onclick = () => finish(left <= 0);
+  });
+}
+
+/** 재화가 떨어졌을 때의 충전 흐름 — 광고를 보여 주고 성공하면 채운다 */
+let recharging = false;
+async function rechargeFlow(kind) {
+  if (recharging) return;
+  recharging = true;
+  try {
+    const ok = await showRewardedAd(kind);
+    if (!ok) return;
+    Wallet.grant(kind, WALLET_REWARD[kind]);
+    renderBoosters();
+    toast(kind === 'hints'
+      ? `힌트 ${WALLET_REWARD.hints}개를 채웠어요 💡`
+      : `자동배치 ${WALLET_REWARD.boosts}개를 채웠어요 🐾`);
+    Sfx.place(); buzz(18);
+  } finally {
+    recharging = false;
+  }
 }
 
 /* ==========================================================================
@@ -1917,7 +2769,7 @@ function startTutorial() {
   G.n = TUTORIAL.size; G.regions = TUTORIAL.regions; G.solution = TUTORIAL.solution;
   G.colors = assignRegionColors(TUTORIAL.size, TUTORIAL.regions);
   G.grid = Array.from({ length: G.n }, () => new Array(G.n).fill(0));
-  G.lives = MAX_LIVES; G.hints = HINTS_PER_LEVEL; G.boosts = BOOSTS_PER_LEVEL;
+  G.lives = MAX_LIVES; G.usedHints = 0; G.usedBoosts = 0;
   G.history = []; G.finished = false; G.elapsed = 0;
 
   stopTimer();
@@ -2253,26 +3105,59 @@ function checkWin() {
   hideHint();
   renderBoosters();
   const score = computeScore();
-  const id = G.level.id;
-  const prev = Store.data.cleared[id];
-  const best = prev && prev.score > score ? prev.score : 0;   // 카드에 쓸 값은 갱신 전에 집어 둔다
-  if (!prev || score > (prev.score || 0)) {
-    Store.data.cleared[id] = { time: G.elapsed, lives: G.lives, score };
+  const endless = G.endless;
+  let best = 0;                       // 카드에 쓸 "예전 최고" — 갱신 전에 집어 둔다
+
+  if (endless) {
+    const ed = Store.data.endless;
+    best = ed.bestScore > score ? ed.bestScore : 0;
+    // 클리어한 판 수는 "이 번호를 처음 깼을 때"만 오른다. 다시 도전해도 늘지 않는다.
+    if (endless === nextEndlessLevel()) ed.cleared++;
+    ed.bestScore = Math.max(ed.bestScore, score);
+    ed.level = Math.max(ed.level, endless);
+    ed.puzzle = null;
+  } else {
+    const prev = Store.data.cleared[G.level.id];
+    best = prev && prev.score > score ? prev.score : 0;
+    if (!prev || score > (prev.score || 0)) {
+      Store.data.cleared[G.level.id] = { time: G.elapsed, lives: G.lives, score };
+    }
   }
   Store.data.inProgress = null;
   Store.save();
 
+  // 다음 판은 지금부터 만들기 시작한다 — 축하 연출이 도는 동안 준비된다
+  if (endless) Endless.prefetch(nextEndlessLevel());
+  else if (endlessUnlocked()) Endless.prefetch(nextEndlessLevel());
+
+  const justOpened = !endless && endlessUnlocked() && G.index >= PUZZLES.levels.length - 1;
+
   celebrate(() => {
-    $('clearDetail').innerHTML = `당근 ${G.lives}/${MAX_LIVES} · 힌트 ${G.hints}/${HINTS_PER_LEVEL} 남김`;
+    const used = [];
+    if (G.usedHints) used.push(`힌트 ${G.usedHints}개`);
+    if (G.usedBoosts) used.push(`자동배치 ${G.usedBoosts}개`);
+    $('clearDetail').innerHTML = `당근 ${G.lives}/${MAX_LIVES}`
+      + (used.length ? ` · ${used.join(' · ')} 사용` : ' · 도움 없이');
     $('clearBest').textContent = best
       ? `최고 ${best.toLocaleString()}`
-      : (score >= maxScore() ? '만점!' : '최고 기록!');
-    const last = G.index >= PUZZLES.levels.length - 1;
-    $('clearTitle').textContent = last ? '토끼 마을 완성!' : '축하해요!';
-    $('clearMsg').innerHTML = last
-      ? '모든 레벨을 끝냈어요.<br>토끼들이 다 같이 인사해요 🐰'
-      : '토끼들이 모두 제자리를 찾았어요.';
-    $('clearNext').textContent = last ? '레벨 목록' : '다음 레벨';
+      : (score >= perfectScore() ? '만점!' : '최고 기록!');
+
+    if (endless) {
+      $('clearTitle').textContent = '축하해요!';
+      $('clearMsg').innerHTML = `무한 마당 <b>${endless}</b>번을 끝냈어요.`;
+      $('clearNext').textContent = `다음 마당 ${nextEndlessLevel()}번`;
+    } else if (justOpened) {
+      $('clearTitle').textContent = '무한 마당이 열렸어요!';
+      $('clearMsg').innerHTML = '스테이지를 모두 끝냈어요.<br>이제 끝이 없는 마당이 기다려요 🐰';
+      $('clearNext').textContent = '무한 마당 가기';
+    } else {
+      const last = G.index >= PUZZLES.levels.length - 1;
+      $('clearTitle').textContent = last ? '토끼 마을 완성!' : '축하해요!';
+      $('clearMsg').innerHTML = last
+        ? '모든 레벨을 끝냈어요.<br>토끼들이 다 같이 인사해요 🐰'
+        : '토끼들이 모두 제자리를 찾았어요.';
+      $('clearNext').textContent = last ? '레벨 목록' : '다음 레벨';
+    }
     $('clearArt').innerHTML = RabbitArt.html('rabbit', 'happy');
     $('clearScore').textContent = '0';
     openModal('modalClear');
@@ -2281,23 +3166,26 @@ function checkWin() {
 }
 
 /**
- * 점수 — 남은 당근과 아껴 둔 힌트가 전부다. 시간은 보지 않는다.
- * 실수 없이(당근 3개) 힌트도 안 쓰고 풀면 만점.
+ * 점수 — 판 크기와 남은 당근이 기본이고, 이 판에서 쓴 힌트·자동배치만큼 깎는다.
+ * 시간은 보지 않는다.
+ *
+ * 예전에는 "남은 힌트 개수"를 더했는데, 힌트가 전역 재화가 된 지금은 그러면
+ * 지갑이 두둑한 사람이 같은 판을 같은 실력으로 풀어도 점수가 높아진다.
+ * 점수는 지갑이 아니라 이 판에서 한 일만 봐야 한다. 그래서 가산에서 감점으로 뒤집었다.
+ * 0 아래로는 내려가지 않는다.
  */
-const SCORE = { perCell: 10, carrot: 150, hint: 100, boost: 60 };
+const SCORE = { perCell: 10, carrot: 150, hintCost: 100, boostCost: 60 };
 
 function computeScore() {
-  return G.n * G.n * SCORE.perCell
-    + G.lives * SCORE.carrot
-    + G.hints * SCORE.hint
-    + G.boosts * SCORE.boost;
+  return Math.max(0, maxScore() - G.usedHints * SCORE.hintCost - G.usedBoosts * SCORE.boostCost);
 }
-/** 한 번도 안 틀리고 힌트도 안 썼을 때의 점수 */
+/** 실수 없이(당근 3개) 힌트·자동배치도 안 쓰고 풀었을 때의 점수 */
 function maxScore() {
-  return G.n * G.n * SCORE.perCell
-    + MAX_LIVES * SCORE.carrot
-    + HINTS_PER_LEVEL * SCORE.hint
-    + BOOSTS_PER_LEVEL * SCORE.boost;
+  return G.n * G.n * SCORE.perCell + G.lives * SCORE.carrot;
+}
+/** 이 판에서 딸 수 있었던 최고점 — 만점 판정용 (당근을 다 남긴 경우) */
+function perfectScore() {
+  return G.n * G.n * SCORE.perCell + MAX_LIVES * SCORE.carrot;
 }
 
 function renderScore() {
@@ -2369,8 +3257,6 @@ function giveHint() {
     showHint('지금 보드는 정답으로 가는 길 위에 있어요. 남은 칸을 마저 채워 보세요! 🐾');
     return false;
   }
-
-  if (HINT_CONFIG.free) HINT_CONFIG.onConsume();
 
   const { step, cells } = found;
   for (const [r, c] of cells) cellAt(r, c).classList.add('hint');
@@ -2618,7 +3504,7 @@ function saveProgress() {
   Store.data.inProgress = {
     levelId: G.level.id,
     grid: G.grid.map((r) => r.slice()),
-    lives: G.lives, hints: G.hints, boosts: G.boosts,
+    lives: G.lives, usedHints: G.usedHints, usedBoosts: G.usedBoosts,
     elapsed: G.elapsed,
   };
   Store.save();
@@ -2791,16 +3677,27 @@ $('setZoomOut').onclick = () => zoomBy(1 / 1.25);
 $('setRules').onclick = () => { closeModal('modalSettings'); openModal('modalRules'); };
 $('setTutorial').onclick = () => { closeModal('modalSettings'); stopTimer(); startTutorial(); };
 
+/** 'E27' 같은 무한 마당 식별자면 레벨 번호를, 아니면 0 을 돌려준다 */
+function endlessIdLevel(id) {
+  const m = typeof id === 'string' && id.match(/^E(\d+)$/);
+  const level = m ? Number(m[1]) : 0;
+  return level >= ENDLESS_START ? level : 0;
+}
+
 $('btnContinue').onclick = () => {
   const ip = Store.data.inProgress;
   if (ip) {
+    const el = endlessIdLevel(ip.levelId);
+    if (el) { startEndless(el, ip); return; }
     const idx = levelIndexById(ip.levelId);
     if (idx >= 0 && ip.grid && ip.grid.length === PUZZLES.levels[idx].size) {
       startLevel(idx, ip); return;
     }
   }
-  const last = Store.data.lastLevel ? levelIndexById(Store.data.lastLevel) : -1;
   const cleared = Store.data.cleared;
+  // 스테이지를 다 깼으면 이어서 하기는 무한 마당으로 간다
+  if (endlessUnlocked()) { startEndless(nextEndlessLevel()); return; }
+  const last = Store.data.lastLevel ? levelIndexById(Store.data.lastLevel) : -1;
   let next = 0;
   for (let i = 0; i < PUZZLES.levels.length; i++) { if (!cleared[PUZZLES.levels[i].id]) { next = i; break; } }
   startLevel(last >= 0 && !cleared[PUZZLES.levels[last].id] ? last : next);
@@ -2816,13 +3713,18 @@ $('gmBack').onclick = () => {
 };
 
 $('btnHint').onclick = () => {
-  if (G.hints <= 0) { toast('힌트를 다 썼어요'); return; }
-  if (giveHint()) { G.hints--; renderBoosters(); saveProgress(); }
+  if (G.finished) return;
+  if (Wallet.hints <= 0) { rechargeFlow('hints'); return; }
+  if (giveHint()) {
+    Wallet.spend('hints'); G.usedHints++;
+    renderBoosters(); saveProgress();
+  }
 };
 
 /** 자동배치 부스터 — 정답 칸 하나에 토끼를 대신 놓아준다 */
 $('btnBoost').onclick = () => {
-  if (G.finished || G.boosts <= 0) { if (G.boosts <= 0) toast('자동배치를 다 썼어요'); return; }
+  if (G.finished) return;
+  if (Wallet.boosts <= 0) { rechargeFlow('boosts'); return; }
   const wrong = rabbitList().filter(([r, c]) => G.solution[r] !== c);
   if (wrong.length) { toast('잘못 놓은 토끼를 먼저 치워 주세요'); return; }
   const target = [...Array(G.n).keys()]
@@ -2832,7 +3734,7 @@ $('btnBoost').onclick = () => {
   const [r, c] = target;
   G.history.push({ r, c, from: G.grid[r][c] });
   G.grid[r][c] = 2;
-  G.boosts--;
+  Wallet.spend('boosts'); G.usedBoosts++;
   hideHint(); renderAll(); renderBoosters();
   Sfx.place(); buzz(18);
   scrollCellIntoView(r, c);
@@ -2843,30 +3745,49 @@ $('btnBoost').onclick = () => {
 /* ---- 레벨 전환 ---- */
 /** 안무의 마지막 막: 다 푼 판을 왼쪽으로 밀어내고 다음 판을 오른쪽에서 들여온다 */
 function slideToLevel(index) {
+  slideBoard(() => startLevel(index));
+}
+
+/** 무한 마당은 판을 만드는 데 시간이 걸릴 수 있어 슬라이드가 끝난 뒤에 올린다 */
+function slideToEndless(level) {
+  slideBoard(() => startEndless(level));
+}
+
+function slideBoard(swap) {
   const wrap = $('boardWrap');
   wrap.classList.remove('slide-in');
   wrap.classList.add('slide-out');
   setTimeout(() => {
     wrap.classList.remove('slide-out');
-    startLevel(index);
-    wrap.classList.add('slide-in');
-    setTimeout(() => wrap.classList.remove('slide-in'), CHOREO.slideIn + 20);
+    const done = swap();
+    const showIn = () => {
+      wrap.classList.add('slide-in');
+      setTimeout(() => wrap.classList.remove('slide-in'), CHOREO.slideIn + 20);
+    };
+    if (done && typeof done.then === 'function') done.then(showIn, showIn);
+    else showIn();
   }, CHOREO.slideOut);
 }
 
 $('clearNext').onclick = () => {
   closeModal('modalClear');
   if (G.tutorial) { endTutorial(); slideToLevel(0); return; }
+  if (G.endless) { slideToEndless(nextEndlessLevel()); return; }
   const next = G.index + 1;
-  if (next < PUZZLES.levels.length) slideToLevel(next);
-  else { renderLevels(); show('screen-levels'); }
+  if (next < PUZZLES.levels.length) { slideToLevel(next); return; }
+  if (endlessUnlocked()) { slideToEndless(nextEndlessLevel()); return; }
+  renderLevels(); show('screen-levels');
 };
 $('clearToLevels').onclick = () => {
   closeModal('modalClear');
   if (G.tutorial) endTutorial();
   renderLevels(); show('screen-levels');
 };
-$('overRetry').onclick = () => { closeModal('modalOver'); startLevel(G.index); };
+$('overRetry').onclick = () => {
+  closeModal('modalOver');
+  if (G.endless) startEndless(G.endless);   // 같은 번호 = 같은 판이 그대로 다시 나온다
+  else startLevel(G.index);
+};
 $('overToLevels').onclick = () => { closeModal('modalOver'); renderLevels(); show('screen-levels'); };
 
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveProgress(); });
@@ -2878,14 +3799,21 @@ function refreshTitle() {
   const ip = Store.data.inProgress;
   const clearedN = PUZZLES ? PUZZLES.levels.filter((l) => Store.data.cleared[l.id]).length : 0;
   const btn = $('btnContinue');
-  if (ip) {
+  const ipEndless = ip ? endlessIdLevel(ip.levelId) : 0;
+  if (ipEndless) {
+    btn.innerHTML = `이어서 하기 <span class="sub">무한 ${ipEndless}번</span>`;
+  } else if (ip) {
     const idx = levelIndexById(ip.levelId);
     btn.innerHTML = `이어서 하기 <span class="sub">레벨 ${idx + 1}</span>`;
+  } else if (PUZZLES && endlessUnlocked()) {
+    btn.innerHTML = `이어서 하기 <span class="sub">무한 ${nextEndlessLevel()}번</span>`;
   } else if (clearedN > 0) {
     btn.innerHTML = `이어서 하기 <span class="sub">레벨 ${Math.min(clearedN + 1, PUZZLES.levels.length)}</span>`;
   } else {
     btn.textContent = '시작하기';
   }
+  // 무한 마당이 열려 있으면 다음 판을 미리 만들어 둔다 — 눌렀을 때 기다리지 않게
+  if (PUZZLES && endlessUnlocked()) Endless.prefetch(nextEndlessLevel());
 }
 
 function decorateSky() {
@@ -2974,6 +3902,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   $('titleArt').innerHTML = RabbitArt.html('rabbit');
   $('overArt').innerHTML = RabbitArt.html('rabbit', 'tired');
   buildTapGuide();
+  $('waitArt').innerHTML = RabbitArt.html('rabbit', 'think');
   document.querySelector('.fab-paw').innerHTML = RabbitArt.html('paw');
   decorateSky();
   Store.load();
