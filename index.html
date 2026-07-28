@@ -6,12 +6,37 @@
 <meta name="theme-color" content="#F6F2E6">
 <meta name="description" content="토끼네 자리 — 각 자리·가로줄·세로줄에 토끼를 한 마리씩 놓는 아늑한 논리 퍼즐">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="토끼네 자리">
+<meta name="format-detection" content="telephone=no,date=no,address=no,email=no">
+<meta name="color-scheme" content="light">
 <title>토끼네 자리</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="preload" href="assets/fonts/jua.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/gowun.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23FDF4EA'/%3E%3Cg stroke='%238A6E5C' stroke-width='4' stroke-linejoin='round'%3E%3Cellipse cx='35' cy='30' rx='9' ry='21' fill='%23FFFDFA'/%3E%3Cellipse cx='65' cy='30' rx='9' ry='21' fill='%23FFFDFA'/%3E%3Ccircle cx='50' cy='64' r='24' fill='%23FFFDFA'/%3E%3C/g%3E%3Cellipse cx='35' cy='30' rx='4' ry='13' fill='%23F6B9C4'/%3E%3Cellipse cx='65' cy='30' rx='4' ry='13' fill='%23F6B9C4'/%3E%3Ccircle cx='41' cy='63' r='4' fill='%234A3B33'/%3E%3Ccircle cx='59' cy='63' r='4' fill='%234A3B33'/%3E%3Cpath d='M50 70l-4 3.5h8z' fill='%23E98D9E'/%3E%3C/svg%3E">
 <style>
+/* ============================================================ 글꼴
+   둥근 한글 두 벌을 직접 들고 있다 (Google Fonts woff2 셀프호스팅).
+   실제 쓰는 글자만 담은 서브셋이라 두 개 합쳐 170KB 남짓, 첫 화면부터 바로 뜬다.
+     Jua        — 제목·버튼 (한 굵기뿐이라 가짜 볼드는 끈다)
+     Gowun Dodum— 본문
+   swap 대신 block 을 쓰면 깜빡임은 없지만 늦으면 빈 화면이 되므로 swap 유지. */
+@font-face{
+  font-family:'Jua';font-style:normal;font-weight:400;font-display:swap;
+  src:url('assets/fonts/jua.woff2') format('woff2');
+}
+@font-face{
+  font-family:'Gowun Dodum';font-style:normal;font-weight:400;font-display:swap;
+  src:url('assets/fonts/gowun.woff2') format('woff2');
+}
+
 /* ============================================================ 기본 토큰 */
 :root{
+  --font-body:'Gowun Dodum','Apple SD Gothic Neo','Noto Sans KR',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --font-display:'Jua','Gowun Dodum','Apple SD Gothic Neo','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;
   --cream:#F4F0E4;
   --cream-2:#EFE3D6;
   --ink:#5A4638;
@@ -33,10 +58,31 @@
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
 }
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;margin:0;}
+/* ============================================================ 네이티브 체감
+   브라우저가 기본으로 주는 "웹페이지스러운" 동작을 전부 끈다.
+     · 탭할 때 파란 하이라이트
+     · 길게 눌렀을 때 뜨는 복사/저장 메뉴, 글자·이미지 선택, 이미지 드래그
+     · 더블탭 확대, 핀치 확대 (viewport 메타 + touch-action)
+     · 스크롤 끝에서 튕기는 오버스크롤, 페이지 자체 스크롤
+   단 보드 안의 팬·줌은 게임이 직접 처리해야 하므로 #viewport 만
+   touch-action:none 으로 브라우저 제스처를 완전히 넘겨받는다(아래 참조). */
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-touch-callout:none;
+}
+html,body{
+  height:100%;margin:0;
+  touch-action:manipulation;          /* 더블탭 줌 차단 */
+  overscroll-behavior:none;
+}
+html{
+  -webkit-text-size-adjust:100%;text-size-adjust:100%;
+}
 body{
-  font-family:"Pretendard","Apple SD Gothic Neo","Noto Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  /* 스크롤 자체를 없애 버려야 주소창이 들락거리거나 튕기지 않는다 */
+  position:fixed;inset:0;width:100%;overflow:hidden;
+  font-family:var(--font-body);
   color:var(--ink);
   /* 아주 연한 풀밭 기운이 도는 웜 크림 */
   background:
@@ -44,10 +90,30 @@ body{
     radial-gradient(900px 520px at 92% 8%, #F1F3E4 0%, rgba(241,243,228,0) 55%),
     linear-gradient(180deg,#F6F2E6 0%,#EFEADB 100%);
   background-attachment:fixed;
-  overscroll-behavior:none;
   user-select:none;-webkit-user-select:none;
 }
-button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;}
+button{
+  font:inherit;color:inherit;border:0;background:none;cursor:pointer;
+  -webkit-appearance:none;appearance:none;
+  touch-action:manipulation;
+}
+/* 제목·버튼·숫자는 둥글고 통통한 Jua.
+   Jua 는 굵기가 하나뿐이라 가짜 볼드를 씌우면 뭉개진다 — 여기서만 합성을 끈다. */
+button,
+h1,h2,h3,
+.lv .num,.lv .tag,
+.hud-title .lvname,.score,.chip,
+.fab-count,.fab-label,
+.score-main b,.stat b,
+#coachLine{
+  font-family:var(--font-display);
+  font-synthesis-weight:none;-webkit-font-smoothing:antialiased;
+}
+/* 이미지는 끌어서 뽑아낼 수 없고, 탭 판정은 항상 칸이 가져간다 */
+img,svg{
+  -webkit-user-drag:none;user-select:none;-webkit-user-select:none;
+  pointer-events:none;
+}
 
 /* 폭신한 구름 장식 */
 .sky-deco{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0;}
@@ -447,7 +513,8 @@ body.tutorial-mode #hintBar{display:none;}
 
 /* ============================================================ 모달 */
 .modal{
-  position:fixed;inset:0;z-index:50;display:none;place-items:center;padding:22px;
+  position:fixed;inset:0;z-index:50;display:none;place-items:center;
+  padding:calc(var(--safe-top) + 22px) 22px calc(var(--safe-bottom) + 22px);
   background:rgba(90,70,56,.42);backdrop-filter:blur(3px);
 }
 .modal.on{display:grid;animation:fadeIn .22s ease both;}
@@ -482,7 +549,10 @@ body.tutorial-mode #hintBar{display:none;}
   font-size:14.5px;font-weight:700;color:var(--ink);
 }
 .set-item:active{transform:scale(.98);}
-.set-item b{color:var(--ink-soft);font-size:14px;}
+.set-item b{color:var(--ink-soft);font-size:14px;display:flex;align-items:center;}
+/* 설정 항목의 기호는 글꼴에 없는 글자라 폰트마다 제각각으로 대체된다 —
+   나머지 UI 와 같은 결로 보이도록 전부 선 아이콘으로 그린다. */
+.set-item b svg{width:19px;height:19px;}
 
 .rules{text-align:left;font-size:13.5px;line-height:1.75;color:var(--ink-soft);margin:0 0 18px;}
 .rules li{margin-bottom:7px;}
@@ -697,12 +767,12 @@ body.tutorial-mode #hintBar{display:none;}
     <h3>설정</h3>
     <div class="set-list">
       <button class="set-item" id="setSound"><span>소리</span><b id="setSoundVal">켜짐</b></button>
-      <button class="set-item" id="setUndo"><span>되돌리기</span><b>↩</b></button>
-      <button class="set-item" id="setReset"><span>다시 놓기</span><b>↻</b></button>
-      <button class="set-item" id="setZoomIn"><span>확대</span><b>＋</b></button>
-      <button class="set-item" id="setZoomOut"><span>축소</span><b>－</b></button>
-      <button class="set-item" id="setRules"><span>규칙 보기</span><b>?</b></button>
-      <button class="set-item" id="setTutorial"><span>튜토리얼 다시</span><b>▶</b></button>
+      <button class="set-item" id="setUndo"><span>되돌리기</span><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7 4 12l5 5"/><path d="M4 12h9a6 6 0 0 1 6 6v1"/></svg></b></button>
+      <button class="set-item" id="setReset"><span>다시 놓기</span><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 5v5h-5"/><path d="M19.4 13a7.5 7.5 0 1 1-2-6.6L20 9"/></svg></b></button>
+      <button class="set-item" id="setZoomIn"><span>확대</span><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg></b></button>
+      <button class="set-item" id="setZoomOut"><span>축소</span><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg></b></button>
+      <button class="set-item" id="setRules"><span>규칙 보기</span><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 9a2.9 2.9 0 1 1 3.6 2.8c-.9.3-1.3 1-1.3 1.9v.4"/><circle cx="11.5" cy="17.6" r="1.2" fill="currentColor" stroke="none"/></svg></b></button>
+      <button class="set-item" id="setTutorial"><span>튜토리얼 다시</span><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5.5v13l10-6.5z" fill="currentColor" stroke-linejoin="round"/></svg></b></button>
     </div>
     <button class="btn primary" id="setClose">닫기</button>
   </div>
@@ -718,11 +788,11 @@ body.tutorial-mode #hintBar{display:none;}
     </ul>
     <div class="taps" id="tapGuide"></div>
     <p style="font-size:12.5px;margin-bottom:16px">
-      <b>한 번 탭</b>하면 ✕ 메모, <b>빠르게 두 번 탭</b>하면 토끼예요.<br>
-      칸을 <b>누른 채로 쓸면</b> 지나간 빈칸이 한 번에 ✕ 로 채워져요.<br>
+      <b>한 번 탭</b>하면 × 메모, <b>빠르게 두 번 탭</b>하면 토끼예요.<br>
+      칸을 <b>누른 채로 쓸면</b> 지나간 빈칸이 한 번에 × 로 채워져요.<br>
       보드를 <b>옮기거나 확대</b>할 땐 손가락 두 개를 쓰세요.<br>
       토끼 자리가 아닌 칸에 놓으면 당근이 하나 줄고,<br>
-      그 칸은 <b style="color:#D9433A">✕ 로 잠겨</b> 아니었다는 표시가 남아요.<br>
+      그 칸은 <b style="color:#D9433A">× 로 잠겨</b> 아니었다는 표시가 남아요.<br>
       막히면 <b>힌트</b>를 누르세요 — 지금 <b>확실하게</b> 정할 수 있는 한 수를 알려줘요.
     </p>
     <div class="row">
@@ -892,7 +962,7 @@ const RabbitArt = {
     // 토끼는 표정별로 다른 파일을 쓸 수 있다
     const assetKey = kind === 'rabbit' && mood && ASSETS[mood] ? mood : kind;
     const url = this.src(assetKey);
-    if (url) return `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:contain">`;
+    if (url) return `<img src="${url}" alt="" draggable="false" style="width:100%;height:100%;object-fit:contain">`;
     if (kind === 'mark') return this.mark('memo');
     if (kind === 'locked') return this.mark('locked');
     if (kind === 'face') return this.face();
@@ -2639,6 +2709,47 @@ async function loadPuzzles() {
     if (data && Array.isArray(data.levels) && data.levels.length) return data;
   } catch (e) {}
   return null;
+}
+
+/* ==========================================================================
+ * 네이티브 체감 — 브라우저 기본 제스처 마무리
+ * --------------------------------------------------------------------------
+ * CSS 로 막을 수 없는 것들만 여기서 막는다.
+ *   · 길게 눌러 뜨는 컨텍스트 메뉴
+ *   · iOS Safari 의 gesturestart/change (touch-action 을 무시하고 페이지를 확대한다)
+ *   · 두 손가락으로 화면 전체를 늘리는 pinch (보드 안 확대는 게임이 따로 처리)
+ * 보드(#viewport) 는 touch-action:none 이라 브라우저 제스처가 아예 오지 않고,
+ * 팬·줌은 전부 위쪽 포인터 핸들러가 계산한다.
+ * ========================================================================== */
+document.addEventListener('contextmenu', (e) => e.preventDefault());
+document.addEventListener('gesturestart', (e) => e.preventDefault());
+document.addEventListener('gesturechange', (e) => e.preventDefault());
+document.addEventListener('gestureend', (e) => e.preventDefault());
+document.addEventListener('dragstart', (e) => e.preventDefault());
+// 보드 밖에서 손가락 두 개가 닿으면 확대 시도로 보고 삼킨다.
+document.addEventListener('touchmove', (e) => {
+  if (e.touches.length > 1 && !viewport.contains(e.target)) e.preventDefault();
+}, { passive: false });
+
+/* --------------------------------------------------------------------------
+ * 오디오 컨텍스트 유지
+ * 모바일에선 화면을 껐다 켜거나 앱을 다녀오면 컨텍스트가 suspended 로 떨어져
+ * 그 뒤로 소리가 통째로 사라진다. 돌아올 때마다 다시 깨워 준다.
+ * -------------------------------------------------------------------------- */
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) Sfx.wake();
+});
+window.addEventListener('pageshow', () => Sfx.wake());
+window.addEventListener('focus', () => Sfx.wake());
+
+/* --------------------------------------------------------------------------
+ * 서비스 워커 — 한 번 열어 두면 비행기 모드에서도 그대로 돌아간다.
+ * file:// 이나 단일 파일(아티팩트)로 열렸을 땐 등록 자체가 불가능하므로 조용히 건너뛴다.
+ * -------------------------------------------------------------------------- */
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
 }
 
 (async function init() {

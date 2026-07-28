@@ -1,0 +1,22 @@
+{
+  "name": "토끼네 자리",
+  "short_name": "토끼네 자리",
+  "description": "각 자리·가로줄·세로줄에 토끼를 한 마리씩 놓는 아늑한 논리 퍼즐",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": ".",
+  "scope": ".",
+  "id": "tokkine-jari",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
+  "orientation": "portrait",
+  "background_color": "#F6F2E6",
+  "theme_color": "#F6F2E6",
+  "categories": ["games", "puzzle"],
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
