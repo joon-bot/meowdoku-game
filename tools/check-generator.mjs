@@ -92,12 +92,16 @@ function solutionValid(n, regions, cols) {
   return true;
 }
 
-// index.html 의 endlessSpec / endlessSeed 도 그대로 가져다 쓴다
-runInContext(extractFunction('endlessSpec') + '\n' + extractFunction('endlessSeed')
-  + '\nthis.__spec = { endlessSpec, endlessSeed };'
-  + '\nconst ENDLESS_START = ' + (/const ENDLESS_START = (\d+)/.exec(src)[1]) + ';', ctx);
-// ENDLESS_START 가 함수보다 뒤에 선언되면 안 되므로 다시 넣고 평가한다
-runInContext('const _S = ' + (/const ENDLESS_START = (\d+)/.exec(src)[1]) + ';', ctx);
+// index.html 의 커브 정의도 그대로 가져다 쓴다 — 여기서 손으로 베끼면 검증이 무의미하다
+const curveSrc = /const ENDLESS_CURVE = \[[\s\S]*?\n\];/.exec(src);
+if (!curveSrc) { console.error('index.html 에서 ENDLESS_CURVE 를 찾지 못했습니다'); process.exit(1); }
+runInContext(
+  'const ENDLESS_START = ' + (/const ENDLESS_START = (\d+)/.exec(src)[1]) + ';\n'
+  + 'const STRUCT_TOP = ' + (/const STRUCT_TOP = (\d+)/.exec(src)[1]) + ';\n'
+  + curveSrc[0] + '\n'
+  + extractFunction('isChallengeLevel') + '\n'
+  + extractFunction('endlessSpec') + '\n' + extractFunction('endlessSeed')
+  + '\nthis.__spec = { endlessSpec, endlessSeed, isChallengeLevel, structStep };', ctx);
 
 const levels = process.argv.slice(2).map(Number).filter(Boolean);
 const targets = levels.length ? levels : [27, 35, 51];
@@ -105,7 +109,7 @@ let fails = 0;
 
 for (const level of targets) {
   const spec = ctx.__spec.endlessSpec(level);
-  const seed = ctx.__spec.endlessSeed(level);
+  const seed = ctx.__spec.endlessSeed(level, 0);
   const t0 = Date.now();
   const p = gen.makeEndlessPuzzle(spec, seed, 60000);
   const secs = ((Date.now() - t0) / 1000).toFixed(1);
@@ -123,12 +127,30 @@ for (const level of targets) {
   if (!solutionValid(p.size, p.regions, p.solution)) problems.push('정답이 규칙 위반');
   if (p.size !== spec.size) problems.push(`크기 ${spec.size} 요청 -> ${p.size} 로 물러섬`);
 
+  // 구조 요구를 실제로 지켰는지 — 영역 칸수는 판만 봐도 셀 수 있다.
+  // 규칙은 "floor 칸 미만인 영역이 maxMini 개를 넘지 않는다" 하나다.
+  // (maxMini 0 + floor 2 이면 1칸 영역이 사라지고, floor 3 이면 2칸 영역까지 사라진다)
+  const st = ctx.__spec.structStep(p.step);
+  const sizes = new Array(p.size).fill(0);
+  for (const row of p.regions) for (const g of row) sizes[g]++;
+  const under = sizes.filter((x) => x < st.floor).length;
+  const smallest = Math.min(...sizes);
+  if (under > st.maxMini) problems.push(`${st.floor}칸 미만 영역 ${under}개 (허용 ${st.maxMini})`);
+  if (p.met && p.tier < st.minTier) problems.push(`T${p.tier} < 요구 T${st.minTier}`);
+  if (p.met && p.tier > st.maxTier) problems.push(`T${p.tier} > 요구 상한 T${st.maxTier}`);
+  if (p.met && p.firstPlace < st.minFirst) problems.push(`첫 확정 ${p.firstPlace}수 < 요구 ${st.minFirst}수`);
+
+  const retreat = p.step === spec.step
+    ? (p.met ? '' : '(요구 미달 — 만든 것 중 최선)')
+    : `(요구 ${spec.step} 에서 물러섬)`;
   console.log(
-    `무한 ${String(level).padStart(3)}번  ${p.size}×${p.size}  깊이 ${String(p.depth).padStart(2)} (목표 ${spec.depth})  T${p.tier}  ${secs}초`
+    `무한 ${String(level).padStart(3)}번  ${p.size}×${p.size}  ${p.step}단계${retreat}`
+    + `  T${p.tier}  첫확정 ${p.firstPlace}수  최소영역 ${smallest}칸  깊이 ${p.depth}`
+    + (spec.challenge ? '  [도전]' : '') + `  ${secs}초`
     + (problems.length ? `  ✗ ${problems.join(' / ')}` : '  ok')
   );
-  // 크기 물러섬은 느린 환경을 위한 정상 동작이라 실패로 세지 않는다
-  if (problems.some((x) => !x.startsWith('크기'))) fails++;
+  // 크기·단계 물러섬은 느린 환경을 위한 정상 동작이라 실패로 세지 않는다
+  if (problems.some((x) => !x.startsWith('크기') && !x.includes('요구'))) fails++;
 }
 
 if (fails) { console.error(`\n${fails}개 레벨에서 문제가 있습니다.`); process.exit(1); }

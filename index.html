@@ -233,6 +233,14 @@ h1.game-title{
 .hud-title .lvname{font-size:16.5px;font-weight:800;}
 .diff-carrots{display:flex;gap:2px;}
 .diff-carrots svg{width:14px;height:14px;}
+/* 도전 판 배지 — 10판마다 오는, 구조 요구가 한두 단계 높은 판 */
+.hud-title .ttl-row{display:flex;align-items:center;gap:5px;}
+.hud-title .chal{
+  padding:1px 6px 2px;border-radius:999px;
+  font-size:10.5px;font-weight:800;letter-spacing:.02em;vertical-align:1.5px;
+  background:var(--accent-deep);color:var(--white);
+}
+.hud-title .chal[hidden]{display:none;}
 
 /* 토끼 카운터 · 목숨(당근) · 시간 */
 .hud-2{
@@ -740,7 +748,10 @@ body.tutorial-mode #hintBar{display:none;}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
       </button>
       <div class="hud-title">
-        <span class="lvname" id="gmName">레벨 1</span>
+        <span class="ttl-row">
+          <span class="lvname" id="gmName">레벨 1</span>
+          <span class="chal" id="gmChal" hidden>도전</span>
+        </span>
         <span class="diff-carrots" id="gmDiff"></span>
       </div>
       <button class="btn-skip" id="btnSkipTutorial">건너뛰기</button>
@@ -1378,7 +1389,7 @@ function freshSave() {
   return {
     cleared: {}, lastLevel: null, inProgress: null, tutorialDone: false, sound: true,
     wallet: { hints: WALLET_START.hints, boosts: WALLET_START.boosts },
-    endless: { level: 0, cleared: 0, bestScore: 0, puzzle: null },
+    endless: { level: 0, cleared: 0, bestScore: 0, puzzle: null, fail: null },
   };
 }
 const Store = {
@@ -1434,7 +1445,7 @@ function migrateSave(data) {
     tutorialDone: !!d.tutorialDone,
     sound: d.sound !== false,
     wallet: { hints: WALLET_START.hints, boosts: WALLET_START.boosts },
-    endless: { level: 0, cleared: 0, bestScore: 0, puzzle: null },
+    endless: { level: 0, cleared: 0, bestScore: 0, puzzle: null, fail: null },
   };
 
   for (const [id, rec] of Object.entries(out.cleared)) {
@@ -1457,7 +1468,13 @@ function migrateSave(data) {
     out.endless.level = countOr(e.level, Infinity, 0);
     out.endless.cleared = countOr(e.cleared, Infinity, 0);
     out.endless.bestScore = countOr(e.bestScore, Infinity, 0);
+    // 판본이 안 맞는 캐시(예전 커브에서 만든 판)는 여기서 조용히 버려진다
     if (validPuzzle(e.puzzle)) out.endless.puzzle = e.puzzle;
+    // 도전 판에서 연속으로 막힌 횟수 — 여기서 다음 시드가 나온다
+    const f = e.fail;
+    if (f && typeof f === 'object' && Number.isInteger(f.level) && f.level >= ENDLESS_START) {
+      out.endless.fail = { level: f.level, count: countOr(f.count, 999, 0) };
+    }
   }
 
   const ip = d.inProgress;
@@ -1475,9 +1492,20 @@ function migrateSave(data) {
   return out;
 }
 
+/**
+ * 저장해 두는 무한 판 캐시의 판본.
+ *
+ * 이 캐시는 "이어서 하기"가 그때 그 판을 그대로 되살리라고 있는 것이라, 커브가
+ * 바뀌면 통째로 버려야 한다. 예전 커브에서는 27번이 12x12 였고 지금은 11x11 이니
+ * 구버전 캐시를 그냥 받으면 이어서 하기가 커브에 없는 판을 띄운다.
+ * 판본이 다른 캐시는 validPuzzle 이 버리고, 그러면 그 레벨을 새로 만든다.
+ */
+const ENDLESS_CACHE_V = 2;
+
 /** 저장된 무한 판이 실제로 쓸 수 있는 모양인지 — 손상된 저장분에 게임이 끌려가지 않게 */
 function validPuzzle(p) {
   if (!p || typeof p !== 'object') return false;
+  if (p.v !== ENDLESS_CACHE_V) return false;        // 구버전 캐시 — 커브가 바뀌었으니 버린다
   const n = p.size;
   if (!Number.isInteger(n) || n < 4 || n > 20) return false;
   if (!Array.isArray(p.regions) || p.regions.length !== n) return false;
@@ -1487,6 +1515,7 @@ function validPuzzle(p) {
   }
   if (!Array.isArray(p.solution) || p.solution.length !== n) return false;
   for (const c of p.solution) if (!Number.isInteger(c) || c < 0 || c >= n) return false;
+  if (!Number.isInteger(p.level) || p.level < ENDLESS_START) return false;
   return true;
 }
 
@@ -1817,8 +1846,21 @@ function randomSolution(n, rnd) {
   return rec(0) ? cols : null;
 }
 
-/** 영역 크기 목표 — 거대 영역 1개 + 미니 영역 0~3개 + 나머지 */
-function makeProfile(n, rnd) {
+/**
+ * 영역 크기 목표 — 거대 영역 1개 + 미니 영역 0~maxMini개 + 나머지.
+ *
+ * 미니 영역(1~2칸)이 이 게임에서 난이도를 가장 크게 흔드는 손잡이다. 1칸짜리
+ * 영역이 하나라도 있으면 T0(후보가 하나뿐인 그룹)가 첫 수부터 발화해서 판이
+ * 공짜로 시작하고, 거기서 퍼진 배제가 다음 수까지 끌고 간다. 그래서 판을 키우지
+ * 않고도 체감 난이도를 올리려면 이걸 조이는 게 제일 빠르다.
+ *
+ * @param opts { maxMini, floor } — 미니 영역 허용 개수와 나머지 영역의 최소 칸수.
+ *             maxMini 0 + floor 3 이면 "모든 영역이 3칸 이상"이 된다.
+ *             (안 주면 예전 동작 = 미니 0~3개, 최소 2칸)
+ */
+function makeProfile(n, rnd, opts) {
+  const maxMini = opts && Number.isFinite(opts.maxMini) ? opts.maxMini : 3;
+  const floor = opts && Number.isFinite(opts.floor) ? opts.floor : 2;
   const cells = n * n;
   const profile = new Array(n);
   const order = shuffle([...Array(n).keys()], rnd);
@@ -1827,12 +1869,12 @@ function makeProfile(n, rnd) {
   const giantMax = Math.max(giantMin + 1, Math.round(cells * 0.40));
   profile[order[0]] = { min: giantMin, max: giantMax };
 
-  const miniCount = Math.min(Math.floor(rnd() * 4), Math.max(0, n - 3));
+  const miniCount = Math.min(Math.floor(rnd() * (maxMini + 1)), Math.max(0, n - 3));
   for (let i = 1; i <= miniCount; i++) profile[order[i]] = { min: 1, max: 2 };
 
   const rest = order.slice(1 + miniCount);
-  const restMax = Math.max(3, Math.ceil(((cells - giantMin - miniCount) / Math.max(1, rest.length)) * 2));
-  for (const i of rest) profile[i] = { min: 2, max: restMax };
+  const restMax = Math.max(floor + 1, Math.ceil(((cells - giantMin - miniCount) / Math.max(1, rest.length)) * 2));
+  for (const i of rest) profile[i] = { min: floor, max: restMax };
 
   let lo = 0, hi = 0;
   for (const pr of profile) { lo += pr.min; hi += pr.max; }
@@ -2048,12 +2090,12 @@ function inferenceDepth(n, lg) {
  * 퍼즐 하나. deadline(밀리초 시각)을 넘기면 포기하고 null 을 돌려준다 —
  * 부르는 쪽이 더 작은 판으로 물러설 수 있게 하기 위해서다.
  */
-function makePuzzle(n, rnd, deadline, outerTries = 400, repairSteps = 3000) {
+function makePuzzle(n, rnd, deadline, profileOpts, outerTries = 400, repairSteps = 3000) {
   for (let t = 0; t < outerTries; t++) {
     if (Date.now() > deadline) return null;
     const cols = randomSolution(n, rnd);
     if (!cols) continue;
-    const profile = makeProfile(n, rnd);
+    const profile = makeProfile(n, rnd, profileOpts);
     if (!profile) continue;
     const regions = growRegions(n, cols, profile, rnd);
     if (!regions) continue;
@@ -2084,54 +2126,148 @@ function makePuzzle(n, rnd, deadline, outerTries = 400, repairSteps = 3000) {
 }
 
 /**
+ * 구조 요구 사다리 — 무한 마당의 난이도 축.
+ *
+ * 예전에는 난이도를 판 크기로 올렸다. 그건 두 가지 이유로 막다른 길이다 —
+ * 세로 화면에서 14x14 는 한 칸이 24px 밖에 안 되는데 이 게임은 오탭에 벌점이
+ * 있어서 손가락 크기가 곧 난이도가 되고, 생성 시간도 크기에 지수적으로 는다.
+ * 그래서 크기는 13 에서 멈추고, 그 위로는 판의 "구조"만 조인다.
+ *
+ *   maxMini  미니 영역(1~2칸) 허용 개수. 1칸 영역은 T0 를 즉시 발화시켜
+ *            첫 수를 공짜로 만든다. 0 이면 그 공짜가 사라진다.
+ *   floor    나머지 영역의 최소 칸수.
+ *   minTier  받아들일 추론 티어 하한 (T1 갇힘 / T2 k-집합 / T3 귀류).
+ *   maxTier  상한. 하한만 두면 초반에도 T3 판이 예사로 나온다 — 11x11 에서
+ *            그냥 만들면 T3 가 60%다. 그러면 27번이 60번보다 어려운 일이 생긴다.
+ *   minFirst 첫 확정까지 필요한 수의 하한. 판이 시작하자마자 풀리지 않게 한다.
+ *
+ * 칸 수는 "미니 0개(floor 2)"와 "모두 3칸 이상(floor 3)"을 따로 둔다. 실측에서
+ * 13x13 은 이 둘의 생성 비용이 크게 갈렸다 — 후보 하나 중앙값이 4.7초 대 7.4초,
+ * 25초 안에 못 만드는 비율이 33% 대 40%. 반면 플레이어가 느끼는 차이는 1칸 영역이
+ * 있느냐 없느냐가 훨씬 크다. 그래서 싼 쪽(3단계)을 먼저 밟고, 비싼 쪽은 커브 끝에만 둔다.
+ *
+ * 이 사다리는 워커 안에서도 쓰이므로 함수로 둔다 (GEN_FNS 는 함수만 나른다).
+ */
+function structStep(i) {
+  const ladder = [
+    { maxMini: 3, floor: 2, minTier: 1, maxTier: 2, minFirst: 0 },  // 0  1칸 영역 가능 = 공짜 첫 수
+    { maxMini: 1, floor: 2, minTier: 1, maxTier: 2, minFirst: 0 },  // 1  공짜가 있어도 하나뿐
+    { maxMini: 1, floor: 2, minTier: 2, maxTier: 3, minFirst: 0 },  // 2  k-집합 추론이 필요
+    { maxMini: 0, floor: 2, minTier: 2, maxTier: 3, minFirst: 0 },  // 3  1칸 영역 없음 — 공짜가 사라진다
+    { maxMini: 0, floor: 3, minTier: 3, maxTier: 3, minFirst: 0 },  // 4  모든 영역 3칸 이상 + 귀류 — 커브의 끝
+    { maxMini: 0, floor: 3, minTier: 3, maxTier: 3, minFirst: 2 },  // 5  시작부터 막힘 — 도전 판 전용
+  ];
+  return ladder[Math.max(0, Math.min(ladder.length - 1, i | 0))];
+}
+const STRUCT_TOP = 5;          // structStep 사다리의 마지막 칸
+
+/**
  * 무한 마당 한 판.
  *
- * 후보를 tries 개 뽑아 그중 "노리는 깊이(spec.depth)에 가장 가까운" 것을 고른다.
- * 가장 깊은 것을 고르지 않는 이유: 생성기가 내놓는 깊이는 들쭉날쭉해서(같은 크기에서
- * 10 도 40 도 나온다) 무조건 깊은 쪽을 집으면 27번이 60번보다 어려운 일이 생긴다.
+ * 요구 조건(구조 단계)을 만족하는 후보가 나오는 즉시 채택한다. 예전처럼 여러
+ * 후보를 모아 놓고 "깊이가 목표에 가장 가까운 것"을 고르지 않는 이유는, 이제
+ * 요구가 후보를 실제로 여러 개 버리기 때문이다 — 모아 놓고 고르려 들면 예산이
+ * 그대로 녹는다. 대신 요구 자체가 난이도를 잡아 준다.
  *
- * 다만 이 고르기는 어디까지나 보정이다. 12x12 는 후보 하나가 1초 안쪽이라 여러 개를
- * 놓고 고를 수 있지만, 14x14 는 하나 뽑는 데만 15초씩 걸려서 예산 안에 후보가
- * 한둘뿐이고 그때는 사실상 나온 대로 쓴다. 그래서 난이도를 실제로 끌어올리는 축은
- * 판 크기이고, 깊이는 "가능할 때 다듬는" 정도로만 본다.
- *
- * 시간이 모자라면 지금까지 뽑은 것 중 최선을 쓰고, 그 크기가 아예 안 나오면
- * 한 단계 작은 판으로 물러선다. 빈손으로 끝나는 경우는 없어야 한다.
+ * 못 만들었을 때 물러서는 순서가 중요하다.
+ *   1) 구조 단계를 딱 한 칸 낮춘다        — 플레이어 눈에 거의 안 보인다
+ *   2) 요구엔 못 미쳐도 만들어 둔 걸 쓴다  — 프로필은 요구한 그대로다
+ *   3) 그래도 없으면 판을 줄인다          — 눈에 확 띄므로 최후의 수단
+ * 빈손으로 끝나는 경우는 없어야 한다 ("새 마당을 만드는 중"에서 안 나오면 그게 곧 버그다).
  */
 function makeEndlessPuzzle(spec, seed, budgetMs) {
   const until = Date.now() + budgetMs;
-  const want = spec.depth || 12;
-  let best = null, bestGap = Infinity;
-  for (let size = spec.size; size >= 9; size--) {
-    for (let i = 0; i < spec.tries; i++) {
-      const left = until - Date.now();
-      if (left <= 0) break;
-      // 후보 하나에 줄 시간. 판이 커지면 생성이 급격히 느려지므로 크기에 맞춰 늘린다.
-      // 넉넉히 잡아야 하는 이유: 여기가 짧으면 느린 기기에서 큰 판이 매번 시간 안에
-      // 안 나와서, 레벨을 올려도 판이 커지지 않는 일이 조용히 벌어진다.
-      const capMs = size >= 14 ? 24000 : size >= 13 ? 15000 : 10000;
-      // 후보마다 시드를 달리해서, 같은 레벨은 언제 다시 만들어도 같은 판이 나온다
-      const rnd = mulberry32((seed ^ (size * 0x9E3779B1) ^ (i * 0x85EBCA6B)) | 0);
-      const p = makePuzzle(size, rnd, Date.now() + Math.min(left, capMs));
-      // 후보 하나가 시간 안에 안 나와도 크기를 바로 낮추지 않는다 — 후보마다 걸리는
-      // 시간 편차가 커서, 같은 크기의 다음 후보가 훨씬 빨리 나오는 경우가 흔하다.
-      if (!p) continue;
-      const depth = inferenceDepth(size, p.lg);
-      const gap = Math.abs(depth - want);
-      if (gap < bestGap) { best = { p, size, depth }; bestGap = gap; }
-    }
-    if (best) break;                       // 이 크기로 하나라도 나왔으면 더 작게 가지 않는다
-  }
-  if (!best) return null;
+  const asked = Math.max(0, spec.step | 0);
+  let rescue = null;          // 요구엔 못 미쳤지만 손에 쥔 것 — 크기를 줄이기 전에 쓴다
 
-  // 마지막 확인 — 해가 정말 하나뿐인가. (논리 완주가 이미 보장하지만 못을 박는다)
-  if (findSolutions(best.size, best.p.regions, 2).length !== 1) return null;
+  // 후보 하나에 줄 시간.
+  //
+  // 예전에는 넉넉히(13x13 에 15초) 줬는데, 요구를 걸고 나니 그게 독이 됐다.
+  // 13x13 을 단독으로 재 보면 후보의 40% 가 25초를 넘기고 나머지는 중앙값 7.4초에
+  // 나온다 — 오래 끄는 후보는 거의 끝까지 안 나온다는 뜻이다. 그런 후보 하나에
+  // 15초를 주면 예산의 절반이 날아가고, 그만큼 요구를 못 맞춰 물러서게 된다.
+  // 짧게 끊고 다음 시드로 넘어가는 편이 같은 시간에 훨씬 많이 건진다.
+  const capFor = (size) => (size >= 13 ? 8000 : size >= 12 ? 6000 : 5000);
+
+  /**
+   * 한 크기·한 단계에서 deadline 까지 후보를 뽑아 본다. 요구를 만족하면 즉시 반환.
+   * any 를 주면 요구를 보지 않고 나온 것을 그대로 쓴다 (마지막 안전망 전용).
+   */
+  const attempt = (size, step, deadline, any) => {
+    const st = structStep(step);
+    for (let i = 0; i < 64; i++) {
+      const left = deadline - Date.now();
+      if (left <= 0) return null;
+      // 후보마다 시드를 달리하되 전부 레벨 시드에서 유도한다 —
+      // 그래서 같은 레벨은 언제 어디서 다시 만들어도 같은 판이 나온다.
+      const rnd = mulberry32((seed ^ (size * 0x9E3779B1) ^ (step * 0x27D4EB2F) ^ (i * 0x85EBCA6B)) | 0);
+      const p = makePuzzle(size, rnd, Date.now() + Math.min(left, capFor(size)), st);
+      // 후보 하나가 시간 안에 안 나와도 바로 물러서지 않는다 — 후보마다 걸리는
+      // 시간 편차가 커서, 다음 후보가 훨씬 빨리 나오는 경우가 흔하다.
+      if (!p) continue;
+      const first = p.lg.firstPlace === Infinity ? 0 : p.lg.firstPlace;
+      if (any) return { p, size, step, met: false };
+      if (p.lg.tier >= st.minTier && p.lg.tier <= st.maxTier && first >= st.minFirst) {
+        return { p, size, step, met: true };
+      }
+      // 요구를 벗어난 후보도 손에는 쥐고 있는다. 예산이 다 떨어졌을 때 크기를
+      // 줄이느니 이걸 쓰는 편이 훨씬 덜 티가 난다. 고를 때는 상한을 넘긴 것보다
+      // 하한에 못 미친 것을 먼저 버린다 — 어려운 쪽으로 빗나가는 게 덜 아쉽다.
+      const score = Math.min(p.lg.tier, st.maxTier) * 2 - Math.max(0, p.lg.tier - st.maxTier);
+      if (!rescue || score > rescue.score) rescue = { p, size, step, met: false, score };
+    }
+    return null;
+  };
+
+  // 1) 요구한 단계에 예산의 대부분을 쓰고, 안 되면 딱 한 눈금 내려서 남은 걸 쓴다.
+  //    두 눈금 이상 내려가지 않는 이유: 한 눈금 아래는 프로필이 거의 같아서 눈에
+  //    안 띄지만, 두 눈금 아래는 1칸 영역이 다시 생겨 판이 대놓고 쉬워진다.
+  //    그 아래로 가느니 3) 의 rescue — 요구한 프로필로 이미 만들어 둔 판 — 이 낫다.
+  //    예산의 전부를 여기 쓰지는 않는다. 마지막 안전망(3)이 돌 시간이 남지 않으면
+  //    아주 느린 기기에서 빈손으로 끝나고, 그건 "새 마당을 만드는 중"이 영영 안
+  //    끝나는 것으로 보인다. 그래서 꼬리를 미리 떼어 둔다.
+  const tail = Math.min(5000, Math.round(budgetMs * 0.25));
+  const mainUntil = until - tail;
+  const floorStep = Math.max(0, asked - 1);
+  for (let step = asked; step >= floorStep; step--) {
+    const left = mainUntil - Date.now();
+    if (left <= 0) break;
+    const slice = step === floorStep ? left : Math.max(2500, Math.round(left * 0.65));
+    const got = attempt(spec.size, step, Date.now() + Math.min(left, slice));
+    if (got) { const out = finishEndlessPuzzle(got, asked); if (out) return out; }
+  }
+  // 2) 요구는 못 맞췄어도 제 크기로 나온 게 있으면 그걸 쓴다 (티어가 가장 높은 것)
+  if (rescue && rescue.size === spec.size) {
+    const out = finishEndlessPuzzle(rescue, asked);
+    if (out) return out;
+  }
+  // 3) 최후의 수단 — 판을 줄인다 (아주 느린 기기에서만 여기까지 온다).
+  //    여기서는 요구를 아예 보지 않는다. 이 지점의 목표는 좋은 판이 아니라
+  //    "빈손으로 끝나지 않는 것" 하나뿐이다.
+  for (let size = spec.size - 1; size >= 9; size--) {
+    const left = until - Date.now();
+    if (left <= 0) break;
+    const got = attempt(size, 0, Date.now() + left, true);
+    if (got) { const out = finishEndlessPuzzle(got, asked); if (out) return out; }
+  }
+  return rescue ? finishEndlessPuzzle(rescue, asked) : null;
+}
+
+/** 채택 직전 마지막 확인 + 화면·보고가 쓰는 모양으로 정리 */
+function finishEndlessPuzzle(got, asked) {
+  // 해가 정말 하나뿐인가. (논리 완주가 이미 보장하지만 여기서 못을 박는다)
+  if (findSolutions(got.size, got.p.regions, 2).length !== 1) return null;
+  const lg = got.p.lg;
   return {
-    size: best.size,
-    regions: best.p.regions,
-    solution: best.p.cols,
-    depth: best.depth,
-    tier: best.p.lg.tier,
+    size: got.size,
+    regions: got.p.regions,
+    solution: got.p.cols,
+    step: got.step,                       // 실제로 만들어진 단계
+    askedStep: asked,                     // 요구했던 단계 (다르면 물러선 것)
+    met: !!got.met,                       // 그 단계의 요구(티어·첫확정)까지 실제로 맞췄는가
+    depth: inferenceDepth(got.size, lg),
+    tier: lg.tier,
+    firstPlace: lg.firstPlace === Infinity ? 0 : lg.firstPlace,
   };
 }
 
@@ -2150,29 +2286,68 @@ function makeEndlessPuzzle(spec, seed, budgetMs) {
 const ENDLESS_START = 27;          // 스테이지 26판 다음 번호
 
 /**
- * 레벨 번호 -> 판 크기와 후보 수.
- * 크기는 스테이지 마지막(13x13)에서 이어받아 천천히 오르고, 그 위로는 크기 대신
- * "후보를 여러 개 뽑아 가장 깊은 것을 고르는" 방식으로 복잡도만 올린다.
- * 크기를 계속 키우지 않는 건 취향이 아니라 두 가지 벽 때문이다 —
- * 세로 화면에서 읽을 수 있는 한계, 그리고 생성 시간(14x14 부터 급격히 는다).
+ * 무한 마당 커브 — t = 레벨 - 27 이 이 구간에 들어가면 그 { size, step } 을 쓴다.
+ *
+ * 크기는 11 에서 시작해 13 까지만 오르고 거기서 멈춘다. 11 에서 시작하는 건
+ * 스테이지 26번(13x13, T1)과 무한 27번 사이의 난이도 절벽을 없애기 위해서다 —
+ * 예전에는 27번이 곧장 12x12 T2/T3 로 뛰었다.
+ *
+ * 크기가 한 칸 오르는 구간에서는 구조 요구를 한 눈금 내려 숨을 틔운다
+ * (크기 업 = 구조 다운). 두 축을 동시에 올리면 그 한 판이 벽이 된다.
+ *
+ * 끝(13x13 + 4단계)에 닿은 뒤로는 더 조이지 않는다. 무한히 어려워지는 커브는
+ * 결국 모두를 같은 벽 앞에 세운다. 그 뒤의 변화는 시드가 만드는 판 다양성과
+ * 10판마다 오는 도전 판이 담당한다.
+ */
+const ENDLESS_CURVE = [
+  { t: 0,  size: 11, step: 0 },   // 27~30  스테이지에서 이어받는 구간
+  { t: 4,  size: 11, step: 1 },   // 31~34  미니 영역이 하나로 줄어든다
+  { t: 8,  size: 12, step: 1 },   // 35~38  크기 업 -> 구조는 그대로
+  { t: 12, size: 12, step: 2 },   // 39~42  k-집합 추론이 필요해진다
+  { t: 16, size: 12, step: 3 },   // 43~46  1칸 영역이 사라진다
+  { t: 20, size: 13, step: 2 },   // 47~50  크기 업 -> 구조 한 눈금 아래로
+  { t: 24, size: 13, step: 3 },   // 51~54  다시 1칸 영역 없음, 이번엔 13x13 에서
+  { t: 28, size: 13, step: 4 },   // 55~    모든 영역 3칸 이상 + 귀류 — 커브의 끝
+];
+
+/** 무한 마당은 10판마다(30, 40, 50…) 도전 판이 온다 */
+function isChallengeLevel(level) {
+  return level >= ENDLESS_START && level % 10 === 0;
+}
+
+/**
+ * 레벨 번호 -> 그 판을 어떻게 만들 것인가.
+ * @returns { size, step, challenge } — step 은 structStep 사다리의 칸 번호
  */
 function endlessSpec(level) {
   const t = Math.max(0, level - ENDLESS_START);
-  const size = t < 8 ? 12 : t < 24 ? 13 : 14;
-  const tries = 3 + Math.min(2, Math.floor(t / 12));      // 후보 3~5개
-  // 노리는 추론 깊이. 12x12~13x13 에서 생성기가 실제로 내놓는 분포를 재서 잡았다
-  // (최소 10 · p25 17 · 중앙 26 · p75 33 · 최대 46). 시작을 p25 근처에 두어
-  // 27번이 스테이지 마지막보다 갑자기 어려워지지 않게 하고, 60판쯤에 p75 에 닿는다.
-  const depth = 14 + Math.min(20, Math.floor(t / 3));     // 14 -> 34
-  return { size, tries, depth };
+  let base = ENDLESS_CURVE[0];
+  for (const seg of ENDLESS_CURVE) if (t >= seg.t) base = seg;
+
+  let step = base.step;
+  const challenge = isChallengeLevel(level);
+  if (challenge) {
+    // 한 단계 위(70%) 또는 두 단계 위(30%). 어느 쪽인지는 레벨 번호에서 뽑으므로
+    // 30번은 언제 만들어도 같은 도전 판이다.
+    const bump = mulberry32(endlessSeed(level) ^ 0x2545F491)() < 0.7 ? 1 : 2;
+    step = Math.min(STRUCT_TOP, step + bump);
+  }
+  return { size: base.size, step, challenge };
 }
 
-/** 레벨 번호 -> 시드. 이웃한 번호가 비슷한 판이 되지 않도록 섞는다. */
-function endlessSeed(level) {
+/**
+ * 레벨 번호 -> 시드. 이웃한 번호가 비슷한 판이 되지 않도록 섞는다.
+ * variant 는 도전 판에서만 0 이 아니다 — 같은 판에 3번 연속 막히면 같은 요구의
+ * 다른 판으로 갈아 주는데, 그 횟수를 저장해 두고 여기에 넣기 때문에
+ * "번호가 같으면 판도 같다"는 규칙은 (레벨, 재시도 횟수) 쌍에서 그대로 성립한다.
+ */
+function endlessSeed(level, variant) {
   let h = (level * 0x9E3779B1) ^ 0x5F356495;
   h = Math.imul(h ^ (h >>> 16), 0x85EBCA6B);
   h = Math.imul(h ^ (h >>> 13), 0xC2B2AE35);
-  return (h ^ (h >>> 16)) | 0;
+  h = (h ^ (h >>> 16)) | 0;
+  const v = variant | 0;
+  return v ? (Math.imul(h ^ (v * 0x9E3779B1), 0x85EBCA6B) | 0) : h;
 }
 
 /* ---- 워커 ----------------------------------------------------------------
@@ -2184,7 +2359,8 @@ const GEN_FNS = [
   mulberry32, shuffle, randomSolution, makeProfile, growRegions, findSolutions,
   regionSizes, regionStaysConnected, touchesRegion, canRecolor, breakingMoves,
   pickBalanced, randomNudge, buildGroups, combinations, runLogic, kSetRule,
-  trialRule, logicSolve, inferenceDepth, makePuzzle, makeEndlessPuzzle,
+  trialRule, logicSolve, inferenceDepth, makePuzzle, structStep,
+  makeEndlessPuzzle, finishEndlessPuzzle,
 ];
 
 function genWorkerSource() {
@@ -2192,16 +2368,19 @@ function genWorkerSource() {
     + 'const D4=[[-1,0],[1,0],[0,-1],[0,1]];\n'
     + 'const regionName=(i)=>String(i+1), groupLabel=()=>"";\n'
     + GEN_FNS.map((f) => f.toString()).join('\n')
-    + '\nonmessage=(e)=>{const{level,spec,seed,budget}=e.data;'
+    + '\nonmessage=(e)=>{const{key,spec,seed,budget}=e.data;'
     + 'let out=null;try{out=makeEndlessPuzzle(spec,seed,budget);}catch(err){out=null;}'
-    + 'postMessage({level,puzzle:out});};';
+    + 'postMessage({key,puzzle:out});};';
 }
 
 const Endless = {
   worker: null,
   workerBroken: false,
-  pending: new Map(),        // level -> Promise
-  ready: new Map(),          // level -> puzzle (미리 만들어 둔 것)
+  pending: new Map(),        // "레벨:변형" -> Promise
+  ready: new Map(),          // "레벨:변형" -> puzzle (미리 만들어 둔 것)
+
+  /** 캐시 열쇠 — 도전 판은 같은 번호라도 변형에 따라 다른 판이다 */
+  key(level, variant) { return `${level}:${variant | 0}`; },
 
   /** 워커를 띄운다. 못 띄우면 이후로는 메인 스레드에서 만든다. */
   boot() {
@@ -2223,58 +2402,96 @@ const Endless = {
    * 워커가 없으면 메인 스레드에서 만든다 (그동안 화면은 멈춘다 — 부르는 쪽이
    * "준비 중"을 띄워 두어야 한다).
    */
-  get(level, budget = 18000) {
-    if (this.ready.has(level)) return Promise.resolve(this.ready.get(level));
-    if (this.pending.has(level)) return this.pending.get(level);
+  get(level, budget = 18000, variant = 0) {
+    const key = this.key(level, variant);
+    if (this.ready.has(key)) return Promise.resolve(this.ready.get(key));
+    if (this.pending.has(key)) return this.pending.get(key);
 
-    const spec = endlessSpec(level), seed = endlessSeed(level);
+    const spec = endlessSpec(level), seed = endlessSeed(level, variant);
     const w = this.boot();
     let job;
     if (w) {
       job = new Promise((resolve) => {
         const onMsg = (e) => {
-          if (!e.data || e.data.level !== level) return;
+          if (!e.data || e.data.key !== key) return;
           w.removeEventListener('message', onMsg);
           resolve(e.data.puzzle);
         };
         w.addEventListener('message', onMsg);
-        w.postMessage({ level, spec, seed, budget });
+        w.postMessage({ key, spec, seed, budget });
       });
     } else {
       job = new Promise((resolve) => {
         // 메인 스레드 대체 경로. 한 프레임 뒤에 돌려서 "준비 중"이 먼저 그려지게 한다.
+        // 예산은 여기서 짧게 자른다 — 이 경로는 도는 동안 화면이 통째로 멈추므로,
+        // 한 단계 물러선 판을 받는 편이 1분을 얼어붙은 채 기다리는 것보다 낫다.
         setTimeout(() => {
           let out = null;
-          try { out = makeEndlessPuzzle(spec, seed, budget); } catch (e) { out = null; }
+          try { out = makeEndlessPuzzle(spec, seed, Math.min(budget, 12000)); } catch (e) { out = null; }
           resolve(out);
         }, 60);
       });
     }
     job = job.then((puzzle) => {
-      this.pending.delete(level);
-      if (puzzle) { this.ready.set(level, puzzle); this.trim(); }
+      this.pending.delete(key);
+      if (puzzle) { this.ready.set(key, puzzle); this.trim(); }
       return puzzle;
     });
-    this.pending.set(level, job);
+    this.pending.set(key, job);
     return job;
   },
 
   /**
    * 다음 판을 미리 만들어 둔다. 실패해도 조용히 넘어간다 — 그때 가서 만들면 된다.
-   * 아무도 안 기다리는 시간이라 예산을 넉넉히 준다 (그만큼 좋은 판이 나온다).
+   * 아무도 안 기다리는 시간이라 예산을 넉넉히 준다. 구조 요구를 맞추려면 후보를
+   * 여러 개 버려야 하므로, 여기서 시간을 아끼면 곧장 "한 단계 물러섬"으로 돌아온다.
    */
-  prefetch(level) {
+  prefetch(level, variant) {
     if (level < ENDLESS_START) return;
-    if (this.ready.has(level) || this.pending.has(level)) return;
-    this.get(level, 40000).catch(() => {});
+    const v = variant === undefined ? endlessVariant(level) : variant;
+    const key = this.key(level, v);
+    if (this.ready.has(key) || this.pending.has(key)) return;
+    // 도전 판은 요구가 한두 단계 위라 후보를 더 많이 버린다 — 그만큼 더 준다
+    this.get(level, isChallengeLevel(level) ? 90000 : 60000, v).catch(() => {});
   },
 
   /** 앞질러 만들어 둔 판이 쌓이지 않게 — 최근 4개만 들고 있는다 */
   trim() {
-    const keys = [...this.ready.keys()].sort((a, b) => a - b);
+    const keys = [...this.ready.keys()].sort(
+      (a, b) => (parseInt(a, 10) - parseInt(b, 10)) || a.localeCompare(b)
+    );
     while (keys.length > 4) this.ready.delete(keys.shift());
   },
 };
+
+/**
+ * 도전 판에서 지금 몇 번째 시드를 쓰고 있는가.
+ *
+ * 도전 판은 구조 요구가 한두 단계 높아서 운 나쁘면 진짜로 막힌다. 3번 연속
+ * 게임오버면 "같은 요구의 다른 판"으로 갈아 준다. 다른 판을 그때그때 무작위로
+ * 뽑으면 저장에 판을 통째로 들고 다녀야 하므로, 대신 막힌 횟수만 저장하고
+ * 거기서 시드를 유도한다 — (레벨, 재시도 횟수) 가 같으면 판도 같다.
+ */
+function endlessVariant(level) {
+  if (!isChallengeLevel(level)) return 0;
+  const f = Store.data.endless.fail;
+  if (!f || f.level !== level) return 0;
+  return Math.floor(f.count / 3);
+}
+
+/** 무한 판에서 게임오버 — 도전 판이면 3번 연속마다 다른 시드로 갈아탄다 */
+function noteEndlessFail(level) {
+  const e = Store.data.endless;
+  const before = endlessVariant(level);
+  if (!e.fail || e.fail.level !== level) e.fail = { level, count: 0 };
+  e.fail.count++;
+  const after = endlessVariant(level);
+  if (after !== before) {
+    if (e.puzzle && e.puzzle.level === level) e.puzzle = null;   // 저장된 건 이제 지난 판이다
+    Endless.prefetch(level, after);                             // 다시 누르기 전에 만들어 둔다
+  }
+  Store.save();
+}
 
 /* ==========================================================================
  * 4-b. 튜토리얼 — 고정 5x5 예제
@@ -2477,6 +2694,7 @@ function beginBoard(spec, restore) {
   G.history = []; G.finished = false; G.hintCells = [];
 
   $('gmName').textContent = spec.title;
+  $('gmChal').hidden = !spec.challenge;      // 도전 판 배지 — 무한 마당 10판마다
   renderDifficulty(spec.difficulty);
   renderBoosters();
   hideHint();
@@ -2504,9 +2722,12 @@ function endlessUnlocked() {
   return !!PUZZLES && PUZZLES.levels.every((lv) => Store.data.cleared[lv.id]);
 }
 
-/** 무한 마당 레벨 번호 -> 난이도 라벨 (당근 개수는 판 크기로 매긴다) */
-function endlessDifficulty(size) {
-  return size >= 14 ? 'hard' : size >= 13 ? 'normal' : 'easy';
+/**
+ * 무한 마당 판 -> 난이도 라벨 (HUD 의 당근 개수).
+ * 크기가 11~13 안에서만 움직이게 된 뒤로는 크기보다 구조 단계가 체감을 결정한다.
+ */
+function endlessDifficulty(step) {
+  return step >= 4 ? 'hard' : step >= 2 ? 'normal' : 'easy';
 }
 
 /**
@@ -2517,25 +2738,33 @@ let endlessBusy = false;
 async function startEndless(level, restore) {
   if (endlessBusy) return;
   endlessBusy = true;
+  const variant = endlessVariant(level);
   const cached = Store.data.endless.puzzle;
-  const useCache = restore && cached && cached.level === level && validPuzzle(cached);
+  const useCache = restore && cached && cached.level === level
+    && (cached.variant | 0) === variant && validPuzzle(cached);
   try {
-    let puzzle = useCache ? cached : Endless.ready.get(level);
+    let puzzle = useCache ? cached : Endless.ready.get(Endless.key(level, variant));
     if (!puzzle) {
       showEndlessLoading(true);
-      puzzle = await Endless.get(level);
+      puzzle = await Endless.get(level, 18000, variant);
       showEndlessLoading(false);
     }
     if (!puzzle) { toast('마당을 준비하지 못했어요. 잠시 뒤 다시 눌러 주세요'); return; }
 
+    const challenge = isChallengeLevel(level);
     Store.data.endless.level = Math.max(Store.data.endless.level, level);
-    Store.data.endless.puzzle = { level, size: puzzle.size, regions: puzzle.regions, solution: puzzle.solution };
+    Store.data.endless.puzzle = {
+      v: ENDLESS_CACHE_V, level, variant,
+      size: puzzle.size, regions: puzzle.regions, solution: puzzle.solution,
+      step: puzzle.step | 0, challenge,
+    };
     Store.save();
 
     G.index = PUZZLES.levels.length + (level - ENDLESS_START);   // 목록 화면과 무관한 순번
     beginBoard({
       id: `E${level}`, size: puzzle.size, regions: puzzle.regions, solution: puzzle.solution,
-      difficulty: endlessDifficulty(puzzle.size), title: `무한 ${level}`, endless: level,
+      difficulty: endlessDifficulty(puzzle.step | 0), title: `무한 ${level}`, endless: level,
+      challenge,
     }, useCache ? restore : null);
 
     Endless.prefetch(level + 1);          // 다음 판은 이 판을 푸는 동안 만들어 둔다
@@ -2776,6 +3005,7 @@ function startTutorial() {
   hideHint();
   document.body.classList.add('tutorial-mode');
   $('gmName').textContent = '토끼네 자리 배우기';
+  $('gmChal').hidden = true;
   renderDifficulty('easy');
   buildBoard();
   renderAll();
@@ -3039,6 +3269,8 @@ function placeRabbit(r, c) {
 
   if (G.lives === 0) {
     G.finished = true; stopTimer();
+    // 도전 판에서 연속으로 막히면 같은 요구의 다른 판으로 갈아탈 수 있게 세어 둔다
+    if (G.endless) noteEndlessFail(G.endless);
     setTimeout(() => openModal('modalOver'), 700);
   }
 }
@@ -3116,6 +3348,7 @@ function checkWin() {
     ed.bestScore = Math.max(ed.bestScore, score);
     ed.level = Math.max(ed.level, endless);
     ed.puzzle = null;
+    if (ed.fail && ed.fail.level === endless) ed.fail = null;   // 깼으니 연속 실패는 끝
   } else {
     const prev = Store.data.cleared[G.level.id];
     best = prev && prev.score > score ? prev.score : 0;
