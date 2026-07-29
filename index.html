@@ -256,10 +256,25 @@ h1.game-title{
 .lives .gone{opacity:.32;transform:scale(.86);}
 .lives .pop{animation:heartPop .5s ease;}
 .score{
-  display:flex;align-items:baseline;gap:4px;margin-left:auto;
+  position:relative;display:flex;align-items:baseline;margin-left:auto;
   font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);
 }
-.score small{font-size:10.5px;font-weight:700;color:var(--ink-faint);}
+.score small{font-size:10.5px;font-weight:700;color:var(--ink-faint);margin-left:4px;}
+/* 힌트·자동배치를 쓰면 점수가 그 자리에서 깎인다. 예전에는 아무 표시가 없어 조용히
+   줄었다 — 깎인 만큼을 점수 옆에 잠깐 띄워서 "무엇 때문에 줄었는지"를 붙여 준다.
+   위로 띄우지 않고 점수 왼쪽 빈 자리로 흘려보낸다. 위는 판 이름·당근 줄이라 겹친다. */
+.score-pop{
+  position:absolute;right:100%;top:0;margin-right:7px;
+  white-space:nowrap;pointer-events:none;opacity:0;
+  font-size:14px;font-weight:800;color:var(--danger);
+}
+.score-pop.go{animation:scoreDrop 1.05s cubic-bezier(.2,1,.3,1) both;}
+@keyframes scoreDrop{
+  0%  {opacity:0;transform:translate(10px,3px) scale(.7)}
+  16% {opacity:1;transform:translate(0,-4px) scale(1.16)}
+  50% {opacity:1;transform:translate(-4px,-5px) scale(1)}
+  100%{opacity:0;transform:translate(-22px,-6px) scale(.95)}
+}
 .lives{display:flex;gap:3px;}
 
 /* 규칙 알약 칩 */
@@ -276,7 +291,7 @@ h1.game-title{
 
 /* 하단 플로팅 원형 버튼 */
 .fab-row{
-  flex:0 0 auto;display:flex;justify-content:center;gap:34px;
+  flex:0 0 auto;display:flex;justify-content:center;gap:24px;
   padding:6px 0 calc(var(--safe-bottom) + 6px);
 }
 .fab{
@@ -286,7 +301,8 @@ h1.game-title{
   border:1.5px solid rgba(217,198,180,.5);transition:transform .12s ease;
 }
 .fab:active{transform:translateY(3px) scale(.96);}
-.fab:disabled{opacity:.45;}
+.fab:disabled{opacity:.42;filter:grayscale(.7);box-shadow:none;}
+.fab:disabled:active{transform:none;}
 /* 재화가 떨어진 버튼 — 잠그지 않고 "충전하면 쓸 수 있다"로 바꿔 보여 준다 */
 .fab.empty{filter:grayscale(.55);}
 .fab.empty .fab-count{background:var(--danger);}
@@ -295,6 +311,9 @@ h1.game-title{
 .fab svg{width:27px;height:27px;}
 .fab-hint{color:#B8860B;background:linear-gradient(180deg,#FFF6DF,#FCE9B8);border-color:rgba(230,190,120,.6);}
 .fab-boost{background:linear-gradient(180deg,#F3EDFF,#E2D8FA);border-color:rgba(160,140,220,.5);}
+/* 되돌리기 — 미어도쿠에서 Undo 는 부스터가 아니라 기본 조작이다. 설정 모달 안이 아니라
+   힌트·자동배치와 같은 줄에 상시로 둔다. 재화가 아니므로 개수 뱃지는 없다. */
+.fab-undo{color:#9A5540;background:linear-gradient(180deg,#FFF1EA,#FBDCCF);border-color:rgba(226,172,148,.6);}
 .fab-paw{width:30px;height:30px;display:grid;place-items:center;}
 .fab-paw svg{width:100%;height:100%;}
 .fab-count{
@@ -397,11 +416,28 @@ h1.game-title{
 @keyframes flashPulse{0%,100%{opacity:.35}50%{opacity:1}}
 .cell.shake{animation:shake .38s ease;}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+/* 힌트가 가리킨 칸 — 팔레트 14색 중 어떤 타일 위에서도 링이 보여야 한다.
+   그래서 링을 두 겹으로 쌓는다: 타일에 바로 붙는 흰 링과 그 바깥의 진한 초록 링.
+   어두운 타일(밤바다·잎·자두)에서는 안쪽 흰 링이, 밝은 타일(새싹·서리·볏짚)에서는
+   바깥 진한 링이 경계를 만든다 — 둘 중 하나는 언제나 대비를 낸다.
+   예전 링은 한 겹 중간 초록이라 밝은 쪽에서도 어두운 쪽에서도 반쯤 묻혔다. */
+.cell.hint{z-index:4;}
 .cell.hint::after{
-  content:"";position:absolute;inset:-2px;border-radius:inherit;
-  box-shadow:0 0 0 3px #6FB39A;animation:hintPulse 1.1s ease-in-out infinite;
+  content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;
+  box-shadow:0 0 0 3.5px #FFFFFF, 0 0 0 7px #0A3A2C, 0 0 13px 4px rgba(10,58,44,.5);
 }
-@keyframes hintPulse{0%,100%{opacity:.35;transform:scale(.94)}50%{opacity:1;transform:scale(1)}}
+/* 링 바깥으로 한 번씩 번져 나가는 펄스. 링 본체는 흐려지지 않고 늘 또렷하게 남는다 —
+   예전처럼 링 자체를 opacity .35 까지 떨어뜨리면 절반의 시간 동안 안 보인다. */
+.cell.hint::before{
+  content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;
+  box-shadow:0 0 0 3.5px rgba(255,255,255,.95), 0 0 0 7px #0A3A2C;
+}
+.cell.hint:not(.hint-group)::before{animation:hintPulse 1.3s cubic-bezier(.25,.6,.35,1) infinite;}
+@keyframes hintPulse{
+  0%  {opacity:.9;transform:scale(1)}
+  65% {opacity:0;transform:scale(1.3)}
+  100%{opacity:0;transform:scale(1.3)}
+}
 .cell.hint-group{filter:brightness(1.06) saturate(1.25);}
 .cell.hint-group::before{
   content:"";position:absolute;inset:0;border-radius:inherit;background:rgba(255,255,255,.28);
@@ -608,17 +644,38 @@ body.tutorial-mode #hintBar{display:none;}
   100%{opacity:0;transform:translateY(-16%) scale(.94)}
 }
 
-/* 힌트 말풍선 */
+/* 힌트 말풍선 — 2단이다.
+   1단(기본): "다음에 뭘 하면 되는지" 행동 한 문장. 초등학생이 읽고 바로 움직일 수 있어야 한다.
+   2단(접힘): 왜 그런지의 논리. "왜요?" 를 눌러야 펼쳐진다.
+   상위 티어(k-집합·귀류)의 설명문을 기본 화면에 그대로 띄우면 게임이 아니라 강의가 된다. */
 #hintBar{
-  flex:0 0 auto;margin:0 2px 6px;padding:0;max-height:0;overflow:hidden;
+  position:relative;flex:0 0 auto;margin:0 2px 6px;padding:0;max-height:0;overflow:hidden;
   transition:max-height .28s ease,padding .28s ease,margin .28s ease;
 }
-#hintBar.show{max-height:180px;padding:11px 14px;margin-bottom:8px;}
+#hintBar.show{max-height:200px;padding:11px 14px;margin-bottom:8px;}
+#hintBar.show.detail-open{max-height:56vh;}
 #hintBar.show{
   background:linear-gradient(180deg,#EAF6F0,#DDEFE6);border:1.5px solid rgba(111,179,154,.5);
   border-radius:16px;font-size:13.5px;line-height:1.55;color:#3E6A59;box-shadow:var(--shadow-sm);
 }
 #hintBar b{color:#2F5A49;}
+/* 닫기 — 말풍선을 없앨 방법이 없어서 다음 수를 둘 때까지 계속 붙어 있던 게 예전 동작이다 */
+.hint-x{
+  position:absolute;top:6px;right:8px;width:30px;height:30px;border-radius:50%;
+  display:grid;place-items:center;font-size:15px;line-height:1;color:#38614F;
+  background:rgba(255,255,255,.8);border:1.5px solid rgba(111,179,154,.5);
+}
+.hint-x:active{transform:scale(.9);}
+.hint-action{font-size:16.5px;line-height:1.4;color:#2A5344;padding-right:34px;}
+.hint-why{
+  margin-top:9px;padding:5px 13px;border-radius:999px;font-size:12.5px;color:#38614F;
+  background:rgba(255,255,255,.85);border:1.5px solid rgba(111,179,154,.55);
+}
+.hint-why:active{transform:scale(.95);}
+.hint-detail{
+  margin-top:9px;padding-top:9px;border-top:1px dashed rgba(111,179,154,.55);
+  font-size:13px;line-height:1.6;max-height:34vh;overflow-y:auto;
+}
 
 /* ============================================================ 모달 */
 .modal{
@@ -745,9 +802,11 @@ body.tutorial-mode #hintBar{display:none;}
   .fab{width:54px;height:54px;}
   .fab svg{width:24px;height:24px;}
   .fab-paw{width:26px;height:26px;}
-  .fab-row{gap:26px;padding:4px 0 calc(var(--safe-bottom) + 4px);}
+  .fab-row{gap:16px;padding:4px 0 calc(var(--safe-bottom) + 4px);}
   .fab-label{bottom:-15px;font-size:10px;}
-  #hintBar.show{max-height:110px;}
+  #hintBar.show{max-height:120px;padding:9px 12px;}
+  #hintBar.show.detail-open{max-height:52vh;}
+  .hint-action{font-size:15px;}
 }
 
 /* 아주 좁은 화면에서 하단 버튼 글자가 줄바꿈되지 않도록 */
@@ -832,7 +891,10 @@ body.tutorial-mode #hintBar{display:none;}
 
     <div class="hud-2" id="hudStats">
       <span class="counter" id="gmCount"></span>
-      <span class="score" id="gmScore"></span>
+      <span class="score">
+        <span id="gmScore"></span>
+        <span class="score-pop" id="scoreDelta"></span>
+      </span>
       <span class="lives" id="gmLives"></span>
     </div>
 
@@ -861,9 +923,18 @@ body.tutorial-mode #hintBar{display:none;}
       </div>
     </div>
 
-    <div id="hintBar"></div>
+    <div id="hintBar">
+      <button class="hint-x" id="hintClose" aria-label="힌트 닫기">✕</button>
+      <div class="hint-action" id="hintAction"></div>
+      <button class="hint-why" id="hintWhy" hidden>왜요?</button>
+      <div class="hint-detail" id="hintDetail" hidden></div>
+    </div>
 
     <div class="fab-row">
+      <button class="fab fab-undo" id="btnUndo" aria-label="되돌리기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7 4 12l5 5"/><path d="M4 12h9a6 6 0 0 1 6 6v1"/></svg>
+        <span class="fab-label">되돌리기</span>
+      </button>
       <button class="fab fab-hint" id="btnHint">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5.9 1.1 1 1.7l.1.5h5l.1-.5c.1-.6.4-1.2 1-1.7A6 6 0 0 0 12 3z"/></svg>
         <span class="fab-count" id="hintCount">3</span>
@@ -938,7 +1009,6 @@ body.tutorial-mode #hintBar{display:none;}
     <h3>설정</h3>
     <div class="set-list">
       <button class="set-item" id="setSound"><span>소리</span><b id="setSoundVal">켜짐</b></button>
-      <button class="set-item" id="setUndo"><span>되돌리기</span><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7 4 12l5 5"/><path d="M4 12h9a6 6 0 0 1 6 6v1"/></svg></b></button>
       <button class="set-item" id="setReset"><span>다시 놓기</span><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 5v5h-5"/><path d="M19.4 13a7.5 7.5 0 1 1-2-6.6L20 9"/></svg></b></button>
       <button class="set-item" id="setZoomIn"><span>확대</span><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg></b></button>
       <button class="set-item" id="setZoomOut"><span>축소</span><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg></b></button>
@@ -1664,6 +1734,13 @@ function regionName(i) {
   return p ? p.name : `${i + 1}번`;
 }
 
+/** 앞말의 받침에 맞춰 이/가 를 고른다 — "가로줄가"처럼 읽히지 않도록 */
+function josaIGa(word) {
+  const ch = (word || '').replace(/<[^>]*>/g, '').trim().slice(-1).charCodeAt(0);
+  if (!(ch >= 0xAC00 && ch <= 0xD7A3)) return '이';        // 한글이 아니면 무난한 쪽
+  return (ch - 0xAC00) % 28 ? '이' : '가';
+}
+
 function groupLabel(g) {
   if (g.kind === 'row') return `${g.index + 1}번째 가로줄`;
   if (g.kind === 'col') return `${g.index + 1}번째 세로줄`;
@@ -1892,7 +1969,7 @@ function trialRule(n, regions, state, groups, cands, done, emit) {
         if (left.length === 0) {
           emit(() => ({
             type: 'block', r, c, group: g, highlight: cands(g), extra: [[r, c]],
-            text: `여기에 토끼를 두면 <b>${groupLabel(g)}</b>가 앉을 자리를 모두 잃어요. 그러니 이 칸은 비워요.`,
+            text: `여기에 토끼를 두면 <b>${groupLabel(g)}</b>${josaIGa(groupLabel(g))} 앉을 자리를 모두 잃어요. 그러니 이 칸은 비워요.`,
           }));
           state[r][c] = BLOCKED;
           return true;
@@ -2501,7 +2578,7 @@ const GEN_FNS = [
 function genWorkerSource() {
   return 'const EMPTY=0,RABBIT=1,BLOCKED=-1;\n'
     + 'const D4=[[-1,0],[1,0],[0,-1],[0,1]];\n'
-    + 'const regionName=(i)=>String(i+1), groupLabel=()=>"";\n'
+    + 'const regionName=(i)=>String(i+1), groupLabel=()=>"", josaIGa=()=>"이";\n'
     + GEN_FNS.map((f) => f.toString()).join('\n')
     + '\nonmessage=(e)=>{const{key,spec,seed,budget}=e.data;'
     + 'let out=null;try{out=makeEndlessPuzzle(spec,seed,budget);}catch(err){out=null;}'
@@ -3057,6 +3134,7 @@ function renderAll() {
   renderLives();
   renderCounter();
   renderScore();
+  renderUndo();
 }
 
 function renderLives(popIndex) {
@@ -3103,6 +3181,25 @@ function renderBoosters() {
   };
   paint('btnHint', 'hintCount', Wallet.hints, '힌트');
   paint('btnBoost', 'boostCount', Wallet.boosts, '자동배치');
+  renderUndo();
+}
+
+/** 되돌릴 게 없으면(또는 판이 끝났으면) 눌리지 않는 상태로 보여 준다 */
+function renderUndo() {
+  $('btnUndo').disabled = !!G.finished || !!G.tutorial || !(G.history && G.history.length);
+}
+
+/**
+ * 점수 HUD 옆에 깎인 점수를 잠깐 띄운다. 힌트·자동배치는 쓰는 즉시 점수를 깎는데,
+ * 아무 표시가 없으면 "조용히 줄었다"로만 남는다.
+ */
+function popScoreDelta(amount) {
+  if (!amount) return;
+  const el = $('scoreDelta');
+  el.textContent = `-${amount.toLocaleString()}`;
+  el.classList.remove('go');
+  void el.offsetWidth;                 // 연달아 눌러도 매번 처음부터 다시 뜨도록
+  el.classList.add('go');
 }
 
 /* --------------------------------------------------------------------------
@@ -3452,6 +3549,7 @@ function toggleMark(r, c) {
   if (G.history.length > 400) G.history.shift();
   if (G.grid[r][c] === 1) { Sfx.mark(); buzz(8); } else Sfx.erase();
   renderAll();
+  noteHintAction(r, c);              // "이 칸은 비워요" 힌트를 따랐으면 그 자리에서 해제
   saveProgress();
 }
 
@@ -3666,17 +3764,41 @@ function resetBoard() {
 /* ==========================================================================
  * 11. 힌트
  * ========================================================================== */
+let hintDirty = false;               // 끌기 중에 힌트 칸을 다 처리했다 — 손을 떼면 닫는다
+
 function clearHintMarks() {
   for (const el of board.querySelectorAll('.hint,.hint-group')) el.classList.remove('hint', 'hint-group');
   G.hintCells = [];
+  hintDirty = false;
 }
 function hideHint() {
   clearHintMarks();
   const bar = $('hintBar');
   if (!bar.classList.contains('show')) return;
-  bar.classList.remove('show');
-  bar.innerHTML = '';
+  bar.classList.remove('show', 'detail-open');
+  $('hintAction').innerHTML = '';
+  $('hintDetail').innerHTML = '';
+  $('hintDetail').hidden = true;
+  $('hintWhy').hidden = true;
   setTimeout(refitIfUntouched, 300);   // 말풍선이 접히면서 넓어진 영역에 맞춰 다시 정렬
+}
+
+/**
+ * 힌트가 가리킨 칸에 실제로 행동하면 그 칸의 링을 걷고, 가리킨 칸을 다 처리하면
+ * 말풍선까지 닫는다. defer 는 끌기로 ✕ 를 칠하는 중일 때 — 손가락이 아직 화면에
+ * 붙어 있는데 말풍선이 접히면 보드가 다시 맞춰지면서 끌던 자리가 어긋난다.
+ * 그래서 끌기 중에는 표시만 해 두고 손을 뗄 때 닫는다.
+ */
+function noteHintAction(r, c, defer) {
+  if (!G.hintCells.length) return;
+  const i = G.hintCells.findIndex(([hr, hc]) => hr === r && hc === c);
+  if (i < 0) return;
+  G.hintCells.splice(i, 1);
+  const el = cellAt(r, c);
+  if (el) el.classList.remove('hint');
+  if (G.hintCells.length) return;
+  if (defer) hintDirty = true;
+  else hideHint();
 }
 
 function giveHint() {
@@ -3688,7 +3810,9 @@ function giveHint() {
   if (wrong.length) {
     for (const [r, c] of wrong) cellAt(r, c).classList.add('hint');
     G.hintCells = wrong;
-    showHint(`여기 놓인 토끼는 정답 자리가 아니에요. 먼저 치우고 다시 살펴볼까요? <b>(${wrong.length}칸)</b>`);
+    showHint(`🙈 <b>이 토끼를 치워요!</b>${wrong.length > 1 ? ` (${wrong.length}마리)` : ''}`,
+      '여기 앉은 토끼는 정답 자리가 아니에요. 먼저 치우고 나서 다시 살펴봐야 다음 수가 보여요.');
+    scrollCellIntoView(wrong[0][0], wrong[0][1]);
     return true;
   }
 
@@ -3704,7 +3828,7 @@ function giveHint() {
   });
 
   if (!found) {
-    showHint('지금 보드는 정답으로 가는 길 위에 있어요. 남은 칸을 마저 채워 보세요! 🐾');
+    showHint('🐾 <b>여기까진 잘 왔어요!</b> 남은 칸을 마저 채워 보세요.');
     return false;
   }
 
@@ -3715,19 +3839,42 @@ function giveHint() {
     if (!el.classList.contains('hint')) el.classList.add('hint-group');
   }
   G.hintCells = cells;
-  const lead = step.type === 'place' ? '🐰 <b>여기에 토끼!</b><br>' : '✋ <b>여기는 비어요.</b><br>';
-  showHint(lead + step.text);
+  // 기본 화면은 행동 한 문장뿐. 어떤 티어의 추론이든 플레이어가 할 일은 두 가지 중 하나다.
+  const action = step.type === 'place'
+    ? '🐰 <b>여기에 토끼!</b>'
+    : (cells.length > 1 ? `✋ <b>이 칸들은 비워요</b> (${cells.length}칸)` : '✋ <b>이 칸은 비워요</b>');
+  showHint(action, step.text);
   scrollCellIntoView(cells[0][0], cells[0][1]);
   return true;
 }
 
-function showHint(html) {
-  const bar = $('hintBar');
-  bar.innerHTML = html;
+/**
+ * action = 항상 보이는 행동 한 문장, detail = "왜요?" 를 눌러야 펼쳐지는 논리.
+ * detail 이 없으면 "왜요?" 버튼 자체가 나오지 않는다.
+ */
+function showHint(action, detail) {
+  const bar = $('hintBar'), why = $('hintWhy'), det = $('hintDetail');
+  $('hintAction').innerHTML = action;
+  det.innerHTML = detail || '';
+  det.hidden = true;
+  why.hidden = !detail;
+  why.textContent = '왜요?';
+  bar.classList.remove('detail-open');
   bar.classList.add('show');
   requestAnimationFrame(refitIfUntouched);
   setTimeout(refitIfUntouched, 300);   // 펼쳐지는 애니메이션이 끝난 뒤 한 번 더
 }
+
+$('hintClose').onclick = () => hideHint();
+$('hintWhy').onclick = () => {
+  const bar = $('hintBar'), det = $('hintDetail'), why = $('hintWhy');
+  const open = det.hidden;
+  det.hidden = !open;
+  why.textContent = open ? '접기' : '왜요?';
+  bar.classList.toggle('detail-open', open);
+  requestAnimationFrame(refitIfUntouched);
+  setTimeout(refitIfUntouched, 320);
+};
 
 /* ==========================================================================
  * 12. 줌 / 팬
@@ -3832,6 +3979,7 @@ function paintCell(cell) {
   if (paint.mode === 'erase') {                     // 지우기는 밀지 않는다 — 손가락을 바로 따라와야 한다
     Sfx.erase(); buzz(6);
     renderAll();
+    noteHintAction(r, c, true);
     return;
   }
 
@@ -3840,6 +3988,7 @@ function paintCell(cell) {
   const lag = isCalm() ? 0 : Math.min(PAINT_LAG_MAX, Math.max(0, (paint.nextAt || 0) - now));
   paint.nextAt = now + lag + PAINT_STEP;
   renderAll();
+  noteHintAction(r, c, true);
   if (lag > 0) {
     // 팝이 밀린 만큼 소리·진동도 같이 민다. 소리만 먼저 나면 줄이 어긋나 보인다.
     const glyph = cellAt(r, c).querySelector('.glyph');
@@ -3912,7 +4061,11 @@ function endPointer(e) {
   const wasPainting = paint && paint.on;
   if (pointers.size === 0) paint = null;
   if (!p) return;
-  if (wasPainting) { saveProgress(); return; }      // 칠하기였다면 탭으로 치지 않는다
+  if (wasPainting) {                                // 칠하기였다면 탭으로 치지 않는다
+    saveProgress();
+    if (hintDirty) hideHint();                      // 끌기로 힌트 칸을 다 처리했다 — 이제 접는다
+    return;
+  }
   // 탭 판정: 거의 안 움직였고 짧게 눌렀을 때
   if (p.moved < 9 && Date.now() - p.t < 600 && pointers.size === 0) {
     const cell = cellFromPoint(e.clientX, e.clientY);
@@ -3921,6 +4074,32 @@ function endPointer(e) {
 }
 viewport.addEventListener('pointerup', endPointer);
 viewport.addEventListener('pointercancel', endPointer);
+
+/**
+ * 보드 밖 빈 영역을 탭하면 힌트 말풍선이 닫힌다.
+ * 말풍선·하단 버튼·설정 아이콘·보드 칸 위의 탭은 각자 할 일이 있으니 건드리지 않는다.
+ * 칸 판정은 좌표로 한다 — 보드는 포인터를 캡처하므로 pointerup 의 target 이
+ * 칸이 아니라 #viewport 로 바뀌어 있다.
+ * 끌기·핀치로 화면을 조작한 경우는 탭이 아니므로 닫지 않는다.
+ */
+(() => {
+  const screen = $('screen-game');
+  let tap = null;
+  screen.addEventListener('pointerdown', (e) => {
+    // 캡처 단계라 아직 viewport 가 이 포인터를 담기 전이다 — 여기서 1 이면 이미 두 손가락이다
+    tap = pointers.size >= 1 ? null : { id: e.pointerId, x: e.clientX, y: e.clientY, t: Date.now() };
+  }, true);
+  screen.addEventListener('pointerup', (e) => {
+    const p = tap; tap = null;
+    if (!p || p.id !== e.pointerId || pointers.size > 1) return;
+    if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > 9 || Date.now() - p.t > 600) return;
+    if (!$('hintBar').classList.contains('show')) return;
+    if (cellFromPoint(e.clientX, e.clientY)) return;
+    const t = e.target;
+    if (t.closest && t.closest('#hintBar, .fab, .icon-btn, .btn-skip')) return;
+    hideHint();
+  }, true);
+})();
 viewport.addEventListener('wheel', (e) => {
   e.preventDefault();
   const rect = viewport.getBoundingClientRect();
@@ -4120,7 +4299,6 @@ $('setSound').onclick = () => {
   Store.save(); refreshSound();
   if (Sfx.on) { Sfx.wake(); Sfx.mark(); }
 };
-$('setUndo').onclick = () => { closeModal('modalSettings'); undo(); };
 $('setReset').onclick = () => { closeModal('modalSettings'); resetBoard(); };
 $('setZoomIn').onclick = () => zoomBy(1.25);
 $('setZoomOut').onclick = () => zoomBy(1 / 1.25);
@@ -4162,12 +4340,16 @@ $('gmBack').onclick = () => {
   saveProgress(); stopTimer(); renderLevels(); show('screen-levels');
 };
 
+$('btnUndo').onclick = () => undo();
+
 $('btnHint').onclick = () => {
   if (G.finished) return;
   if (Wallet.hints <= 0) { rechargeFlow('hints'); return; }
   if (giveHint()) {
+    const before = computeScore();
     Wallet.spend('hints'); G.usedHints++;
     renderBoosters(); saveProgress();
+    popScoreDelta(before - computeScore());
   }
 };
 
@@ -4182,10 +4364,12 @@ $('btnBoost').onclick = () => {
     .find(([r, c]) => G.grid[r][c] !== 2);
   if (!target) return;
   const [r, c] = target;
+  const before = computeScore();
   G.history.push({ r, c, from: G.grid[r][c] });
   G.grid[r][c] = 2;
   Wallet.spend('boosts'); G.usedBoosts++;
   hideHint(); renderAll(); renderBoosters();
+  popScoreDelta(before - computeScore());
   placeFeedback(r, c);
   scrollCellIntoView(r, c);
   saveProgress();
